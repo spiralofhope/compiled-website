@@ -1,445 +1,348 @@
-#!/usr/bin/ruby
-
-=begin
-
-- TODO: do a sync like this:   source -> compiled -> httpdocs
-
-FIXME: Making a new source directory with a .asc file in it isn't detected, because the destination directory doesn't exist yet.
-
-- If a new file is created, then re-create all files in that same directory - so as to update the navigation.
-- CSS - including multiple stylesheets which the browser can switch between.  Maybe hardcode this so that there are multiple destination files.  They could also be leveraged for translated/alternate pages (styles, languages, draft version, old versions, notes, etc)
-- remove the directory listing and replace it with a sitemap feature - linked at the bottom of every page.
-- find a way to hide the edit link and keep it accessible with an accesskey
-- I need to figure out section editing eventually.
- - generate a list of links in the footer to view/edit the templates being used?
-- Syntax highlighting
--- hpricot and syntax?  http://www.hokstad.com/syntax-highlighting-in-ruby.html
-- Footer - hosting logo and link
-
-Questions:
-- Can I have BlueFeather automatically apply a class= to all the tags it automatically-generates?  That would be handy.
--- Alternately, I could have a post-processor which adds the tags if they're not found.  Maybe I ought to have some kind of data scraper or HTML helper which can assist with that.  Otherwise, I'd have to make it.
-
-Later:
-- rounded corners, using http://www.html.it/articoli/niftycube/index.html
-- A show/hide for navigation and the header
--- But figure out how to remember the user preference when surfing.  Same with the stylesheet choice.
-
-Far future:
-- revision tracking
-
-=end
-
-# ------------------
-# Requirements:
-# ------------------
-=begin
-
-TODO: Ensure requirements are met.
-I built this on:
-- Ruby 1.8.6+
-- BlueFeather 0.22+
-  http://ruby.morphball.net/bluefeather/index_en.html
-  gem install bluefeather
-
-I don't know what specific versions are required.  BlueFeather claims it's for Ruby 1.9.x .. so I have no clue what's what.
-
-=end
-
-
-# -----------------
-# Configuration
-# -----------------
-
 source_directory='source'
-target_directory='httpdocs'
+www_directory='www'
 
 working_directory=File.expand_path(File.dirname(__FILE__))
 source_directory_path=File.expand_path(File.join(working_directory, source_directory))
-target_directory_path=File.expand_path(File.join(working_directory, target_directory))
+www_directory_path=File.expand_path(File.join(working_directory, www_directory))
 
 # TODO: None of this seems right.  =/
-lib = File.join('', 'home', 'user', 'bin', 'rb', 'lib', 'mine')
-$LOAD_PATH.unshift(lib)
-require File.join('lib_misc.rb')
-require File.join('lib_directories.rb')
-require File.join('lib_files.rb')
-require File.join('lib_strings.rb')
+$LOAD_PATH.unshift(File.join(working_directory, 'lib'))
+require 'lib_misc.rb'
+require 'lib_directories.rb'
+require 'lib_files.rb'
+require 'lib_strings.rb'
 
 # Local website, like file:///tmp/mydir/website .. with no trailing slash
-# $WEBSITE='file://' + File.join(target_directory_path)
+$WEBSITE='file://' + File.join(www_directory)
 # Full URL, like http://example.com .. with no trailing slash
-$WEBSITE="http://spiralofhope.com"
+# $WEBSITE="http://spiralofhope.com"
 
-# TODO: Make the format a raw html conversion and not a complete html document conversion, and then make my own <head> stuff?  But bluefeather has some smart markup for generating the title and stuff.  Check into that stuff.
-def markup(working_directory, source_directory, target_directory, source_directory_path, target_directory_path, source_file)
-  if ! File.exists?(source_file) then
-    puts "source_file does not exist, aborting: " + source_file.inspect
-    abort
-  end
-  if ! File.exists?(target_directory_path) then
-    md_directory(target_directory_path)
-  elsif ! File.directory?(target_directory_path) then
-    puts "target_directory_path exists, but it is not a directory, aborting: " + target_directory_path.inspect
-    abort
-  end
-  # TODO: Make this a variable like I did before.. that'll help tidy this nonsense up..
-  system('bluefeather --force --format d --output ' + target_directory_path + ' ' + source_file)
-end
-
-def viewer(file)
-  # TODO: Make this a variable like I did before.. that'll help tidy this nonsense up..
+def view_html(source_file_full_path)
   # TODO: Make this a proper method which checks for the existence of the file..
-  file=File.expand_path(file)
-#   system('links -g ' + file)
-  # Firefox with my add-ons is busted and doesn't print directories properly.  Links works.  =/  TODO: Re-test that
-  system('/home/user/bin/firefox-latest/firefox --new-tab ' + file)
+  # system('links -g ' + file)
+  system('firefox --new-tab ' + source_file_full_path)
 end
 
-def header_search(working_directory, source_directory, target_directory, source_directory_path, target_directory_path)
-  return '</head>\n<body>\n\n'
-end
-def header_replace(working_directory, source_directory, target_directory, source_directory_path, target_directory_path, source_file, target_file)
-  source_file=File.expand_path(source_file)
-  target_file=File.expand_path(target_file)
-  # What to replace with
-  return<<-HEREDOC
-<link rel="icon" href="#{$WEBSITE}/images/favicon.ico" type="image/x-icon">
-<link rel="shortcut icon" href="#{$WEBSITE}/images/favicon.ico" type="image/x-icon">
-<link rel="stylesheet" type="text/css" href="#{$WEBSITE}/css/main.css" />
-</head>
-<body>
-<a name id="top">
-<div class="nav">
-  <div class="float-left">
-    <a class="without_u" accesskey="z" href="#{$WEBSITE}/index.html">
-      <img align="left" src="#{$WEBSITE}/images/spiralofhope-96.png">
-    </a>
-    <br>
-    <font style="font-size:1.5em;"><font color="steelblue">S</font>piral of Hope</font>
-    <br>
-    <font style="font-size: 0.5em;">Better software is possible.</font>
-  </div>
-  <div class="float-right">
-    #{header_replace_navigation(working_directory, source_directory, target_directory, source_directory_path, target_directory_path, source_file, target_file)}
-  </div>
-</div>
-<a name="body">
-<div class="main">
 
-  HEREDOC
-end
-# Note that you better   cd_directory(source_directory_path) somewhere else before summoning this.  I don't want this routine constantly cd'ing.
-def header_replace_navigation(working_directory, source_directory, target_directory, source_directory_path, target_directory_path, source_file, target_file)
-  # TODO: Move this stuff up into something else, and then pass these variables along so they can be used elsewhere..
-  elements=File.join(working_directory, target_directory).split(File::Separator).length
-  # /home/user/live/Projects/compiled-website/0.3.5/httpdocs => 7
-  # Carve up my target directory
-  current_path=target_directory_path.split(File::Separator)
-  # "/home/user/live/Projects/compiled-website/0.3.5/httpdocs/subdir" => ["", "home", "user", "live", "Projects", "compiled-website", "0.3.5", "httpdocs", "subdir"]
-  # For every element in the original path
-  elements.times do
-    # Remove the start/leftmost element
-    current_path.shift
-  end
-  # This leaves only the trailing stuff, if anything.
-  # ["", "home", "user", "live", "Projects", "compiled-website", "0.3.5", "httpdocs", "subdir"] => ["subdir"]
-  # Patch it back together.  This is the subdirectory that I'm currently working in.
-  current_path=current_path.join(File::Separator)
-  # ["subdir"] => "subdir"
 
-  current_path_up=current_path.split(File::Separator)[0..-2].join(File::Separator)
-  if current_path_up == "" then current_path_up='/' end
-  # "subdir" => ""
+=begin
+TODO list:
+- Implement a hyphon - for unordered lists, and # for ordered lists
+- Consider manual lists.. I count the lines and paint the numbers myself.  This will let me have broken lists like this:
 
-  target_directory_path_up=target_directory_path.split(File::Separator)[0..-2].join(File::Separator)
-  # "subdir" => ""
+# one
+# two
+<pre>
+something
+</pre>
+# three
+# four
 
-  navigation=Array.new
-  # Up
-  index=""
-  if File.exists?(File.join(target_directory_path_up, 'index.html')) then index='/index.html' end
-  if File.expand_path(target_directory_path_up) == File.expand_path(target_directory_path) ||
-      target_directory_path_up == File.join(working_directory, target_directory)
-    then current_path_up=''
-  end
-  navigation << '<a href="' + $WEBSITE + current_path_up + index + '" accesskey="x">[^]</a> ' + "\n"
-  navigation << '<a href="file://' + source_file + '" accesskey="e">[edit]</a> ' + "\n"
- # Separate the nav from the dirs/files
-  navigation << "<br>\n"
+- Have [http://example.com] type links, which become [1] etc, auto-numbered.
+- A better 'listings' feature.  Just have it output the right CSS and let the user figure out how it ought to be displayed.  I'm tired of ;list: item
+- colon (:) for indentation
+- Manually-indent blocks between headers, like the original coWiki did.  I wonder what the HTML for that was.  Consider looking into my old archives, like my old RPG archives I sent to Angus.
+- implement "new page" creation concepts.  I would make a link like [[link]] and then the system would point me to the appropriate source .asc file.  This would summon my editor as usual, and I can make the page very easily.
+- tables, somehow..
+- Create a for-print version that changes inline links into anchor links to a nice list of endnotes.  I could even tinyurl all those links automatically..
+- Templating {{replacement file}}  {{subst:replacement file}}
+=end
 
-  # dirs/files
-  navigation_directories=Array.new
-  navigation_files=Array.new
-  # Create a web-friendly path
-  current_path_web='/' + current_path.split(File::Separator).join('/') + '/'
-  if current_path_web == "/./" then current_path_web="/" end
-  Dir[File.join(target_directory_path, '**')].each do |i|
-    if File.directory?(i) then
-      if File.exists?(File.join(i, 'index.html')) then
-        append='/index.html#body'
-        prepend_name=''
-        append_name=''
-      else
-        append='/'
-        prepend_name='<font color="grey">'
-        append_name='</font>'
-      end
-      navigation_directories << '<a href="' + $WEBSITE + current_path_web + File.basename(i) + append + '">' + prepend_name + File.basename(i) + '/' + append_name + "</a><br>\n"
+
+=begin
+Requirements:
+HTML Tidy
+  http://tidy.sourceforge.net/
+
+  cvs -d:pserver:anonymous@tidy.cvs.sourceforge.net:/cvsroot/tidy login
+  cvs -z3 -d:pserver:anonymous@tidy.cvs.sourceforge.net:/cvsroot/tidy co -P tidy
+  cd tidy/build/gmake
+  make
+  su
+  make install
+
+
+Notes:
+TODO: I'd love to use Ruby/HTML Tidy, but I don't know how to make it go.
+  http://tidy.rubyforge.org/
+  http://rubyforge.org/projects/tidy
+  http://tidy.rubyforge.org/classes/Tidy.html
+  gem install tidy
+=end
+
+=begin
+Usage:
+- You can combine multiple markup by starting it all with spaces between them.
+- wiki-style linking is done automatically, just type as usual and the engine will figure out the links.  Note that multiple words are given priority over single words.
+=end
+
+def markup(string, search_left, search_right, replace_left, replace_right, internal_markup_flag)
+  def marked_yes(string, search_left, search_right, replace_left, replace_right)
+    if string == nil then return '' end
+    # TODO: If a link, check that the destination exists
+    #  - local = create the file
+    #  - remote = check if it exists, and cache the results?  Only check once a day?  Then I can redirect to a page if I know the link is bad, and create a notification to myself.. maybe updating a master status log file.
+    if replace_left == nil && replace_right == nil then
+      return string
+    elsif replace_left == nil then
+      return string.sub(search_right, replace_right)
+    elsif replace_right == nil then
+      return string.sub(search_left, replace_left)
     else
-      if File.extname(i) == ".html" then append='#body' else append="" end
-      if File.basename(i) == 'index.html' then next end
-      navigation_files << '<a href="' + $WEBSITE + current_path_web + File.basename(i) + append + '">' + File.basename(i) + "</a><br>\n"
+      return string.sub(search_left, replace_left).sub(search_right, replace_right)
     end
   end
-  navigation_directories=navigation_directories.sort!
-  navigation_files=navigation_files.sort!
-  # TODO: I don't seem to be able to use <hr> with this design.. This should have better styling anyways.
-  return navigation << navigation_directories << "<br>\n" << navigation_files
+  def marked_no(string, internal_markup_flag)
+    if string == nil then return '' end
+    if internal_markup_flag != true then
+      # [:punct:] and [:blank:] don't work..
+      start=/(^| )/
+      punctuation=/(\.|,|!| |$)/
+
+# TODO: If every regex has the same start and end block, I should somehow be able to remove that duplication.. but I'd have to research regexes more and maybe other stuff.  I'm not sure what to do.
+# TODO: Something like this ought to work, but it just doesn't.  Boo.
+# [
+# [/\//, '<em>', '</em>'],
+# [/\*\*/, '<big>', '</big>'],
+# ].each do |i|
+# puts i.inspect
+# puts i[0].inspect
+#   string=markup(string, %r{
+#   (#{start})
+#   #{i[0]}
+#   },
+#   %r{
+#   #{i[0]}
+#   (#{punctuation})
+#   }, "\1#{i[1]}", "#{i[2]}\1", true)
+# end
+
+      string=markup(string, %r{(#{start})\/}, %r{\/(#{punctuation})}, '\1<em>', '</em>\1', true)
+      string=markup(string, %r{(#{start})\*\*}, %r{\*\*(#{punctuation})}, '\1<big>', '</big>\1', true)
+      string=markup(string, %r{(#{start})\*}, %r{\*(#{punctuation})}, '\1<b>', '</b>\1', true)
+      string=markup(string, %r{(#{start})_}, %r{_(#{punctuation})}, '\1<u>', '</u>\1', true)
+      string=markup(string, %r{(#{start})-}, %r{-(#{punctuation})}, '\1<s>', '</s>\1', true)
+      string=markup(string, %r{(#{start})`}, %r{`(#{punctuation})}, '\1<tt>', '</tt>\1', true)
+      # This one only matches stuff ending in .com, .ca, etc.
+#       string=markup(string, /(^| )((http\:\/\/|ftp:\/\/|irc:\/\/|gopher:\/\/)(.*)(\....?))( |$)/, /( |$)/, '\1<a href="\2">\2</a> ', '\1', true)
+      string=markup(string, /(^| )((http\:\/\/|ftp:\/\/|irc:\/\/|gopher:\/\/)(.*))( |$)/, /( |$)/, '\1<a href="\2">\2</a> ', '\1', true)
+
+      internal_markup_flag=false
+    end
+    return string
+  end
+
+  processed=""
+  # To avoid a runaway process, only handle 99 markup items on one single line:
+  count=0
+  until string == nil or count > 100 do
+    count+=1
+    string.match(/(#{search_left}.*?#{search_right})/)
+    if $' != nil then
+      string=$'
+      processed=
+        processed +
+        marked_no($`, internal_markup_flag) +
+        marked_yes($1, search_left, search_right, replace_left, replace_right)
+    else
+      # Deal with the remainder after a link.
+      processed=processed + marked_no(string, internal_markup_flag)
+      break # Stop this loop.
+    end
+  end
+  return processed
 end
 
-def footer_search(working_directory, source_directory, target_directory, source_directory_path, target_directory_path)
-  return '</body>\n</html>\n\z'
+# TODO:  Only allow one link for each file?  I'd have to maintain a working array of all the already-created links, and know if I'm creating a duplicate.
+# TODO:  Possibly only one link for every header-section.  Somewhat more complex than the above, but really really worth it.
+def get_files(directory)
+  array=[]
+  Dir["#{directory}/*.asc"].each do |file|
+    next if not File.file?(file)
+    # "/path/foo/file name.asc" => "file name"
+    array << File.basename(file.chomp(File.extname(file)))
+  end
+  return array.sort
 end
-def footer_replace(working_directory, source_directory, target_directory, source_directory_path, target_directory_path)
-  return<<-HEREDOC
-</body>
-</html>
-</div>
-<div class="footer">
-  <img src="#{$WEBSITE}/images/spiralofhope-16.png"> Spiral of Hope / spiralofhope - <a href="mailto:@gmail.com">@gmail.com</a>
-  <br>
-  <img src="#{$WEBSITE}/images/l4rge_logo-16.png">Hosting provided by <a href="http://l4rge.com">l4rge.com</a>, <a href="#{$WEBSITE}/thanks.html#l4rge">thanks!</a>
-</div>
+def automatic_linking(array_files, string)
+  file_working=[]
+  string.each do |line|
+    array_files.each do |file|
+      # 'some-example.html' => 'some example'
+      # dashes become spaces
+      file_string=file.gsub(/-/, ' ')
+      # remove the ending .html
+      file_string=file_string.sub(/\.html$/, '')
 
-<!-- Disable the extra JavaScript, until I'm told which tag I should use.   Maybe it's <REMOVEADS>-->
-<REMOVEADS>
-<div style="position:absolute; top:-1500px;"><noscript>
+      file='./' + file + '.html'
+      # Note: case-insensitivity is defined by the /i .. I don't think I'd ever want case-sensitivity.
+      line=markup(line, /(#{file_string})/i, //, '<a href="' + file + '">\1</a>', '', true)
+    end
+    file_working << line
+  end
+  return file_working.to_s
+end
+
+# TODO:
+def tidy_html(source_file_full_path)
+  system("tidy --drop-empty-paras true --indent true --keep-time true --wrap 0 -clean -quiet -omit -asxhtml -access -modify --force-output true --show-errors 0 --show-warnings false --break-before-br true --tidy-mark false #{source_file_full_path}")
+end
+
+def compile(source_file_full_path, target_path)
+  if ! File.exists?(source_file_full_path) then
+    puts "source_file does not exist, aborting: " + source_file_full_path.inspect
+    abort
+  end
+  if not File.exists?(target_path) then
+    md_directory(target_path)
+  elsif not File.directory?(target_path) then
+    puts "target_path exists, but it is not a directory, aborting: " + target_path.inspect
+    abort
+  end
+
+  target_file_contents='<p>' + markup(file_read(source_file_full_path), /<.+>/, /<.+>/, nil, nil, false) + '</p>'
+  target_file_contents=automatic_linking(get_files(File.dirname(source_file_full_path)), target_file_contents)
+
+  target_file_full_path=File.join(target_path, File.basename(source_file_full_path.chomp(File.extname(source_file_full_path))) + '.html')
+
+  target_file_contents_processing=[]
+  target_file_contents.each do |line|
+    if line == "" then
+      flag=true
+      next
+    end
+    if flag == true then
+      flag=false
+    end
+    target_file_contents_processing << line
+  end
+
+# TODO: This was an attempt at allowing lists.
+#   target_file_contents.gsub!(/\n\n-/, "<ul><li>\1</li>")
+#   target_file_contents.gsub!(/\n-/, "<li>\1</li>")
+#   target_file_contents.gsub!(/\n\n-{1}.*\n\n/, "<li>\1</li></ul>")
+
+  target_file_contents.gsub!(/(\n\n)/, "<\/p>\1<p>")
+
+  # TODO: header
+  # TODO: footer
+
+  create_file(target_file_full_path, target_file_contents)
+  tidy_html(target_file_full_path)
+  # TODO: sync the timestamp
+end
+def test_compile()
+  source_file_contents=<<-HEREDOC
+*bold*, **big**. _underline_ /italics/ -strikethrough- `truetype`
+Yes, this is legal in my code.  I'll just clean it up with HTML Tidy.:
+  *two _words* test_
+* _bold underline_ * _ *underline bold* _ _ * / underlined bold emphasis / * _
+** * - _ / big bold strikethrough underlined emphasis / _ - * **
+left <a href="http://example.com">no *markup* here</a> right
+<nowiki>*test*</nowiki>  <anything>_yep_</> <>don't</>
+left http://example.com right
+http://invalid http://invalid.c
+http://valid.ca
+http://valid.com
+ftp://cool.ca
+*bold*._invalid_
+
+this is some example text in *an _ example _ paragraph*
+
+this is some text
+this is someexample text
+this issome example text
   HEREDOC
-end
 
+  working_directory=File.join('', 'tmp', "test_markup.#{$$}")
+  md_directory(working_directory)
 
-# -------
-# Setup
-# -------
+  create_file(File.join(working_directory, "some.asc"), "")
+  create_file(File.join(working_directory, "some example.asc"), "")
+  create_file(File.join(working_directory, "example.asc"), "")
 
-def viewall(directory)
-  directory=File.expand_path(directory)
-  # The **/ makes it do subdirectories too.
-  Dir.glob(File.join(directory, '') + '**/*.html') { |file|
-    file=File.expand_path(file)
-    viewer(file)
-  }
-end
-
-
-def search_replace(working_directory, source_directory, target_directory, source_directory_path, target_directory_path, source_file, target_file)
-  # I originally had the header and footer done separately, but to keep performance high, I only check and do the header/footer stuff when rebuilding the file.
-  # Header
-  search=Regexp.new(header_search(working_directory, source_directory, target_directory, source_directory_path, target_directory_path))
-  replace=header_replace(working_directory, source_directory, target_directory, source_directory_path, target_directory_path, source_file, target_file)
-  original_contents=file_read(target_file)
-  replacement_contents=multiline_replace(search, original_contents, replace)
-  if original_contents != replacement_contents then
-    vputs 'Applying the header to ' + target_file
-    f = File.open(target_file, 'w')
-      f.write(replacement_contents)
-    f.close
-  end
-  # Footer
-  search=Regexp.new(footer_search(working_directory, source_directory, target_directory, source_directory_path, target_directory_path))
-  replace=footer_replace(working_directory, source_directory, target_directory, source_directory_path, target_directory_path)
-  original_contents=file_read(target_file)
-  replacement_contents=multiline_replace(search, original_contents, replace)
-  if original_contents != replacement_contents then
-    vputs 'Applying the footer to ' + target_file
-    f = File.open(target_file, 'w')
-      f.write(replacement_contents)
-    f.close
-  end
-end
-
-
-# This expects proper full paths
-def compile(working_directory, source_directory, target_directory, source_directory_path, target_directory_path, source_file)
-  target_file=File.join(target_directory_path, File.basename(source_file, '.asc') + '.html')
-  # Build missing files.
-  if ! File.exists?(target_file) then
-    vputs 'File does not exist, building ' + target_file
-    markup(working_directory, source_directory, target_directory, source_directory_path, target_directory_path, source_file)
-    search_replace(working_directory, source_directory, target_directory, source_directory_path, target_directory_path, source_file, target_file)
-    timestamp_sync(source_file, target_file)
-  end
-  # Rebuild files with a different timestamp.
-  # I realise that this will rebuild and overwrite a changed .html file, but the user should never change a target .html file directly but should instead be changing the .asc source file.
-  # For some odd reason I can't wrap this into its own little helper method.
-  stime=File.stat(source_file).mtime
-  ttime=File.stat(target_file).mtime
-  if stime != ttime then
-    vputs "File times don't match, rebuilding " + target_file
-    markup(working_directory, source_directory, target_directory, source_directory_path, target_directory_path, source_file)
-    search_replace(working_directory, source_directory, target_directory, source_directory_path, target_directory_path, source_file, target_file)
-    timestamp_sync(source_file, target_file)
-    # TODO: Do this in a more friendly and configurable way.
-    # FIXME: I can't append #body !!!
-    system("/home/user/bin/firefox-latest/firefox #{target_file}")
-  end
-end # compile
-def test_compile
-  working_directory=File.join('', 'tmp', "test_global_compare.#{$$}")
-  working_directory=File.expand_path(working_directory)
   source_file=File.join(working_directory, 'source.asc')
-  target_directory_path=working_directory
-  $HOME=target_directory_path
+  create_file(source_file, source_file_contents)
 
-  lib = File.join(working_directory, 'lib')
-  require File.join(lib, 'misc.rb')
-  require File.join(lib, 'directories.rb')
-  require File.join(lib, 'files.rb')
-  require File.join(lib, 'strings.rb')
+  compile(source_file, working_directory)
 
-  md_directory(working_directory)
-  md_directory(target_directory_path)
-  create_file(File.join(working_directory, 'source.asc'), '**missing file**')
-  # Test
-  vputs "\n # source.html is missing, so it should be created."
-  compile(working_directory, source_directory, target_directory, source_directory_path, target_directory_path, source_file)
-  # Sleep to make sure the time is wrong for the second pass.
-  vputs "\n------------------------------"
-  sleep 1.1
-  vputs "\n # Re-create the file with the new time."
-  create_file(File.join(target_directory_path, 'source.asc'), '**wrong timestamp**')
-#   system("\ls", "-lG", "--time-style=full-iso", working_directory)
-  vputs "\n # source.html is there, but I re-created the source file so the time should now be wrong."
-  compile(working_directory, source_directory, target_directory, source_directory_path, target_directory_path, source_file)
-  vputs "\n # The time should now be right."
-#   system("\ls", "-lG", "--time-style=full-iso", working_directory)
-
-  vputs "\n # Trying a couple more times, there should be no processing."
-  compile(working_directory, source_directory, target_directory, source_directory_path, target_directory_path, source_file)
-  compile(working_directory, source_directory, target_directory, source_directory_path, target_directory_path, source_file)
-  vputs "\n # There should not have been any output."
-
-  vputs "\n # Now trying with the source in a subdirectory."
-  md_directory(File.join(working_directory, 'subdir'))
-  create_file(File.join(working_directory, 'subdir', 'source-in-subdir.asc'), '**source in a subdirectory**')
-  source_file=File.join(working_directory, 'subdir', 'source-in-subdir.asc')
-  compile(working_directory, source_directory, target_directory, source_directory_path, target_directory_path, source_file)
-
-  vputs "\n # Now trying with the target in a subdirectory."
-  md_directory(File.join(working_directory, 'subdir'))
-  target_directory_path=File.expand_path(File.join(working_directory, 'subdir'))
-  create_file(File.join(working_directory, 'target-in-subdir.asc'), '**target in a subdirectory**')
-  source_file=File.join(working_directory, 'target-in-subdir.asc')
-  compile(working_directory, source_directory, target_directory, source_directory_path, target_directory_path, source_file)
-
-  vputs "\n # Now trying with the source and target in different subdirectories."
-  md_directory(File.join(working_directory, 'source'))
-  md_directory(File.join(working_directory, 'target'))
-  source_directory_path=File.expand_path(File.join(working_directory, 'source'))
-  target_directory_path=File.expand_path(File.join(working_directory, 'target'))
-  create_file(File.join(source_directory_path, 'both-in-subdirs.asc'), '**source and target in different subdirectories**')
-  source_file=File.join(source_directory_path, 'both-in-subdirs.asc')
-  compile(working_directory, source_directory, target_directory, source_directory_path, target_directory_path, source_file)
-
-  # Check
-  viewall(working_directory)
-  # Teardown
-  sleep 3
-  rm_directory(working_directory)
-end # test_compile
+  target_file_full_path=File.join(working_directory, File.basename(source_file.chomp(File.extname(source_file))) + '.html')
+  puts file_read(target_file_full_path)
+end
 # $VERBOSE=nil
-# test_compile
+# test_compile()
 
+def compile_missing_file(source_file_full_path, target_path)
+    vputs 'Building missing file:  ' + source_file_full_path.inspect
+    compile(source_file_full_path, target_path)
 
-def global_compile(working_directory, source_directory, target_directory, source_directory_path, target_directory_path)
-  Dir['**/*.asc'].each do |source_file|
-    target_directory_path_global=File.join(target_directory_path, File.dirname(source_file))
-    source_file=File.expand_path(source_file)
-    compile(working_directory, source_directory, target_directory, source_directory_path, target_directory_path_global, source_file)
-  end
-end # global_compile
-def test_global_compile
-  working_directory=File.join('', 'tmp', "test_global_compare.#{$$}")
-  working_directory=File.expand_path(working_directory)
-  source_directory_path=File.expand_path(File.join(working_directory, 'source'))
-  target_directory_path=File.expand_path(File.join(working_directory, 'target'))
+    target_file_full_path=File.join(target_path, File.basename(source_file_full_path.chomp('.asc') + '.html'))
+    timestamp_sync(source_file_full_path, target_file_full_path)
 
-  lib = File.join(working_directory, 'lib')
-  require File.join(lib, 'misc.rb')
-  require File.join(lib, 'directories.rb')
-  require File.join(lib, 'files.rb')
-  require File.join(lib, 'strings.rb')
+  view_html(target_file_full_path)
 
-  md_directory(working_directory)
-  md_directory(source_directory_path)
-  cd_directory(source_directory_path)
-  md_directory(File.join(source_directory_path, 'subdir'))
-  md_directory(File.join(source_directory_path, 'subdir', 'sub-subdir'))
-  md_directory(target_directory_path)
+    # TODO: Re-compile all files in that same source directory, to ensure that automatic linking is re-applied to include this new file
+end
+def compile_different_timestamp(source_file_full_path, target_path)
+    vputs 'Building unsynced timestamps:  ' + source_file_full_path.inspect
+    compile(source_file_full_path, target_path)
 
-  create_file(File.join(source_directory_path, 'source.asc'), '**content**')
-  create_file(File.join(source_directory_path, 'subdir', 'subdir.asc'), '**content**')
-  create_file(File.join(source_directory_path, 'subdir', 'sub-subdir', 'sub-subdir.asc'), '**content**')
+    target_file_full_path=File.join(target_path, File.basename(source_file_full_path.chomp('.asc') + '.html'))
+    timestamp_sync(source_file_full_path, target_file_full_path)
 
-  # TODO: This is a kludgy fix for the navigation.. I'm not sure what else to do..
-  $HOME=target_directory_path
+  view_html(target_file_full_path)
+end
 
-  # Test
-  puts "\n # Creating missing files."
-  global_compile(source_directory_path, target_directory_path, working_directory, target_directory)
-
-  puts "\n # Re-try to ensure that everything went well."
-  global_compile(source_directory_path, target_directory_path, working_directory, target_directory)
-  puts " # You should not have seen any output."
-
-  # Check
-  viewall(working_directory)
-  # Teardown
-#   sleep 10
-  rm_directory(working_directory)
-
-end # test_global_compile
-# $VERBOSE=nil
-# test_global_compile
-
-# ----------------
-# The program
-# ----------------
-
-def main(working_directory, source_directory, target_directory, source_directory_path, target_directory_path)
+def main(source_directory_path, www_directory_path)
   pid_file=File.join('', 'tmp', 'compile_child_pid')
   fork_killer(pid_file)
   cd_directory(source_directory_path)
   # The main loop - once a second.
   fork_helper(pid_file) {
-    global_compile(working_directory, source_directory, target_directory, source_directory_path, target_directory_path)
-  }
-end
-# If you made changes to the templating and need to re-create everything, then blank out all the files.
-# If I delete all .html, they get rebuilt.  However, the navigation won't be correct since not 100% of the files will exist until the very last item in each directory is built.  The solution:  Don't delete the .html, just blank them out and let the rebuild work.
-#  find -type f -name '*.html' -exec \cp /dev/null {} \;
-def delete_all(working_directory, source_directory, target_directory, source_directory_path, target_directory_path)
-  cd_directory(target_directory_path)
-  Dir['**/*.html'].each do |file|
-    File.delete(file)
-  end
-end
-# delete_all(working_directory, source_directory, target_directory, source_directory_path, target_directory_path)
-def blank_all(working_directory, source_directory, target_directory, source_directory_path, target_directory_path)
-  cd_directory(target_directory_path)
-  Dir['**/*.html'].each do |file|
-    create_file(file, "")
-  end
-end
+    Dir['**/*.asc'].each do |asc_file|
+      target_file_full_path=File.expand_path(File.join(www_directory_path, asc_file.chomp('.asc') + '.html'))
+      if not File.exists?(target_file_full_path) then
+        source_file_full_path=File.expand_path(asc_file)
+        compile_missing_file(source_file_full_path, target_file_full_path)
+        next
+      end
+      source_file_full_path=File.expand_path(asc_file)
+      source_time=File.stat(source_file_full_path).mtime
+      target_time=File.stat(target_file_full_path).mtime
+      if not source_time == target_time then
+        target_path=File.join(www_directory_path, File.dirname(asc_file))
+        compile_different_timestamp(source_file_full_path, target_path)
+        next
+      end
+    end # Dir['**/*.asc'].each
+  } # fork_helper
+end # main
 
-# blank_all(working_directory, source_directory, target_directory, source_directory_path, target_directory_path)
-# $VERBOSE=nil
-main(working_directory, source_directory, target_directory, source_directory_path, target_directory_path)
+$VERBOSE=nil
+main(source_directory_path, www_directory_path)
 # sleep 1
 # viewer(File.join(target_directory_path, 'index.html'))
 # sleep 3
 # fork_killer(File.join('', 'tmp', 'compile_child_pid'))
 
 
-__END__
+=begin
+comments in a regular expression...
+
+# incomplete
+contents.gsub! %r{
+  (
+  \[Bindable)(\]
+  \s*
+  public
+  \s+
+  function
+  \s+
+  get
+  \s+)
+  (\w+) # property name $3
+  \s*
+  \([^)]*\)
+....
+}x, '\\1(event="\\3Change")\\2\\3...'
+=end

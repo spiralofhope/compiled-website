@@ -1,3 +1,17 @@
+2010-01-31  spiralofhope  <spiralofhope@lavabit.com>
+  
+  0.5.1_internal
+  And yet another long break.
+  
+  * Pre-CHANGELOG
+  
+  * Began work on a rewrite.
+
+  * This version introduces symbolic links to my libraries.  I'm not
+  going to include add the links or the libraries into git, for
+  simplicity.  The proper libraries will appear in later revisions,
+  when they are no longer merely symbolic links.
+
 2009-04-13  spiralofhope  <spiralofhope@lavabit.com>
   
   0.4.8_internal
