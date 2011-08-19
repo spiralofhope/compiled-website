@@ -2,11 +2,17 @@
 
 =begin
 TODO
+issue:
+if I delete all .html, they get rebuilt.  However, the navigation won't be correct since not 100% of the files will exist until the very last item in each directory is built.
+
+So this means that the navigation will need to know about the source files to predict the creation of .html files..
+
+
 - The issue I was having with firefox links is with some add-on or such!  -safe-mode works as-expected.
 
+- Test with the remote website.  I'd have to add on another function to handle ftp:// and replace the /foo/bar/baz with the root of the website.. so generated links are correct.
 - CSS - including multiple stylesheets.
 
-- Test with the remote website.  I'd have to add on another function to handle ftp:// and replace the /foo/bar/baz with the root of the website.. so generated links are correct.
 - Templating {{replacement file}}  {{subst:replacement file}}
  - generate a list of links in the footer to view/edit the templates being used?
 - automatic linking [[link]]
@@ -44,10 +50,14 @@ require File.join(lib, 'mine', 'files.rb')
 require File.join(lib, 'mine', 'exec.rb')
 require File.join(lib, 'mine', 'strings.rb')
 
-working_directory=File.expand_path(File.join('', 'home', 'user', 'live', 'Projects', 'compiled-website', '0.2.1'))
+working_directory=File.expand_path(File.join('', 'home', 'user', 'live', 'Projects', 'compiled-website', '0.3.1'))
 source_directory=File.expand_path(File.join(working_directory, 'source'))
 target_directory=File.expand_path(File.join(working_directory, 'httpdocs'))
-$HOME=target_directory
+
+# Local website, like file:///tmp/mydir/website/ .. requires a trailing slash
+$WEBSITE='file://' + File.join(target_directory, '')
+# Full URL, like http://example.com/ .. requires a trailing slash
+# $WEBSITE="http://spiralofhope.com/"
 
 # TODO: Make the format something boring, and then make my own headers?  But bluefeather has some smart markup for generating the title and stuff.  Check into that stuff.
 def markup(source_file, target_directory)
@@ -98,42 +108,7 @@ def header_replace(source_file, target_file, target_directory, working_directory
   -moz-padding-start: 30px;
   background-color: white;
 ">
-<a href="file://#{$HOME}" accesskey="z">
-#{
-# TODO: I'm not sure how to avoid using $HOME.  =/
-  if File.dirname(target_file) == $HOME then
-    '<font color="green">[&lt;&lt;]</font>'
-  else
-    '[&lt;&lt;]'
-  end
-}
-</a>
-<a href="file://#{target_directory}" accesskey="x">[^]</a>
-<a href="file://#{source_file}" accesskey="e">edit</a>
-<br>
-#{
-  navigation_directories=Array.new
-  navigation_files=Array.new
-  Dir[File.join(target_directory, '**')].each do |i|
-    if File.directory?(i) then
-      if File.exists?(File.join(i, 'index.html')) then
-        navigation_directories << '<a href="file://' + i + '/index.html"><font color="brown">' + File.basename(i) + '</font></a><br>'
-      else
-        navigation_directories << '<a href="file://' + i + '"><font color="brown">' + File.basename(i) + '</font></a><br>'
-      end
-    else
-      if i == target_file then
-        navigation_files << '<a href="file://' + i + '#body"><font color="green">' + File.basename(i) + '</font></a><br>'
-      else
-        navigation_files << '<a href="file://' + i + '#body">' + File.basename(i) + '</a><br>'
-      end
-    end
-  end
-  navigation_directories=navigation_directories.sort!
-  navigation_files=navigation_files.sort!
-  navigation_directories << navigation_files
-  navigation_directories
-}
+#{header_replace_navigation(source_file, target_file, target_directory, working_directory)}
 </p>
 <a name="body">
 <div style="
@@ -149,6 +124,47 @@ def header_replace(source_file, target_file, target_directory, working_directory
 ">
 
   HEREDOC
+end
+# TODO: I'm not sure how to avoid using $HOME.  =/
+# TODO: I didn't even try to not use $WEBSITE
+def header_replace_navigation(source_file, target_file, target_directory, working_directory)
+  navigation=Array.new
+  navigation_directories=Array.new
+  navigation_files=Array.new
+
+  if File.join(target_directory, '') == $WEBSITE.sub('file://', '') then
+    navigation << '<a href="' + $WEBSITE + 'index.html" accesskey="z"><font color="green">[&lt;&lt;]</font></a>' + "\n"
+  else
+    navigation << '<a href="' + $WEBSITE + 'index.html" accesskey="z">[&lt;&lt;]</a>' + "\n"
+  end
+
+  navigation << '<a href="' + $WEBSITE + '" accesskey="x">[^]</a> ' + "\n"
+  navigation << '<a href="file://' + source_file + '" accesskey="e">edit</a> ' + "\n"
+  navigation << "<br>\n"
+
+  pwd=Dir.pwd
+  cd_directory(target_directory)
+  Dir['**'].each do |i|
+    if File.directory?(i) then
+      if File.exists?(File.join(i, 'index.html')) then
+        navigation_directories << '<a href="' + $WEBSITE + i + '/index.html">' + i + "</a><br>\n"
+      else
+        navigation_directories << '<a href="' + $WEBSITE + i + '">' + i + "</a><br>\n"
+      end
+    else
+      if (target_directory + "/" + i) == target_file then
+        navigation_files << '<a href="' + $WEBSITE + i + '#body"><font color="green">' + i + "</font></a><br>\n"
+      else
+        navigation_files << '<a href="' + $WEBSITE + i + '#body">' + i + "</a><br>\n"
+      end
+    end
+  end
+  cd_directory(pwd)
+
+  navigation_directories=navigation_directories.sort!
+  navigation_files=navigation_files.sort!
+  # TODO: I don't seem to be able to use <hr> with this design.. This should have better styling anyways.
+  return navigation << navigation_directories << "<br>\n" << navigation_files
 end
 
 def footer_search(source_file, target_file, target_directory, working_directory)
@@ -234,7 +250,8 @@ def compile(source_file, target_directory, working_directory)
     search_replace(source_file, target_file, target_directory, working_directory)
     timestamp_sync(source_file, target_file)
     # TODO: Do this in a more friendly and configurable way.
-    system('firefox ' + target_file)
+    # FIXME: I can't append #body !!!
+    system("firefox #{target_file}")
   end
 end # compile
 def test_compile
@@ -372,8 +389,8 @@ $VERBOSE=nil
 # Delete all the .html files to force a complete rebuild.  This is good if you're screwing with templating and want to surf around.  FIXME Not working..  =/
 # system('find', target_directory, '-type', 'f', '-name', '*.html', '-exec', 'rm', '{}', '\;')
 main(source_directory, target_directory, working_directory)
-sleep 1
-viewer(File.join(target_directory, 'index.html'))
+# sleep 1
+# viewer(File.join(target_directory, 'index.html'))
 # sleep 3
 # fork_killer(File.join('', 'tmp', 'compile_child_pid'))
 
