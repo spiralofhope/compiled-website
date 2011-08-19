@@ -1,3 +1,12 @@
+2009-04-13  spiralofhope  <spiralofhope@lavabit.com>
+  
+  0.4.8_internal
+  Another long break it seems.
+  
+  * Pre-CHANGELOG
+  
+  * rb/automated-linking.rb:  First appearance.
+
 2009-07-09  spiralofhope  <spiralofhope@lavabit.com>
   
   0.4.6_internal

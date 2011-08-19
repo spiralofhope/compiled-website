@@ -2,30 +2,27 @@
 
 =begin
 
-FIXME: Making a new source directory with a file in it isn't detected, because the destination directory doesn't exist yet.
+- TODO: do a sync like this:   source -> compiled -> httpdocs
+
+FIXME: Making a new source directory with a .asc file in it isn't detected, because the destination directory doesn't exist yet.
 
 - If a new file is created, then re-create all files in that same directory - so as to update the navigation.
 - CSS - including multiple stylesheets which the browser can switch between.  Maybe hardcode this so that there are multiple destination files.  They could also be leveraged for translated/alternate pages (styles, languages, draft version, old versions, notes, etc)
 - remove the directory listing and replace it with a sitemap feature - linked at the bottom of every page.
 - find a way to hide the edit link and keep it accessible with an accesskey
 - I need to figure out section editing eventually.
-- Templating {{replacement file}}  {{subst:replacement file}}
  - generate a list of links in the footer to view/edit the templates being used?
-- automatic linking [[link]]
 - Syntax highlighting
 -- hpricot and syntax?  http://www.hokstad.com/syntax-highlighting-in-ruby.html
-- Make the header hidable if javascript is enabled.
 - Footer - hosting logo and link
-- Implement "view source" ?
 
 Questions:
 - Can I have BlueFeather automatically apply a class= to all the tags it automatically-generates?  That would be handy.
 -- Alternately, I could have a post-processor which adds the tags if they're not found.  Maybe I ought to have some kind of data scraper or HTML helper which can assist with that.  Otherwise, I'd have to make it.
 
 Later:
-- markup language changes
-- http://www.html.it/articoli/niftycube/index.html
-- A show/hide for navigation.
+- rounded corners, using http://www.html.it/articoli/niftycube/index.html
+- A show/hide for navigation and the header
 -- But figure out how to remember the user preference when surfing.  Same with the stylesheet choice.
 
 Far future:
@@ -54,20 +51,23 @@ I don't know what specific versions are required.  BlueFeather claims it's for R
 # Configuration
 # -----------------
 
-working_directory=File.expand_path(File.join('', 'home', 'user', 'live', 'Projects', 'compiled-website', '0.4.5'))
 source_directory='source'
 target_directory='httpdocs'
+
+working_directory=File.expand_path(File.dirname(__FILE__))
 source_directory_path=File.expand_path(File.join(working_directory, source_directory))
 target_directory_path=File.expand_path(File.join(working_directory, target_directory))
 
-lib = File.join(working_directory, 'lib')
-require File.join(lib, 'misc.rb')
-require File.join(lib, 'directories.rb')
-require File.join(lib, 'files.rb')
-require File.join(lib, 'strings.rb')
+# TODO: None of this seems right.  =/
+lib = File.join('', 'home', 'user', 'bin', 'rb', 'lib', 'mine')
+$LOAD_PATH.unshift(lib)
+require File.join('lib_misc.rb')
+require File.join('lib_directories.rb')
+require File.join('lib_files.rb')
+require File.join('lib_strings.rb')
 
 # Local website, like file:///tmp/mydir/website .. with no trailing slash
-$WEBSITE='file://' + File.join(target_directory_path)
+# $WEBSITE='file://' + File.join(target_directory_path)
 # Full URL, like http://example.com .. with no trailing slash
 $WEBSITE="http://spiralofhope.com"
 
@@ -93,7 +93,7 @@ def viewer(file)
   file=File.expand_path(file)
 #   system('links -g ' + file)
   # Firefox with my add-ons is busted and doesn't print directories properly.  Links works.  =/  TODO: Re-test that
-  system('firefox --new-tab ' + file)
+  system('/home/user/bin/firefox-latest/firefox --new-tab ' + file)
 end
 
 def header_search(working_directory, source_directory, target_directory, source_directory_path, target_directory_path)
@@ -176,11 +176,19 @@ def header_replace_navigation(working_directory, source_directory, target_direct
   if current_path_web == "/./" then current_path_web="/" end
   Dir[File.join(target_directory_path, '**')].each do |i|
     if File.directory?(i) then
-      if File.exists?(File.join(i, 'index.html')) then append='/index.html#body' else append="/" end
-      navigation_directories << '<a href="' + $WEBSITE + current_path_web + File.basename(i) + append + '">' + File.basename(i) + "</a><br>\n"
+      if File.exists?(File.join(i, 'index.html')) then
+        append='/index.html#body'
+        prepend_name=''
+        append_name=''
+      else
+        append='/'
+        prepend_name='<font color="grey">'
+        append_name='</font>'
+      end
+      navigation_directories << '<a href="' + $WEBSITE + current_path_web + File.basename(i) + append + '">' + prepend_name + File.basename(i) + '/' + append_name + "</a><br>\n"
     else
       if File.extname(i) == ".html" then append='#body' else append="" end
-      if i == 'index.html' then next end
+      if File.basename(i) == 'index.html' then next end
       navigation_files << '<a href="' + $WEBSITE + current_path_web + File.basename(i) + append + '">' + File.basename(i) + "</a><br>\n"
     end
   end
@@ -274,7 +282,7 @@ def compile(working_directory, source_directory, target_directory, source_direct
     timestamp_sync(source_file, target_file)
     # TODO: Do this in a more friendly and configurable way.
     # FIXME: I can't append #body !!!
-    system("firefox #{target_file}")
+    system("/home/user/bin/firefox-latest/firefox #{target_file}")
   end
 end # compile
 def test_compile
@@ -411,13 +419,21 @@ end
 # If you made changes to the templating and need to re-create everything, then blank out all the files.
 # If I delete all .html, they get rebuilt.  However, the navigation won't be correct since not 100% of the files will exist until the very last item in each directory is built.  The solution:  Don't delete the .html, just blank them out and let the rebuild work.
 #  find -type f -name '*.html' -exec \cp /dev/null {} \;
+def delete_all(working_directory, source_directory, target_directory, source_directory_path, target_directory_path)
+  cd_directory(target_directory_path)
+  Dir['**/*.html'].each do |file|
+    File.delete(file)
+  end
+end
+# delete_all(working_directory, source_directory, target_directory, source_directory_path, target_directory_path)
 def blank_all(working_directory, source_directory, target_directory, source_directory_path, target_directory_path)
   cd_directory(target_directory_path)
   Dir['**/*.html'].each do |file|
     create_file(file, "")
   end
 end
-blank_all(working_directory, source_directory, target_directory, source_directory_path, target_directory_path)
+
+# blank_all(working_directory, source_directory, target_directory, source_directory_path, target_directory_path)
 # $VERBOSE=nil
 main(working_directory, source_directory, target_directory, source_directory_path, target_directory_path)
 # sleep 1
