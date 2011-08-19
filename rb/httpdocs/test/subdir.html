@@ -5,11 +5,28 @@
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 </head>
 <body style="background-color: lightgrey;">
-<!-- header -->
-<p style="
+<a name id="top">
+
+<style type="text/css">
+#col1 { width: 49%; float: left; }
+#col2 { width: 49%; float: right; }
+.hidden { display: none; }
+.unhidden { display: block; }
+</style>
+
+<script type="text/javascript">
+function unhide(divID) {
+    var item = document.getElementById(divID);
+    if (item) {
+        item.className=(item.className=='hidden')?'unhidden':'hidden';
+    }
+}
+</script>
+
+<p id="nav" class="hidden" style="
   position: relative;
   min-width: 13em;
-  max-width: 52em;
+  max-width: 1000px;
   margin: 4em auto;
   border: 1px solid ThreeDShadow;
   -moz-border-radius: 10px;
@@ -17,16 +34,33 @@
   -moz-padding-start: 30px;
   background-color: white;
 ">
-<a href="file:///home/user/live/Projects/compiled-website/0.1.1/httpdocs" accesskey="z">[&lt;]</a>
-<a href="file:///home/user/live/Projects/compiled-website/0.1.1/httpdocs/test" accesskey="x">[^]</a>
-<a href="file:///home/user/live/Projects/compiled-website/0.1.1/source/test/subdir.asc" accesskey="e">edit</a>
-<br>
-<a href="file:///home/user/live/Projects/compiled-website/0.1.1/httpdocs/test/subdir.html">subdir.html</a><br>
+<a href="javascript:unhide('nav');">[show navigation]</a>
 </p>
+<p id="nav" class="unhidden" style="
+  position: relative;
+  min-width: 13em;
+  max-width: 1000px;
+  margin: 4em auto;
+  border: 1px solid ThreeDShadow;
+  -moz-border-radius: 10px;
+  padding: 3em;
+  -moz-padding-start: 30px;
+  background-color: white;
+">
+<a href="javascript:unhide('nav');">[hide]</a>
+<a href="file:///home/user/live/Projects/compiled-website/0.2.1/httpdocs" accesskey="z">
+[&lt;&lt;]
+</a>
+<a href="file:///home/user/live/Projects/compiled-website/0.2.1/httpdocs/test" accesskey="x">[^]</a>
+<a href="file:///mnt/autofs/hdd/sda8/live/Projects/compiled-website/0.2.1/source/test/subdir.asc" accesskey="e">edit</a>
+<br>
+<a href="file:///home/user/live/Projects/compiled-website/0.2.1/httpdocs/test/subdir.html#body"><font color="green">subdir.html</font></a><br>
+</p>
+<a name="body">
 <div style="
   position: relative;
   min-width: 13em;
-  max-width: 52em;
+  max-width: 1000px;
   margin: 4em auto;
   border: 1px solid ThreeDShadow;
   -moz-border-radius: 10px;
@@ -34,8 +68,6 @@
   -moz-padding-start: 30px;
   background-color: white;
 ">
-
-<!-- /header -->
 
 <h1 id="bfheader-ceb9501754b86c06b8540acce310ee1f">This is my page</h1>
 
@@ -47,3 +79,12 @@
 
 </body>
 </html>
+</div>
+<div style="
+  position: relative;
+  min-width: 13em;
+  max-width: 1000px;
+  margin: 4em auto;
+">
+A new footer too
+</div>
