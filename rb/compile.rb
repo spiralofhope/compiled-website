@@ -2,25 +2,31 @@
 
 =begin
 
-CSS for <code>, <pre> and for tables..
+FIXME: Making a new source directory with a file in it isn't detected, because the destination directory doesn't exist yet.
 
-
-bug: Making a new directory with a file in it isn't detected.
-
-- remove the index.html from the listing of files, and put it up in the top nav.
-
-If a new file is created, then re-create all files in that same directory - so as to update the navigation.
+- If a new file is created, then re-create all files in that same directory - so as to update the navigation.
 - CSS - including multiple stylesheets which the browser can switch between.  Maybe hardcode this so that there are multiple destination files.  They could also be leveraged for translated/alternate pages (styles, languages, draft version, old versions, notes, etc)
+- remove the directory listing and replace it with a sitemap feature - linked at the bottom of every page.
+- find a way to hide the edit link and keep it accessible with an accesskey
+- I need to figure out section editing eventually.
 - Templating {{replacement file}}  {{subst:replacement file}}
  - generate a list of links in the footer to view/edit the templates being used?
 - automatic linking [[link]]
 - Syntax highlighting
+-- hpricot and syntax?  http://www.hokstad.com/syntax-highlighting-in-ruby.html
 - Make the header hidable if javascript is enabled.
 - Footer - hosting logo and link
 - Implement "view source" ?
 
+Questions:
+- Can I have BlueFeather automatically apply a class= to all the tags it automatically-generates?  That would be handy.
+-- Alternately, I could have a post-processor which adds the tags if they're not found.  Maybe I ought to have some kind of data scraper or HTML helper which can assist with that.  Otherwise, I'd have to make it.
+
 Later:
 - markup language changes
+- http://www.html.it/articoli/niftycube/index.html
+- A show/hide for navigation.
+-- But figure out how to remember the user preference when surfing.  Same with the stylesheet choice.
 
 Far future:
 - revision tracking
@@ -33,11 +39,13 @@ Far future:
 =begin
 
 TODO: Ensure requirements are met.
-Ruby 1.8.6+
-
-BlueFeather 0.22+
+I built this on:
+- Ruby 1.8.6+
+- BlueFeather 0.22+
   http://ruby.morphball.net/bluefeather/index_en.html
   gem install bluefeather
+
+I don't know what specific versions are required.  BlueFeather claims it's for Ruby 1.9.x .. so I have no clue what's what.
 
 =end
 
@@ -45,27 +53,25 @@ BlueFeather 0.22+
 # -----------------
 # Configuration
 # -----------------
-lib = File.join('', 'home', 'user', 'bin', 'rb', 'lib')
-require File.join(lib, 'mine', 'misc.rb')
-require File.join(lib, 'mine', 'directories.rb')
-require File.join(lib, 'mine', 'files.rb')
-require File.join(lib, 'mine', 'exec.rb')
-require File.join(lib, 'mine', 'strings.rb')
 
-working_directory=File.expand_path(File.join('', 'home', 'user', 'live', 'Projects', 'compiled-website', '0.4.1'))
+working_directory=File.expand_path(File.join('', 'home', 'user', 'live', 'Projects', 'compiled-website', '0.4.5'))
 source_directory='source'
 target_directory='httpdocs'
 source_directory_path=File.expand_path(File.join(working_directory, source_directory))
 target_directory_path=File.expand_path(File.join(working_directory, target_directory))
 
-# Local website, like file:///tmp/mydir/website .. with no trailing slash
-# $WEBSITE='file://' + File.join(target_directory_path)
-# Full URL, like http://example.com .. with no trailing slash
-# $WEBSITE="http://spiralofhope.com"
-# TESTING: Removed the trailing slash
-$WEBSITE="http://spiral.l4rge.com"
+lib = File.join(working_directory, 'lib')
+require File.join(lib, 'misc.rb')
+require File.join(lib, 'directories.rb')
+require File.join(lib, 'files.rb')
+require File.join(lib, 'strings.rb')
 
-# TODO: Make the format something boring, and then make my own headers?  But bluefeather has some smart markup for generating the title and stuff.  Check into that stuff.
+# Local website, like file:///tmp/mydir/website .. with no trailing slash
+$WEBSITE='file://' + File.join(target_directory_path)
+# Full URL, like http://example.com .. with no trailing slash
+$WEBSITE="http://spiralofhope.com"
+
+# TODO: Make the format a raw html conversion and not a complete html document conversion, and then make my own <head> stuff?  But bluefeather has some smart markup for generating the title and stuff.  Check into that stuff.
 def markup(working_directory, source_directory, target_directory, source_directory_path, target_directory_path, source_file)
   if ! File.exists?(source_file) then
     puts "source_file does not exist, aborting: " + source_file.inspect
@@ -86,7 +92,7 @@ def viewer(file)
   # TODO: Make this a proper method which checks for the existence of the file..
   file=File.expand_path(file)
 #   system('links -g ' + file)
-  # Firefox is busted and doesn't print directories properly.  Links works.  =/
+  # Firefox with my add-ons is busted and doesn't print directories properly.  Links works.  =/  TODO: Re-test that
   system('firefox --new-tab ' + file)
 end
 
@@ -105,16 +111,18 @@ def header_replace(working_directory, source_directory, target_directory, source
 <body>
 <a name id="top">
 <div class="nav">
-<div class="float-left">
-<img align="left" src="#{$WEBSITE}/images/spiralofhope-96.png">
-<br>
-<font style="font-size:1.5em;"><font color="steelblue">S</font>piral of Hope</font>
-<br>
-<font style="font-size: 0.5em;">Better software is possible.</font>
-</div>
-<div class="float-right">
-#{header_replace_navigation(working_directory, source_directory, target_directory, source_directory_path, target_directory_path, source_file, target_file)}
-</div>
+  <div class="float-left">
+    <a class="without_u" accesskey="z" href="#{$WEBSITE}/index.html">
+      <img align="left" src="#{$WEBSITE}/images/spiralofhope-96.png">
+    </a>
+    <br>
+    <font style="font-size:1.5em;"><font color="steelblue">S</font>piral of Hope</font>
+    <br>
+    <font style="font-size: 0.5em;">Better software is possible.</font>
+  </div>
+  <div class="float-right">
+    #{header_replace_navigation(working_directory, source_directory, target_directory, source_directory_path, target_directory_path, source_file, target_file)}
+  </div>
 </div>
 <a name="body">
 <div class="main">
@@ -131,13 +139,14 @@ def header_replace_navigation(working_directory, source_directory, target_direct
   # "/home/user/live/Projects/compiled-website/0.3.5/httpdocs/subdir" => ["", "home", "user", "live", "Projects", "compiled-website", "0.3.5", "httpdocs", "subdir"]
   # For every element in the original path
   elements.times do
-    # Remove the start element
+    # Remove the start/leftmost element
     current_path.shift
   end
   # This leaves only the trailing stuff, if anything.
+  # ["", "home", "user", "live", "Projects", "compiled-website", "0.3.5", "httpdocs", "subdir"] => ["subdir"]
   # Patch it back together.  This is the subdirectory that I'm currently working in.
   current_path=current_path.join(File::Separator)
-  # "subdir"
+  # ["subdir"] => "subdir"
 
   current_path_up=current_path.split(File::Separator)[0..-2].join(File::Separator)
   if current_path_up == "" then current_path_up='/' end
@@ -147,8 +156,6 @@ def header_replace_navigation(working_directory, source_directory, target_direct
   # "subdir" => ""
 
   navigation=Array.new
-  # Home
-  navigation << '<a href="' + $WEBSITE + '/index.html" accesskey="z">[&lt;&lt;]</a>' + "\n"
   # Up
   index=""
   if File.exists?(File.join(target_directory_path_up, 'index.html')) then index='/index.html' end
@@ -173,6 +180,7 @@ def header_replace_navigation(working_directory, source_directory, target_direct
       navigation_directories << '<a href="' + $WEBSITE + current_path_web + File.basename(i) + append + '">' + File.basename(i) + "</a><br>\n"
     else
       if File.extname(i) == ".html" then append='#body' else append="" end
+      if i == 'index.html' then next end
       navigation_files << '<a href="' + $WEBSITE + current_path_web + File.basename(i) + append + '">' + File.basename(i) + "</a><br>\n"
     end
   end
@@ -191,13 +199,14 @@ def footer_replace(working_directory, source_directory, target_directory, source
 </html>
 </div>
 <div class="footer">
-<img src="#{$WEBSITE}/images/spiralofhope-16.png"> Spiral of Hope / spiralofhope - <a href="mailto:@gmail.com">@gmail.com</a>
-<br>
-<img src="#{$WEBSITE}/images/l4rge_logo-16.png">Hosting provided by <a href="http://l4rge.com">l4rge.com</a>, <a href="#{$WEBSITE}/thanks.html#l4rge">thanks!</a>
+  <img src="#{$WEBSITE}/images/spiralofhope-16.png"> Spiral of Hope / spiralofhope - <a href="mailto:@gmail.com">@gmail.com</a>
+  <br>
+  <img src="#{$WEBSITE}/images/l4rge_logo-16.png">Hosting provided by <a href="http://l4rge.com">l4rge.com</a>, <a href="#{$WEBSITE}/thanks.html#l4rge">thanks!</a>
 </div>
+
 <!-- Disable the extra JavaScript, until I'm told which tag I should use.   Maybe it's <REMOVEADS>-->
 <REMOVEADS>
-<noscript>
+<div style="position:absolute; top:-1500px;"><noscript>
   HEREDOC
 end
 
@@ -269,17 +278,17 @@ def compile(working_directory, source_directory, target_directory, source_direct
   end
 end # compile
 def test_compile
-  lib = File.join('', 'home', 'user', 'bin', 'rb', 'lib')
-  require File.join(lib, 'mine', 'misc.rb')
-  require File.join(lib, 'mine', 'directories.rb')
-  require File.join(lib, 'mine', 'files.rb')
-  require File.join(lib, 'mine', 'exec.rb')
-  require File.join(lib, 'mine', 'strings.rb')
   working_directory=File.join('', 'tmp', "test_global_compare.#{$$}")
   working_directory=File.expand_path(working_directory)
   source_file=File.join(working_directory, 'source.asc')
   target_directory_path=working_directory
   $HOME=target_directory_path
+
+  lib = File.join(working_directory, 'lib')
+  require File.join(lib, 'misc.rb')
+  require File.join(lib, 'directories.rb')
+  require File.join(lib, 'files.rb')
+  require File.join(lib, 'strings.rb')
 
   md_directory(working_directory)
   md_directory(target_directory_path)
@@ -343,16 +352,16 @@ def global_compile(working_directory, source_directory, target_directory, source
   end
 end # global_compile
 def test_global_compile
-  lib = File.join('', 'home', 'user', 'bin', 'rb', 'lib')
-  require File.join(lib, 'mine', 'misc.rb')
-  require File.join(lib, 'mine', 'directories.rb')
-  require File.join(lib, 'mine', 'files.rb')
-  require File.join(lib, 'mine', 'exec.rb')
-  require File.join(lib, 'mine', 'strings.rb')
   working_directory=File.join('', 'tmp', "test_global_compare.#{$$}")
   working_directory=File.expand_path(working_directory)
   source_directory_path=File.expand_path(File.join(working_directory, 'source'))
   target_directory_path=File.expand_path(File.join(working_directory, 'target'))
+
+  lib = File.join(working_directory, 'lib')
+  require File.join(lib, 'misc.rb')
+  require File.join(lib, 'directories.rb')
+  require File.join(lib, 'files.rb')
+  require File.join(lib, 'strings.rb')
 
   md_directory(working_directory)
   md_directory(source_directory_path)
@@ -403,9 +412,10 @@ end
 # If I delete all .html, they get rebuilt.  However, the navigation won't be correct since not 100% of the files will exist until the very last item in each directory is built.  The solution:  Don't delete the .html, just blank them out and let the rebuild work.
 #  find -type f -name '*.html' -exec \cp /dev/null {} \;
 def blank_all(working_directory, source_directory, target_directory, source_directory_path, target_directory_path)
-  global(target_directory_path, '.html') {
-    create_file($global_file, "")
-  }
+  cd_directory(target_directory_path)
+  Dir['**/*.html'].each do |file|
+    create_file(file, "")
+  end
 end
 blank_all(working_directory, source_directory, target_directory, source_directory_path, target_directory_path)
 # $VERBOSE=nil
