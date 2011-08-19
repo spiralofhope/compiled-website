@@ -1,11 +1,22 @@
 2008-08-27  Spiralofhope  <spiralofhope@lavabit.com>
 
+  0.0.4_internal
+  
+  * First ruby implementation.
+
+  * Removed txt2tags experimentation.
+
+2008-08-27  Spiralofhope  <spiralofhope@lavabit.com>
+
   0.0.1_internal
   This was my first experimentation.
-
+  
   * I went from my own hackish stuff to using txt2tags.
   I still had to play with txt2tags to make it sane.
 
+  * I don't even know where my first hackish stuff went.  It's
+  probably archived in my projects/programming/ somewhere.
+  
   * I'm not sure what I'm doing for this changelog, so I'll refer to:
   http://www.gnu.org/prep/standards/html_node/Change-Logs.html
   http://www.gnu.org/software/guile/changelogs/guile-changelogs_3.html
