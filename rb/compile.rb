@@ -2,9 +2,14 @@
 
 =begin
 
-If a new file is created, then re-create all files in that same directory - to update the navigation.
+CSS for <code>, <pre> and for tables..
 
 
+bug: Making a new directory with a file in it isn't detected.
+
+- remove the index.html from the listing of files, and put it up in the top nav.
+
+If a new file is created, then re-create all files in that same directory - so as to update the navigation.
 - CSS - including multiple stylesheets which the browser can switch between.  Maybe hardcode this so that there are multiple destination files.  They could also be leveraged for translated/alternate pages (styles, languages, draft version, old versions, notes, etc)
 - Templating {{replacement file}}  {{subst:replacement file}}
  - generate a list of links in the footer to view/edit the templates being used?
@@ -12,9 +17,14 @@ If a new file is created, then re-create all files in that same directory - to u
 - Syntax highlighting
 - Make the header hidable if javascript is enabled.
 - Footer - hosting logo and link
+- Implement "view source" ?
 
+Later:
+- markup language changes
 
-markup language changes..
+Far future:
+- revision tracking
+
 =end
 
 # ------------------
@@ -42,14 +52,14 @@ require File.join(lib, 'mine', 'files.rb')
 require File.join(lib, 'mine', 'exec.rb')
 require File.join(lib, 'mine', 'strings.rb')
 
-working_directory=File.expand_path(File.join('', 'home', 'user', 'live', 'Projects', 'compiled-website', '0.3.5'))
+working_directory=File.expand_path(File.join('', 'home', 'user', 'live', 'Projects', 'compiled-website', '0.4.1'))
 source_directory='source'
 target_directory='httpdocs'
 source_directory_path=File.expand_path(File.join(working_directory, source_directory))
 target_directory_path=File.expand_path(File.join(working_directory, target_directory))
 
 # Local website, like file:///tmp/mydir/website .. with no trailing slash
-$WEBSITE='file://' + File.join(target_directory_path)
+# $WEBSITE='file://' + File.join(target_directory_path)
 # Full URL, like http://example.com .. with no trailing slash
 # $WEBSITE="http://spiralofhope.com"
 # TESTING: Removed the trailing slash
@@ -88,36 +98,26 @@ def header_replace(working_directory, source_directory, target_directory, source
   target_file=File.expand_path(target_file)
   # What to replace with
   return<<-HEREDOC
-<link rel="icon" href="#{$WEBSITE}/favicon.ico" type="image/x-icon">
-<link rel="shortcut icon" href="#{$WEBSITE}/favicon.ico" type="image/x-icon">
+<link rel="icon" href="#{$WEBSITE}/images/favicon.ico" type="image/x-icon">
+<link rel="shortcut icon" href="#{$WEBSITE}/images/favicon.ico" type="image/x-icon">
+<link rel="stylesheet" type="text/css" href="#{$WEBSITE}/css/main.css" />
 </head>
-<body style="background-color: lightgrey;">
+<body>
 <a name id="top">
-<p style="
-  position: relative;
-  min-width: 13em;
-  max-width: 1000px;
-  margin: 4em auto;
-  border: 1px solid ThreeDShadow;
-  -moz-border-radius: 10px;
-  padding: 3em;
-  -moz-padding-start: 30px;
-  background-color: white;
-">
+<div class="nav">
+<div class="float-left">
+<img align="left" src="#{$WEBSITE}/images/spiralofhope-96.png">
+<br>
+<font style="font-size:1.5em;"><font color="steelblue">S</font>piral of Hope</font>
+<br>
+<font style="font-size: 0.5em;">Better software is possible.</font>
+</div>
+<div class="float-right">
 #{header_replace_navigation(working_directory, source_directory, target_directory, source_directory_path, target_directory_path, source_file, target_file)}
-</p>
+</div>
+</div>
 <a name="body">
-<div style="
-  position: relative;
-  min-width: 13em;
-  max-width: 1000px;
-  margin: 4em auto;
-  border: 1px solid ThreeDShadow;
-  -moz-border-radius: 10px;
-  padding: 3em;
-  -moz-padding-start: 30px;
-  background-color: white;
-">
+<div class="main">
 
   HEREDOC
 end
@@ -190,13 +190,10 @@ def footer_replace(working_directory, source_directory, target_directory, source
 </body>
 </html>
 </div>
-<div style="
-  position: relative;
-  min-width: 13em;
-  max-width: 1000px;
-  margin: 4em auto;
-">
-<img src="#{$WEBSITE}/spiralofhope-16.png"> Spiral of Hope / spiralofhope - email: <a href="mailto:@gmail.com">@gmail.com</a>
+<div class="footer">
+<img src="#{$WEBSITE}/images/spiralofhope-16.png"> Spiral of Hope / spiralofhope - <a href="mailto:@gmail.com">@gmail.com</a>
+<br>
+<img src="#{$WEBSITE}/images/l4rge_logo-16.png">Hosting provided by <a href="http://l4rge.com">l4rge.com</a>, <a href="#{$WEBSITE}/thanks.html#l4rge">thanks!</a>
 </div>
 <!-- Disable the extra JavaScript, until I'm told which tag I should use.   Maybe it's <REMOVEADS>-->
 <REMOVEADS>
@@ -249,7 +246,6 @@ end
 # This expects proper full paths
 def compile(working_directory, source_directory, target_directory, source_directory_path, target_directory_path, source_file)
   target_file=File.join(target_directory_path, File.basename(source_file, '.asc') + '.html')
-
   # Build missing files.
   if ! File.exists?(target_file) then
     vputs 'File does not exist, building ' + target_file
@@ -412,7 +408,7 @@ def blank_all(working_directory, source_directory, target_directory, source_dire
   }
 end
 blank_all(working_directory, source_directory, target_directory, source_directory_path, target_directory_path)
-$VERBOSE=nil
+# $VERBOSE=nil
 main(working_directory, source_directory, target_directory, source_directory_path, target_directory_path)
 # sleep 1
 # viewer(File.join(target_directory_path, 'index.html'))
@@ -421,48 +417,3 @@ main(working_directory, source_directory, target_directory, source_directory_pat
 
 
 __END__
-
-
-- everything is sent (working_directory, source_directory, target_directory, source_directory_path, target_directory_path)
-
-source_file:
-- compile
-
-target_file:
-- markup
-- timestamp
-
-global sends it''s specially-calculated target_directory_global
-
-
-
-
-
-
-
-#$WEBSITE is wrong when this is http:// ...
-
-  # My original path has this many elements.
-  website_elements=$WEBSITE.sub(/^file:\/\/|http:\/\//, '').split(File::Separator).length
-  # Carve up my target directory
-  current_path=target_directory_path.split(File::Separator)
-  # For every element in the original path
-  website_elements.times do
-    # Remove the start element
-    current_path.shift
-  end
-  # Patch it back together.  This is the subdirectory that I'm currently working in.
-  current_path=current_path.join(File::Separator)
-  if current_path != "" then current_path+='/' end
-
-  current_path_up=current_path.split(File::Separator)[0..-2].join(File::Separator)
-  if current_path_up != "" then current_path_up+=File::Separator end
-
-# puts current_path_up.inspect
-
-  target_directory_path_up=target_directory_path
-  if target_directory_path.split(File::Separator)[-1] != target_directory then
-    target_directory_path_up=target_directory_path.split(File::Separator)[0..-2].join(File::Separator)
-  end
-
-# puts target_directory_path_up.inspect
