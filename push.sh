@@ -6,3 +6,12 @@
 # git commit -m ''
 \git add .
 \git push -u origin master
+
+# ---
+
+:<<'heredoc'
+Recursively add directories:
+
+find -type d -exec git add {} \;
+
+heredoc
