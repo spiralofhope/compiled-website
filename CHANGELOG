@@ -1,11 +1,17 @@
-2009-07-01  spiralofhope  <spiralofhope@lavabit.com>
+2009-07-04  spiralofhope  <spiralofhope@lavabit.com>
+  
+  0.3.0_internal
+  
+  * Pre-CHANGELOG
 
+2009-07-01  spiralofhope  <spiralofhope@lavabit.com>
+  
   0.2.0_internal
   
   * Pre-CHANGELOG
 
 2009-07-01  spiralofhope  <spiralofhope@lavabit.com>
-
+  
   0.0.6_internal
   Did I really take this long of a break?  Ouch.
   
@@ -13,21 +19,21 @@
   will have to speak for themselves.
 
 2008-08-27  spiralofhope  <spiralofhope@lavabit.com>
-
+  
   0.0.4_internal
   
   * First ruby implementation.
-
+  
   * Removed txt2tags experimentation.
 
 2008-08-27  spiralofhope  <spiralofhope@lavabit.com>
-
+  
   0.0.1_internal
   This was my first experimentation.
   
   * I went from my own hackish stuff to using txt2tags.
   I still had to play with txt2tags to make it sane.
-
+  
   * I don't even know where my first hackish stuff went.  It's
   probably archived in my projects/programming/ somewhere.
   
