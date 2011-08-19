@@ -1,0 +1,133 @@
+Test 1
+Test 2
+Test 3
+% header area above (three lines, cannot add comments)
+% todo: define the header area better
+% http://txt2tags.sourceforge.net/userguide/ChangingTxt2tagsMarkswithPreProc.html
+
+% hacking things a bit here.  It'd be better to redo their syntax.
+
+% sensible lists - mediawiki-style
+%!PreProc: '^\*\*\*\ ' '  - '
+%!PreProc: '^\*\*\ ' ' - '
+%!PreProc: '^\* ' '- '
+
+% sensible lists - using dashes
+%!PreProc: '^\-\-\-\ ' '  - '
+%!PreProc: '^\-\-\ ' ' - '
+
+% > is translated into a tab character, since I can't type tabs.
+% I'd prefer two spaces at the beginning of a line, but that messes with lists, and completely messes up the monospace idea.
+%!PreProc: '^>>> ' '\t\t\t'
+%!PreProc: '^>> ' '\t\t'
+%!PreProc: '^> ' '\t'
+
+% allow a single space to make the line monospace
+%!PreProc: '^\ ([^-|^ - ])' '``` \1'
+
+% 20 characters for a separator line is INSANE.  Let's do four (MediaWiki-style).
+%!PreProc: '^\-\-\-\-' '--------------------'
+%!PreProc: '^\_\_\_\_' '____________________'
+%!PreProc: '^\=\=\=\=' '===================='
+
+
+% TODO: create a preproc to make the // ** __ and -- all need just one character.
+%%!PreProc: '/{1}(.*)/{1}' '//\1//'
+%%!PreProc: '\*(.*)\*' '**\1**'
+
+
+% config area goes here
+%% common configuration to include, can be done like so: http://txt2tags.sourceforge.net/userguide/includeconfcommand.html
+%% %!includeconf: config.t2t
+%% http://txt2tags.sourceforge.net/userguide/Settings.html
+%% http://txt2tags.sourceforge.net/userguide/UserConfigurationFileRCFile.html
+%% http://txt2tags.sourceforge.net/userguide/PartVIIMasteringSettings.html
+
+% config options for all stuff - can set it in $HOME/.txt2tagsrc or T2TCONFIG env var
+% can disable that per-file with    %! Options : --no-rc
+% templating?
+%% %!include - http://txt2tags.sourceforge.net/userguide/includecommand.html
+% css?
+
+% body goes down here
+
+kate's busted, or I'd do something like this..
+
+ cd "%directory" && txt2tags -t html "%filename" && links -g "%filename" `basename "%filename" .t2t`.html
+
+
+=  Introduction  =
+==  Introduction  ==
+
+testing
+
+- and this
+- and that
+
+To do:
+- make a global window manager hotkey to compile my text files
+ - compile
+ - wmctrl to switch to firefox
+ - some firefox commandline to refresh?  Or just reload and don't bother with wmctrl?
+
+What I want:
+
+- fix kate's bad yellow highlighting of lists.  I cannot see that colour.
+- kate's list highlighting ignores bold/italics etc.
+
+
+http://txt2tags.sourceforge.net/userguide/userguide.t2t
+and edit it for spelling/grammar and completeness
+
+http://txt2tags.sourceforge.net/userguide/PartVMasteringMarks.html
+
+# Titles can have an anchor =like this=[anchor]. To link to an anchor create a [local link #anchor]
+can this be made default?
+
+http://txt2tags.sourceforge.net/userguide/Comment.html
+leading spaces ARE allowed though..
+
+http://txt2tags.sourceforge.net/userguide/BoldItalicUnderlineStrike.html
+mentiones --strike-- which is not legal by default.
+
+make a monospace code block concept..
+
+| this | is | a | table |
+| rowspan test ||||
+
+http://txt2tags.sourceforge.net/userguide/PartVIMasteringMacros.html (etc)
+macros
+
+
+= PreProc-hacking =[hacking]
+
+- list
+-- list 2
+--- list 3
+
+
+
+* list 1
+** list 2
+*** list 3
+
+
+> indent 1
+>> indent 2
+>>> indent 3
+
+
+Horizontal Rules:
+
+one
+----
+two
+____
+three
+====
+
+
+* /italics/ => //italics//
+* *bold* => **bold**
+* _underlined_ => __underlined__
+* -strikethrough- => --strikethrough--

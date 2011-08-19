@@ -1,0 +1,9 @@
+2008-08-27  Spiralofhope  <spiralofhope@lavabit.com>
+
+  * 0.0.1 (internal).  This was my first experimentation.
+  I went from my own hackish stuff to using txt2tags.
+  I still had to fuck with txt2tags to make it sane.
+
+  * I'm not sure what I'm doing, so I'll refer to
+  http://www.gnu.org/prep/standards/html_node/Change-Logs.html
+  http://www.gnu.org/software/guile/changelogs/guile-changelogs_3.html
