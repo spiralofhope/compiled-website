@@ -241,7 +241,7 @@ if nonhtml.count != html.count then puts "markup error:  unbalanced element coun
 
 # Stuff that's possible but which I don't care about.
 # <sup> - Superscript
-# <sub> - Subscribe
+# <sub> - Subscript
 
   # TODO:  Is there an elegant way for me to just iterate through all methods of a certain name?  markup_* ?
   def markup_everything( string )
@@ -332,6 +332,9 @@ if nonhtml.count != html.count then puts "markup error:  unbalanced element coun
 
     return recombine( match, nomatch ).join
   end # def sections( string )
+
+  def lists( string )
+  end
 
 end # class Markup
 
@@ -764,7 +767,6 @@ class Test_Markup < MiniTest::Unit::TestCase
     )
   end
 
-
   def test_sections_increment()
     assert_equal(
       ( <<-heredoc.unindent
@@ -860,7 +862,16 @@ class Test_Markup < MiniTest::Unit::TestCase
     )
   end
 
+  def test_lists()
+    assert_equal(
+      ( 'aaaaaaaaaaaaaa' ),
+      ( 'baaaaaaaaaaaaa' ),
+    )
+  end
+
+
 end
+
 
 __END__
 
