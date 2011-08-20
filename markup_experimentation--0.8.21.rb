@@ -2,12 +2,16 @@
 =begin
 To do:
 
-- Sections creating <p>
+- Multiple line breaks creating <p>
+-- The old way is nasty and must be redone.
 - Sections counting and incrementing a CSS counter (for my funky sidebar or colour changes)
 - Linking plain URLs. http://example.com  ->  <a href="http://example.com">example.com</a>
 - Linking markup (named URLs) [http://example.com example] -> <a href="http://example.com">example</a>
-- HTMLizing the document.  Make \n\n into multiple-<br>, and such.
+- Numbered links [http://example.com] -> <a href="http://example.com">[1]</a>
 - Auto-linking.
+- Prepending a header, appending a footer.
+- HTML Tidy
+- The background pid stuff.
 
 =end
 
