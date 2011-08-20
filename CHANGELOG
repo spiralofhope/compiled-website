@@ -1,3 +1,10 @@
+2011-03-04  spiralofhope  <spiralofhope@lavabit.com>
+  
+  0.8.21_internal
+  
+  * Ported to Ruby 1.9.2.  Still compatible with 1.8.7.
+  It was a simple change with my use of the `result` variable and arrays.
+
 2011-03-02  spiralofhope  <spiralofhope@lavabit.com>
   
   0.8.19_internal

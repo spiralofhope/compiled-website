@@ -1,4 +1,7 @@
 #!/usr/bin/env ruby
+# encoding: utf-8
+
+# 1.9.2 introduced encoding hell.
 
 =begin
 = Requirements =
@@ -150,6 +153,8 @@ end
 
 def tidy_html(source_file_full_path)
   # For additional options, check out `tidy -help-config`
+#    '-modify', - was interfering with utf-8 encoding.
+
   system(
     'tidy',
     '-clean',
@@ -157,7 +162,6 @@ def tidy_html(source_file_full_path)
     '-omit',
     '-asxhtml',
     '-access',
-    '-modify',
     '--drop-empty-paras', 'true',
     '--indent', 'true',
     '--indent-spaces', '2',
@@ -201,6 +205,7 @@ def compile(source_directory, source_file_full_path, target_file_full_path, type
     # Future TODO:  If I ever do nested linking, I should make sure that the parent director(y|ies) exist.
   end
   sanity_check(source_file_full_path, target_file_full_path)
+
   # TODO: expand this or make a new procedure which can do search/replace only in the *middle*.  This is needed to fix links_automatic() so it works with files with spaces and hyphons.
   def markup(string, search_left, search_right, replace_left, replace_right, internal_markup_flag)
     def marked_yes(string, search_left, search_right, replace_left, replace_right)
@@ -278,6 +283,7 @@ def compile(source_directory, source_file_full_path, target_file_full_path, type
     end
     return processed
   end
+
   # TODO: Should I replace these simple numbered anchors with the name of the header?  Then I'd have to clean up the header text to make it valid HTML.  Eww.
   def HTML_headers(string)
     $paragraph = ''
@@ -299,7 +305,7 @@ def compile(source_directory, source_file_full_path, target_file_full_path, type
       =+
       $
     }x
-    result=[]
+    result=""
     total=0
     $toc=[]
     string.each_line do |line|
@@ -346,14 +352,14 @@ def compile(source_directory, source_file_full_path, target_file_full_path, type
         end
       end
 
-      result << line
+      result = result + line
     end
-    string=result.to_s
+    return result
     # Note that I am *not* inserting $toc anywhere here.  That's the template/header's job.
     # Obsolete:  If there is a header, then remove the first </div> so that it won't close <div class="main">
     #string.sub!(/<\/div><h(\d)>/, '<h\1>')
-    return string
   end
+
   def HTML_horizontal_rules(string)
     #   With an empty space above and below.
     string.gsub!(/\n\n\-\-\-+\n\n/m, '<hr>')
@@ -361,6 +367,7 @@ def compile(source_directory, source_file_full_path, target_file_full_path, type
     string.gsub!(/^\-\-\-+$/, '<hr class="small">')
     return string
   end
+
   def HTML_paragraphs(string)
     # This is a hackish way to do paragraphs:
     string.gsub!(/(\n\n)/, "\n</p><p>\n")
@@ -368,6 +375,7 @@ def compile(source_directory, source_file_full_path, target_file_full_path, type
     string.gsub!(/\n\n/, "<br>\n")
     return string
   end
+
   def links_rx()
     return %r{
       (?# http:// etc )
@@ -392,16 +400,16 @@ def compile(source_directory, source_file_full_path, target_file_full_path, type
       )
     }x
   end
+
   # FIXME: All of these links procedures have a potentially infinite looping issue.  If the regex matches, but the replace fails for some reason.  Harden it with either a catch/counter/throw, or a counter/raise.
   # Plain links, like:  http://example.com (HTML link to its source)
   def links_plain(string)
-    result=[]
+    result=""
     url = %r{
       (#{$punctuation_start})
       #{links_rx()}
       (#{$punctuation_end})
     }x
-    result=[]
     string.each_line do |line|
       # Yes this is a bit odd, but because of the way regex works I cannot keep my punctuation start/end restrictions while matching two consecutive items which are separated by punctuation.  So ' one two ' ends up only matching ' one '
 
@@ -411,10 +419,11 @@ def compile(source_directory, source_file_full_path, target_file_full_path, type
         # If you want to show the http:// part as well:
         #line.sub!(url, '\1<a href="\2\3\4">\2\3\4</a>\5')
       end
-      result << line
+      result = result + line
     end
-    return result.to_s
+    return result
   end
+
   # Named links, like:  [http://example.com name] => name (HTML link to its source)
   def links_named(string)
     url = %r{
@@ -427,16 +436,17 @@ def compile(source_directory, source_file_full_path, target_file_full_path, type
       (#{$punctuation_end})
     }x
 
-    result=[]
+    result=""
     string.each_line do |line|
       # Yes this is a bit odd, but because of the way regex works I cannot keep my punctuation start/end restrictions while matching two consecutive items which are separated by punctuation.  So ' one two ' ends up only matching ' one '
       until line.scan(url).size == 0 do
         line.sub!(url, '\1' + '<a href="\2\3\4">' + $external_link_before + '\5' + $external_link_after + '</a>\6')
       end
-      result << line
+      result = result + line
     end
-    return result.to_s
+    return result
   end
+
   # Numbered links, like:  [http://example.com] => [1] (HTML link to its source, and incrementally-counted)
   def links_numbered(string)
     url = %r{
@@ -446,21 +456,22 @@ def compile(source_directory, source_file_full_path, target_file_full_path, type
       \]
       (#{$punctuation_end})
     }x
-    result=[]
+    result=""
     counter=0
     string.each_line do |line|
       until line.scan(url).size == 0 do
         counter += 1
         line.sub!(url, '\1<a href="\2\3\4">' + $numbered_link_before + counter.to_s + $numbered_link_after + '</a>\5')
       end
-      result << line
+      result = result + line
     end
-    return result.to_s
+    return result
   end
+
   # Local links to new pages, like:  [[link name]] => 'link-name.asc'
   def links_local_new(source_file_full_path, string)
     directory=File.dirname(source_file_full_path)
-    result=[]
+    result=""
     regex = %r{
       (#{$punctuation_start})
       \[{2}
@@ -470,7 +481,7 @@ def compile(source_directory, source_file_full_path, target_file_full_path, type
     }x
     string.each_line do |line|
       if not line =~ regex then
-        result << line
+        result = result + line
         next
       end
       until line.scan(regex).size == 0 do
@@ -504,10 +515,11 @@ def compile(source_directory, source_file_full_path, target_file_full_path, type
           #create_file(new_source_file_full_path, "")
         end
       end
-      result << line
+      result = result + line
     end # string.each_line
-    return result.to_s
+    return result
   end
+
   # Magical automatic linking.  Ambrosia for authors.
   def links_automatic(source_file_full_path, string)
     source_name=File.basename(source_file_full_path, '.asc')
@@ -521,7 +533,7 @@ def compile(source_directory, source_file_full_path, target_file_full_path, type
     end
     # This sort prioritises multiple-word files ahead of single-word files.
     array_files.sort!.reverse!
-    result=[]
+    result=""
     string.each_line do |line|
       array_files.each do |file|
         regex=%r{
@@ -544,14 +556,15 @@ def compile(source_directory, source_file_full_path, target_file_full_path, type
           end
         end
       end
-      result << line
+      result = result + line
     end
-    return result.to_s
+    return result
   end
+
   # TODO: This does not allow lists of mixed types (e.g. ordered within unordered)
   # TODO: Fucking totally overhaul this piece of shit..  I'm chopping off \n and it's screwing with stuff..
   def lists(string, regex, opening, closing, line_start, line_end, line_continuation)
-    result=[]
+    result=""
     previous_nesting=0
     # FIXME: This won't end correctly if the list ends with EOF.  Not a big deal since TidyHTML will probably fix it, but I should code this better.
     string.each_line do |line|
@@ -594,12 +607,9 @@ def compile(source_directory, source_file_full_path, target_file_full_path, type
         end
       end
       previous_nesting=current_nesting
-      result << line
+      result = result + line
     end
-    return result.to_s
-  end
-  def mixed_lists(string)
-    return string
+    return result
   end
 
   def compile(source_directory, source_file_full_path, target_file_full_path, type)
@@ -626,8 +636,6 @@ def compile(source_directory, source_file_full_path, target_file_full_path, type
     contents=lists(contents, %r{^(:+) (.+)$}, '<dl>', "</dl>\n", '<dd> ', ' </dd>' + "\n", '')
     # Code blocks
     contents=lists(contents, %r{^( )(.*)$}, '<pre>', "</pre>\n", '', '', ' <br>')
-
-    contents=mixed_lists(contents)
 
     # Links
     contents=links_plain(contents)
@@ -764,9 +772,40 @@ def main(source_directory, compiled_directory)
   # The main loop - once a second.
   fork_helper(pid_file) {
     check(source_directory, compiled_directory, 'wiki')
-    check(source_directory, compiled_directory, 'blog')
+    # Disabled for now, until I finish the 1.9.2 port and get back into the blog creation.
+    #check(source_directory, compiled_directory, 'blog')
   }
 end # main
+
+
+
+class Markup
+  def initialize
+  end
+  
+  # Underline
+  def u
+  end
+
+  def em # Emphasis
+  end
+
+  def i # Italics
+  end
+
+  def strong
+  end
+
+  def b # Bold
+  end
+
+  def big
+  end
+
+  def del # delete / strikethrough
+  end
+end
+
 
 
 $VERBOSE=nil
