@@ -1,12 +1,6 @@
-2010-04-01  spiralofhope  <spiralofhope@lavabit.com>
+2011-04-01  spiralofhope  <spiralofhope@lavabit.com>
   
   1.0.1_internal
-  compiled_website.rb was dated 2011-04-03, but the changelog for this
-  entry is dated 2010-04-01.  Previous entries had no changelog to 
-  refer to, and were using the date from whatever main .rb file there 
-  was.  So those other entries do not have accurate dates, and 
-  something screwy was going on.  Meh.
-  
   This entry also had a lot of lingering old stuff that I am probably
   re-introducing to git.
   
@@ -19,17 +13,12 @@
   * Merged all of the `live/common/hosted` into `live/common/h`.
   I'm breaking a few links, but I don't care.
 
-2011-03-26  spiralofhope  <spiralofhope@lavabit.com>
+2011-04-01  spiralofhope  <spiralofhope@lavabit.com>
   
   1.0.0_internal
-  This represents another complete rewrite.  Previous content was 
-  originally kept in old directories, but is now kept in git's history.
-  
-  I had a changelog marked 2010-04-01 which said:
-    
-    A complete rewrite.  Presently not functional, but the challenging
-    core components have been completed.  Many revisions of my
-    experimentation have been left here.
+  A complete rewrite.  Presently not functional, but the challenging
+  core components have been completed.  Many revisions of my
+  experimentation have been left here.
   
   This version only had a slew of markup_experimentation--0.8.21.rb
   files, all with revision numbers.  I'll add them into git.
