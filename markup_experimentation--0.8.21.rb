@@ -117,11 +117,6 @@ class Markup
 
   def punctuation_rx( left_rx, right_rx )
 
-      # TODO:  If not defined, or if not a regex..
-      if right_rx == nil
-        then right_rx = left_rx
-      end
-  
       punctuation_start=(%r{
         ^       (?# Line start)
         |\      (?# Space)
@@ -133,7 +128,6 @@ class Markup
         |#{punctuation_start} \(
         |#{punctuation_start} --
       }x)
-      punctuation_start=%r{#{punctuation_start}?}
         
       punctuation_end=(%r{
         $     (?# Line end)
@@ -157,8 +151,7 @@ class Markup
         |es   #{punctuation_end}
         |ed   #{punctuation_end}
       }x)
-      punctuation_end=%r{#{punctuation_end}?}
-  
+
       return %r{
         (#{punctuation_start})
         (#{left_rx})
@@ -196,7 +189,8 @@ class Markup
         # Now that a search-and-replace has been performed, I re-split from that element.
         # TODO:  I should be able to do this without these intermediate variables, but how?
         nonhtml_append, html_append = html_arrays( nonhtml[i] )
-        if nonhtml_append.count != html_append.count then puts "markup error:  unbalanced element count" end
+# if nonhtml_append.count != html_append.count then puts "markup error:  unbalanced element count" end
+# if html[i] != nil then puts "markup error:  html[i] has a non-nil in it" end
         nonhtml[i] = nonhtml_append
            html[i] = html_append    # This is stomping over it, but that ought to be ok.. it's nil.
         nonhtml.flatten!
@@ -550,7 +544,6 @@ class Test_Markup < MiniTest::Unit::TestCase
     )
   end
 
-  # This is now showing an issue with the punctuation rx or the main rx.
   def test_markup_emphasis3()
     assert_equal(
       '<em>usr/bin</em>',
@@ -558,12 +551,13 @@ class Test_Markup < MiniTest::Unit::TestCase
     )
   end
 
+  # Markup does not cross HTML bounderies.
+  # Because that would be insanity.
   def test_markup_emphasis4()
-# When the above is fixed, try this.
-skip
+    string = '<em>emp<html>/no</html>hasis</em>'
     assert_equal(
-      '<em>emp<html>/no</html>hasis</em>',
-      @o.markup_emphasis( '/emp<html>/no</html>hasis/' ),
+      string,
+      @o.markup_emphasis( string ),
     )
   end
 
