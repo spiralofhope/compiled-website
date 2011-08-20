@@ -1,3 +1,12 @@
+2010-04-14  spiralofhope  <spiralofhope@lavabit.com>
+  
+  0.5.6_internal
+  This one introduces CSS, which I will not add to git.  At some future
+  point I will create some kind of default theme/templating which can
+  then be tracked in the repository.
+  
+  * Pre-CHANGELOG
+
 2010-01-31  spiralofhope  <spiralofhope@lavabit.com>
   
   0.5.4_internal

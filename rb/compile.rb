@@ -1,7 +1,3 @@
-# FIXME FIXME:  The templating functionality was removed?!
-# search for header/footer -- and see compile_old for all of that code.  It needs to be re-implemented in here.
-
-
 =begin
 Usage:
 - You can combine multiple markup by starting it all with spaces between them.
@@ -43,6 +39,7 @@ FIXME list:
 ---
 
 TODO list:
+- what does 'abort' do?  Is it some routine I have in a library somewhere?
 - Implement a hyphon - for unordered lists, and # for ordered lists
 - Consider manual lists.. I count the lines and paint the numbers myself.  This will let me have broken lists like this:
 
@@ -86,9 +83,6 @@ require 'lib_directories.rb'
 require 'lib_files.rb'
 require 'lib_strings.rb'
 
-# Nuke everything, for testing...
-rm_directory(compiled_directory)
-
 def sanity_check(source_directory, compiled_directory)
   # Check for source_directory
   #The graceful way would be to leverage lib_directories//cd_directory and trap the RunTimeError that can be raised.
@@ -100,8 +94,8 @@ def sanity_check(source_directory, compiled_directory)
       # TODO: make an example file...
     else
       # a file!
-      raise RuntimeError, "There's a file where I'm expecting your source_directory  " + source_directory
-      return 1
+      raise RuntimeError, "There's a file where I'm expecting your source_directory:  " + source_directory.inspect
+      abort
     end
   end
 
@@ -114,8 +108,8 @@ def sanity_check(source_directory, compiled_directory)
       md_directory(compiled_directory)
     else
       # a file!
-      raise RuntimeError, "There's a file where I'm expecting your source_directory  " + source_directory
-      return 1
+      raise RuntimeError, "There's a file where I'm expecting your compiled_directory:  " + compiled_directory.inspect
+      abort
     end
   end
 end
@@ -123,21 +117,22 @@ sanity_check(source_directory, compiled_directory)
 
 # TODO:  Implement a wmctrl thingy to raise the firefox window.  But apparently it's not possible!!
 # http://localhost/wiki/Wmctrl_examples#Firefox_is_not_visible_in_the_list_of_managed_windows
-def view_html(source_file_full_path)
-  if File.exists?(source_file_full_path) then
-    #system('links -g ' + file)
-    system('firefox', '-new-tab', source_file_full_path)
+def view_html(file_full_path)
+  if File.exists?(file_full_path) then
+    #system('links -g ' + file_full_path)
+    #system('firefox', '-new-tab', file_full_path)
+    system('firefox', file_full_path)
   else
-    puts "(view_html) file does not exist, aborting:  " + source_file_full_path.inspect
+    raise RuntimeErrror, "(view_html) file does not exist, aborting:  " + file_full_path.inspect
     abort
   end
 end
 
-def compile(source_file_full_path, target_path)
+def compile(source_file_full_path, target_file_full_path)
   # TODO:  Only allow one document-link within each file?  I'd have to maintain a working array of all the already-created links, and know if I'm creating a duplicate.  Not too tough to do
   # TODO:  Allow additional document-links, but only one document-link for each header-section.  Somewhat more complex than the above, but really really worth it.
 
-  def sanity_check(source_file_full_path, target_path)
+  def sanity_check(source_file_full_path, target_file_full_path)
     if not File.exists?(source_file_full_path) then
       raise RuntimeError, "source_file_full_path does not exist, aborting:  " + source_file_full_path.inspect
       abort
@@ -145,23 +140,9 @@ def compile(source_file_full_path, target_path)
       raise RuntimeError, "source_file_full_path is actually a directory:  " + source_file_full_path.inspect
       abort
     end
-    if not File.exists?(target_path) then
-      md_directory(target_path)
-    elsif not File.directory?(target_path) then
-      raise RuntimeError, "target_path should be a directory, but it is actually a file:  " + target_path.inspect
-      abort
-    end
+    # Future TODO:  If I ever do nested linking, I should make sure that the parent director(y|ies) exist.
   end
-  sanity_check(source_file_full_path, target_path)
-  def get_files(directory)
-    array=[]
-    Dir["#{directory}/*.asc"].each do |file|
-      next if not File.file?(file)
-      # "/path/foo/file name.asc" => "file name"
-      array << File.basename(file.chomp(File.extname(file)))
-    end
-    return array.sort
-  end
+  sanity_check(source_file_full_path, target_file_full_path)
   def tidy_html(source_file_full_path)
     system('tidy', '--drop-empty-paras', 'true', '--indent', 'true', '--keep-time', 'true', '--wrap', '0', '-clean', '-quiet', '-omit', '-asxhtml', '-access', '-modify', '--force-output', 'true', '--show-errors', '0', '--show-warnings', 'false', '--break-before-br', 'true', '--tidy-mark', 'false', source_file_full_path)
   end
@@ -242,8 +223,8 @@ def compile(source_file_full_path, target_path)
       end
     end
     return processed
-end
-  def automatic_linking(array_files, string)
+  end
+  def automatic_linking(directory, string)
 =begin
 TODO: How to link long chains of multiple words before smaller chains or single-words:
 - some_variable=""
@@ -263,6 +244,16 @@ end
 
 =end
 
+    # Future TODO:  Allow linking into subdirectory-index.html and subdirectory/*.asc (etc)
+    # Get the files in the present directory:
+    array_files=[]
+    Dir["#{directory}/*.asc"].each do |file|
+      next if not File.file?(file)
+      # "/path/foo/file name.asc" => "file name"
+      array_files << File.basename(file.chomp(File.extname(file)))
+    end
+    array_files.sort!
+
     file_working=[]
     string.each do |line|
       array_files.each do |file|
@@ -277,41 +268,122 @@ end
     end
     return file_working.to_s
   end
+  def header_and_footer(string, source_file_full_path)
+    header_search = Regexp.new('')
+    header_replace=<<-"HEREDOC"
+<link rel="icon" href="#{$WEBSITE}/images/favicon.ico" type="image/x-icon">
+<link rel="shortcut icon" href="#{$WEBSITE}/images/favicon.ico" type="image/x-icon">
+<link rel="stylesheet" type="text/css" href="#{$WEBSITE}/css/main.css" />
+</head>
+<body>
+<a name id="top">
+<div class="nav">
+  <div class="float-left">
+    <a class="without_u" accesskey="z" href="#{$WEBSITE}/index.html">
+      <img align="left" src="#{$WEBSITE}/images/spiralofhope-96.png">
+    </a>
+    <br>
+    <font style="font-size:1.5em;"><font color="steelblue">S</font>piral of Hope</font>
+    <br>
+    <font style="font-size: 0.5em;">Better software is possible.</font>
+  </div>
+  <div class="float-right">
+<!-- navigation goes here -->
+  </div>
+</div>
+<a name="body">
+<div class="main">
+    HEREDOC
 
-  target_file_contents='<p>' + markup(file_read(source_file_full_path), /<.+>/, /<.+>/, nil, nil, false) + '</p>'
-  target_file_contents=automatic_linking(get_files(File.dirname(source_file_full_path)), target_file_contents)
+    # '~~~~FOOTER~~~~' is a totally hackish thing for me to do, but oh well.
+    # Could I search for the EOF or something cool?  Or just.. directly append this to do the bottom perhaps.
+    footer_search=Regexp.new('~~~~FOOTER~~~~')
+    puts footer_search
+    footer_replace=<<-"HEREDOC"
+          </div> <!-- main -->
+          <div class="footer">
+<!-- FIXME: I should probably align this left and right in some nice way -->
+            <img border="0" src="#{$WEBSITE}/images/spiralofhope-16.png"> Spiral of Hope / spiralofhope - <a href="mailto:@gmail.com">@gmail.com</a>
+            <br>
+            <!-- TODO -->
+            <img border="0" src="#{$WEBSITE}/images/FIXME.png">Hosting provided by (FIXME), <a href="#{$WEBSITE}/thanks.html#FIXME">thanks!</a>
+            <br>
+            <a class="without_u" accesskey="e" href="file://#{source_file_full_path}">&nbsp;</a>
+          </div> <!-- footer -->
+        </body>
+      </html>
+    HEREDOC
 
-  target_file_full_path=File.join(target_path, File.basename(source_file_full_path.chomp(File.extname(source_file_full_path))) + '.html')
-
-  target_file_contents_processing=[]
-  target_file_contents.each do |line|
-    if line == "" then
-      flag=true
-      next
-    end
-    if flag == true then
-      flag=false
-    end
-    target_file_contents_processing << line
+    string=multiline_replace(header_search, string, header_replace)
+    string=multiline_replace(footer_search, string, footer_replace)
+    return string
   end
 
-# TODO: This was an attempt at allowing lists.
-#   target_file_contents.gsub!(/\n\n-/, "<ul><li>\1</li>")
-#   target_file_contents.gsub!(/\n-/, "<li>\1</li>")
-#   target_file_contents.gsub!(/\n\n-{1}.*\n\n/, "<li>\1</li></ul>")
+  def compile(source_file_full_path, target_file_full_path)
+    contents=file_read(source_file_full_path)
+    contents=markup(contents, /<.+>/, /<.+>/, nil, nil, false)
+    contents=automatic_linking(File.dirname(source_file_full_path), contents)
+    # '~~~~FOOTER~~~~' is a totally hackish thing for me to do, but oh well.
+    # I should just redo this to make it a simple header + contents + footer.. eesh.
+    contents=header_and_footer(contents + '~~~~FOOTER~~~~', source_file_full_path)
 
-  target_file_contents.gsub!(/(\n\n)/, "<\/p>\1<p>")
+    # working with lists!
+    result=[]
+    previous_nesting=0
+    # FIXME: This won't end correctly if the list ends with an EOF.  Not a big deal since TidyHTML will fix it, but I should code this better.
+    contents.each do |line|
+      # Search for a list with leading dashes.
+      line =~ /^(-+) (.*)$/
+      if $~ != nil then
+        # I'm in a list.
+        # Add the HTML elements to the line.
+        line = "<li> " + $~[2] + " </li>"
+        # Specify what nesting level I'm in.
+        current_nesting = $~[1].length
+        if current_nesting > previous_nesting then
+          # I'm up a level.
+          line="<ul> " + line
+        elsif current_nesting < previous_nesting then
+          # I'm down one or more levels.
+          line=( "</ul> " * (previous_nesting - current_nesting)) + line
+        else
+          # I'm at the same level.
+          # Nothing special needs to be done, I've already added the HTML elements to the line.
+          line = line
+        end
+      else
+        # not in a list.
+        current_nesting=0
+        if previous_nesting > 0 then
+          # I'm down one or more levels (to the last level from a list).
+          line=( "</ul> " * (previous_nesting - current_nesting)) + line
+        else
+          # I'm at the same level (I wasn't nested before).
+          # Nothing special needs to be done.
+          line = line
+        end
+      end
+      previous_nesting=current_nesting
+      result << line
+    end
+    contents=result.to_s
 
-  # TODO: header
-  # TODO: footer
+    # A hackish way to do paragraphs.
+    # This is here and not earlier because it'll interfere with the listing functionality.
+    contents.gsub!(/(\n\n)/, "<\/p>\1<p>")
 
-  create_file(target_file_full_path, target_file_contents)
-  tidy_html(target_file_full_path)
-  # TODO: sync the timestamp
+    create_file(target_file_full_path, contents)
+    tidy_html(target_file_full_path)
+
+    # TODO: sync the timestamp, this would probably work:
+    # timestamp_sync(source_file_full_path, target_file_full_path)
+
+  end
+  compile(source_file_full_path, target_file_full_path)
 end
 def test_compile()
-  source_file_contents=<<-HEREDOC
-If this appears with lots of square boxes through it, or lines are being merged together oddly, then TidyHTML was probably note installed.
+  contents=<<-HEREDOC
+If this appears with lots of square boxes through it, or lines are being merged together oddly, then TidyHTML was probably not installed.
   
 *bold*, **big**. _underline_ /italics/ -strikethrough- `truetype`
 
@@ -368,7 +440,7 @@ FIXME http://example.com
   create_file(File.join(working_directory, "example.asc"), "")
 
   source_file=File.join(working_directory, 'source.asc')
-  create_file(source_file, source_file_contents)
+  create_file(source_file, contents)
 
   compile(source_file, working_directory)
 
@@ -382,27 +454,12 @@ end
 # rm -rf /tmp/test_markup.???? /tmp/test_markup.????
 
 def main(source_directory, compiled_directory)
-  def compile_missing_file(source_file_full_path, target_path)
-    vputs 'Building missing file:  ' + source_file_full_path.inspect
-    compile(source_file_full_path, target_path)
-
-    target_file_full_path=File.join(target_path, File.basename(source_file_full_path.chomp('.asc') + '.html'))
+  def process(source_file_full_path, target_file_full_path)
+    compile(source_file_full_path, target_file_full_path)
     timestamp_sync(source_file_full_path, target_file_full_path)
-
     view_html(target_file_full_path)
-
     # TODO: Re-compile all files in that same source directory, to ensure that automatic linking is re-applied to include this new file
   end
-  def compile_different_timestamp(source_file_full_path, target_path)
-    vputs 'Building unsynced timestamps:  ' + source_file_full_path.inspect
-    compile(source_file_full_path, target_path)
-
-    target_file_full_path=File.join(target_path, File.basename(source_file_full_path.chomp('.asc') + '.html'))
-    timestamp_sync(source_file_full_path, target_file_full_path)
-
-    view_html(target_file_full_path)
-  end
-
   pid_file=File.join('', 'tmp', 'compile_child_pid')
   fork_killer(pid_file)
   cd_directory(source_directory)
@@ -410,17 +467,20 @@ def main(source_directory, compiled_directory)
   fork_helper(pid_file) {
     Dir['**/*.asc'].each do |asc_file|
       target_file_full_path=File.expand_path(File.join(compiled_directory, asc_file.chomp('.asc') + '.html'))
+      source_file_full_path=File.expand_path(asc_file)
       if not File.exists?(target_file_full_path) then
-        source_file_full_path=File.expand_path(asc_file)
-        compile_missing_file(source_file_full_path, File.dirname(target_file_full_path))
+        vputs 'Building missing file:  ' + source_file_full_path.inspect
+        vputs ' ...             into:  ' + target_file_full_path.inspect
+        process(source_file_full_path, target_file_full_path)
         next
       end
-      source_file_full_path=File.expand_path(asc_file)
       source_time=File.stat(source_file_full_path).mtime
       target_time=File.stat(target_file_full_path).mtime
       if not source_time == target_time then
         target_path=File.join(compiled_directory, File.dirname(asc_file))
-        compile_different_timestamp(source_file_full_path, target_path)
+        vputs 'Building unsynced timestamps:  ' + source_file_full_path.inspect
+        vputs ' ...                    with:  ' + target_file_full_path.inspect
+        process(source_file_full_path, target_file_full_path)
         next
       end
     end # Dir['**/*.asc'].each
@@ -435,24 +495,170 @@ main(source_directory, compiled_directory)
 # sleep 3
 # fork_killer(File.join('', 'tmp', 'compile_child_pid'))
 
+#__END__
 
-=begin
-comments in a regular expression...
+## comments in a regular expression...
+## incomplete
+#contents.gsub! %r{
+  #(
+  #\[Bindable)(\]
+  #\s*
+  #public
+  #\s+
+  #function
+  #\s+
+  #get
+  #\s+)
+  #(\w+) # property name $3
+  #\s*
+  #\([^)]*\)
+#....
+#}x, '\\1(event="\\3Change")\\2\\3...'
 
-# incomplete
-contents.gsub! %r{
-  (
-  \[Bindable)(\]
-  \s*
-  public
-  \s+
-  function
-  \s+
-  get
-  \s+)
-  (\w+) # property name $3
-  \s*
-  \([^)]*\)
-....
-}x, '\\1(event="\\3Change")\\2\\3...'
-=end
+
+
+# TO DO:
+# 1) nest all of these together into two things.  1) header, 2) footer
+# 2) review all of the parameters and give them only source_file_full_path and target_file_full_path
+
+def search_replace(working_directory, source_directory, target_directory, source_directory_path, target_directory_path, source_file, target_file)
+
+  
+  search=Regexp.new(header_search)
+  replace=header_replace(working_directory, source_directory, target_directory, source_directory_path, target_directory_path, source_file, target_file)
+  original_contents=file_read(target_file)
+  replacement_contents=multiline_replace(search, original_contents, replace)
+  if original_contents != replacement_contents then
+    vputs 'Applying the header to ' + target_file
+    f = File.open(target_file, 'w')
+      f.write(replacement_contents)
+    f.close
+  end
+  # Footer
+  search=Regexp.new(footer_search(working_directory, source_directory, target_directory, source_directory_path, target_directory_path))
+  replace=footer_replace(working_directory, source_directory, target_directory, source_directory_path, target_directory_path)
+  original_contents=file_read(target_file)
+  replacement_contents=multiline_replace(search, original_contents, replace)
+  if original_contents != replacement_contents then
+    vputs 'Applying the footer to ' + target_file
+    f = File.open(target_file, 'w')
+      f.write(replacement_contents)
+    f.close
+  end
+end
+
+
+__END__
+
+string=<<-"HEREDOC"
+- 1
+-- 2
+--- 3
+-- 4
+- 5
+
+HEREDOC
+result=[]
+previous_nesting=0
+# FIXME: This won't end correctly if the list ends with an EOF.  Not a big deal since TidyHTML will fix it, but I should code this better.
+string.each do |line|
+  # Search for a list with leading dashes.
+  line =~ /^(-+) (.*)$/
+  if $~ != nil then
+    # I'm in a list.
+    # Add the HTML elements to the line.
+    line = "<li> " + $~[2] + " </li>"
+    # Specify what nesting level I'm in.
+    current_nesting = $~[1].length
+    if current_nesting > previous_nesting then
+      # I'm up a level.
+      line="<ul> " + line
+    elsif current_nesting < previous_nesting then
+      # I'm down one or more levels.
+      line=( "</ul> " * (previous_nesting - current_nesting)) + line
+    else
+      # I'm at the same level.
+      # Nothing special needs to be done, I've already added the HTML elements to the line.
+      line = line
+    end
+  else
+    # not in a list.
+    current_nesting=0
+    if previous_nesting > 0 then
+      # I'm down one or more levels (to the last level from a list).
+      line=( "</ul> " * (previous_nesting - current_nesting)) + line
+    else
+      # I'm at the same level (I wasn't nested before).
+      # Nothing special needs to be done.
+      line = line
+    end
+  end
+  previous_nesting=current_nesting
+  result << line
+end
+puts result
+__END__
+
+
+
+string=<<-"HEREDOC"
+not a list
+- list1
+- list2
+no
+HEREDOC
+result=[]
+previous_nesting=0
+string.each do |line|
+  if ( line =~ /^(-+) (.*)/ ) != nil then # found a list (any nesting level)
+    # The actual content of the line, without the dashes.
+    line=$~[2]
+    # The number of dashes found.
+    current_nesting=$~[1].length
+    if current_nesting > previous_nesting then # I'm up a level.
+      result << "<ul>" + "<li>" + line + "</li>"
+    elsif current_nesting < previous_nesting then # I'm down a level.
+      result  << "<li>" + line + "</li>" + "</ul>"
+    else # no level change (but I'm still in a list)
+      result << "<li>" + line + "</li>"
+    end
+    # The number of dashes found.
+    previous_nesting=current_nesting
+  else # Didn't find a list.
+    if previous_nesting > 0 then # One or more lists have terminated
+      result << "<li>" + line + "</li>" + ( "</ul>" * previous_nesting )
+    else # I wasn't working on a list before.
+      result << line
+    end
+  end
+end
+puts result
+__END__
+
+
+
+string=<<-"HEREDOC"
+not a list
+- list1
+- list2
+no
+HEREDOC
+result=[]
+list=[]
+string.each do |line|
+  if ( line =~ /^- (.*)/ ) != nil then
+    list << "<li>#{$~[1]}</li>"
+  else
+    if list!=[] then
+      result << "<ul>" << list << "</ul>"
+      list=[]
+      result << line
+    else
+      result << line
+    end
+  end
+end
+puts result
+__END__
+
+

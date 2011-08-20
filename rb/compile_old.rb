@@ -367,3 +367,27 @@ end # test_global_compile
 
 
 __END__
+
+#Before i realised that navigation was a stupid idea, I did this stuff:
+
+    # TODO: Actually, maybe this should be tweaked to be very universal.  Just return an array of the files.
+    # Let whatever other higher-up routine deal with the formatting of that array.
+    def navigation(source_file_full_path, target_file_full_path)
+
+      navigation=[]
+      # Create a web-friendly path
+      Dir[File.join(File.dirname(target_file_full_path), '**')].each do |i|
+        # Future TODO: Subdirectories (see 0.5.4 and earlier)
+        if File.extname(i) == ".html" then anchor='#body' else anchor="" end
+        # This is /foo/file.ext compared with /bar/file.ext2 [if file == file]
+        if File.basename(i, '.*') == File.basename(target_file_full_path, '.*') then
+          prepend="<strong>"
+          append="</strong>"
+        else
+          prepend=""
+          append=""
+        end
+        navigation << prepend + '<a href="' + $WEBSITE + current_path_web + File.basename(i) + anchor + '">' + File.basename(i) + "</a>" + append + "<br>\n"
+      end
+      return navigation.sort!
+    end
