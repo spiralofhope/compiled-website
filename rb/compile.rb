@@ -20,13 +20,9 @@ HTML Tidy (the executable, not the Ruby library)
 
 =begin
 TODO list:
+- local-links are not properly linking if they're used with common formatting.  So 'index,' does not link.  Hrmph.
+- Create an alternate stylesheet, and have a dropdown box at the top-right.  Can that be saved website-wide somehow? (cookies?)
 - A better 'listings' feature.  Just have it output the right CSS and let the user figure out how it ought to be displayed.  I'm tired of ;list: item
-- Manually-indent blocks between headers, like the original coWiki did.  I wonder what the HTML for that was.  Consider looking into my old archives, like my old RPG archives I sent to Angus.
-- implement "new page" creation concepts.  I would make a link like [[link]] and then the system would point me to the appropriate source .asc file.  This would summon my editor as usual, and I can make the page very easily.
-- tables, somehow..
-- Create a for-print version that changes inline links into anchor links to a nice list of endnotes.  I could even tinyurl all those links automatically..
-- local links which have punctuation in their filename
-- Templating {{replacement file}}  {{subst:replacement file}}
 - what does 'abort' do?  Is it some routine I have in a library somewhere?
 
 TODO: I'd love to use Ruby/HTML Tidy, but I don't know how to make it go.
@@ -98,6 +94,7 @@ def view_html(file_full_path)
     # Otherwise, this script would summon it wait for it to exit!
     #system('firefox', '-new-tab', file_full_path)
     #system('firefox', file_full_path)
+    # Does not respect accesskeys, it thinks that .asc is a PGP file.  Bah.
     system('midori', file_full_path)
     #system('links', '-g', file_full_path)
   else
