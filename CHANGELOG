@@ -1,3 +1,24 @@
+2010-04-01  spiralofhope  <spiralofhope@lavabit.com>
+  
+  1.0.1_internal
+  compiled_website.rb was dated 2011-04-03, but the changelog for this
+  entry is dated 2010-04-01.  Previous entries had no changelog to 
+  refer to, and were using the date from whatever main .rb file there 
+  was.  So those other entries do not have accurate dates, and 
+  something screwy was going on.  Meh.
+  
+  This entry also had a lot of lingering old stuff that I am probably
+  re-introducing to git.
+  
+  * Copied the core stuff over from 0.8.21.
+  
+  * Renamed a lot of old stuff.
+  
+  * Changed the directory structure.  Renamed and moved stuff around.
+  
+  * Merged all of the `live/common/hosted` into `live/common/h`.
+  I'm breaking a few links, but I don't care.
+
 2011-03-26  spiralofhope  <spiralofhope@lavabit.com>
   
   1.0.0_internal
