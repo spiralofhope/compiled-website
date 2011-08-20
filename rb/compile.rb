@@ -10,7 +10,7 @@ Requirements:
 - HTML Tidy (the executable, not the Ruby library)
   http://tidy.sourceforge.net/
 
-  # Tested and works on Unity Linux 64bit as of 2010-04-25:
+  # Tested and works on Unity Linux 64bit rc1 as of 2010-04-25:
   cvs -d:pserver:anonymous@tidy.cvs.sourceforge.net:/cvsroot/tidy login
   # press enter
   cvs -z3 -d:pserver:anonymous@tidy.cvs.sourceforge.net:/cvsroot/tidy co -P tidy
@@ -126,7 +126,33 @@ def view_html(file_full_path)
   end
 end
 def tidy_html(source_file_full_path)
-  system('tidy', '--drop-empty-paras', 'true', '--indent', 'true', '--keep-time', 'true', '--wrap', '0', '-clean', '-quiet', '-omit', '-asxhtml', '-access', '-modify', '--force-output', 'true', '--show-errors', '0', '--show-warnings', 'false', '--break-before-br', 'true', '--tidy-mark', 'false', source_file_full_path)
+  # For additional options, check out `tidy -help-config`
+  system(
+    'tidy',
+    '-clean', 
+    '-quiet', 
+    '-omit', 
+    '-asxhtml', 
+    '-access', 
+    '-modify', 
+    '--drop-empty-paras', 'true', 
+    '--indent', 'true', 
+    '--indent-spaces', '2', 
+    '--keep-time', 'true', 
+    '--wrap', '0', 
+    '--force-output', 'true', 
+    '--show-errors', '0', 
+    '--show-warnings', 'false', 
+    '--break-before-br', 'true', 
+    '--tidy-mark', 'false', 
+    '--output-encoding', 'utf8', 
+    '--escape-cdata', 'false', 
+    '--indent-cdata', 'true', 
+    '--hide-comments', 'true', 
+    '--join-classes', 'true', 
+    '--join-styles', 'true', 
+    source_file_full_path
+  )
 end
 
 def compile(source_directory, source_file_full_path, target_file_full_path)
@@ -543,81 +569,91 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
   end
   def header_and_footer(string, source_directory, source_file_full_path)
 
-if $toc == [] then $toc = ''
-else
-$toc=<<-"HEREDOC"
-<small><a accesskey="t" href="javascript:toggle('toc')">Table of Contents</a></small>
-<div class="toc" id="toc" style="display: none">
-  #{$toc}
-</div>
-HEREDOC
-end
+if $toc == [] then $toc = '' end
 
     a=Pathname.new(source_directory)
     b=Pathname.new(File.dirname(source_file_full_path))
     path=a.relative_path_from(b)
     header_search = Regexp.new('')
+    # HTML5 will change the text/html charset definition thusly:
+    #<meta charset="UTF-8">
     header_replace=<<-"HEREDOC"
-      <link rel="icon" href="#{path}/i/favicon.ico" type="image/x-icon">
-      <link rel="shortcut icon" href="#{path}/i/favicon.ico" type="image/x-icon">
-      <link type="text/css" href="#{path}/css/persistent.css" rel="stylesheet" />
-      <link type="text/css" href="#{path}/css/default.css"    rel="stylesheet"           title="Default" />
-      <link type="text/css" href="#{path}/css/dark.css"       rel="alternate stylesheet" title="Dark" />
-      <link type="text/css" href="#{path}/css/no-style.css"   rel="alternate stylesheet" title="No Style" />
-      <title>#{File.basename(source_file_full_path, '.asc')}</title>
-      <script type="text/javascript" src="#{path}/js/styleswitcher.js"></script>
-      <script language="javascript">
-        function toggle(targetId) {
-          target = document.getElementById(targetId);
-          if (target.style.display == ""){
-            target.style.display="inline";
-          } else if (target.style.display == "none"){
-            target.style.display="inline";
-          } else {
-            target.style.display="none";
-          }
-        }
-      </script>
-    </head>
-    <body>
-      <div class="header">
-        <div class="float-left">
-            <div class="top-t0">
-              <a accesskey="z" href="#{path}/index.html">
-                <img src="#{path}/i/spiralofhope-96.png">
-              </a>
-              <br>
-              <div class="top-t1">S</div> <div class="top-t2">piral of Hope</div>
-              <div class="top-t3">Better software is possible.</div>
-            </div>
-        </div>
-        <div class="float-right">
-          <form action="http://www.google.com/search">
-            <input name="q" size="25" accesskey="f" value="Search" class="texta" />
-            <input type="hidden" name="sitesearch" value="spiralofhope.com" />
-          </form>
-<small>
-  <a href="javascript:toggle('styles')">Styles</a>
-  <div id="styles" style="display: none">
-    <br>
-    <a href="#" accesskey="1" onclick="setActiveStyleSheet('Default');  return false;">Default</a>
-    |
-    <a href="#" accesskey="2" onclick="setActiveStyleSheet('Dark');     return false;">Dark</a>
-    |
-    <a href="#" accesskey="3" onclick="setActiveStyleSheet('No Style'); return false;">No Style</a>
-    |
-    <a href="greasemonkey-and-stylish.html">Your Own!</a>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>  
+<meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+<link rel="icon" href="#{path}/i/favicon.ico" type="image/x-icon">
+<link rel="shortcut icon" href="#{path}/i/favicon.ico" type="image/x-icon">
+<link type="text/css" href="#{path}/css/persistent.css" rel="stylesheet">
+<link type="text/css" href="#{path}/css/default.css"    rel="stylesheet"           title="Default">
+<link type="text/css" href="#{path}/css/dark.css"       rel="alternate stylesheet" title="Dark">
+<link type="text/css" href="#{path}/css/no-style.css"   rel="alternate stylesheet" title="No Style">
+<title>#{File.basename(source_file_full_path, '.asc')}</title>
+<script type="text/javascript" src="#{path}/js/styleswitcher.js">
+</script>
+<script type="text/javascript"><!--
+  function toggle(targetId) {
+    target = document.getElementById(targetId);
+    if (target.style.display == ""){
+      target.style.display="inline";
+    } else if (target.style.display == "none"){
+      target.style.display="inline";
+    } else {
+      target.style.display="none";
+    }
+  }
+//--></script>
+</head>
+
+<body>
+<div class="header">
+  <div class="float-left">
+    <div class="top-t0">
+      <a accesskey="z" href="#{path}/index.html">
+        <img alt="spiralofhope logo" src="#{path}/i/spiralofhope-96.png">
+      </a>
+      <br>
+      <div class="top-t1">S</div> <div class="top-t2">piral of Hope</div>
+      <div class="top-t3">Better software is possible.</div>
+    </div>
   </div>
-</small>
-<br>
-          #{$toc}
-      <noscript>
-        <br>TODO: JavaScript is diabled
-      </noscript>
-        </div>
+  <div class="float-right">
+    <form action="http://www.google.com/search">
+      <div>
+        <input name="q" size="25" accesskey="f" value="Search" class="texta">
+        <input type="hidden" name="sitesearch" value="spiralofhope.com">
       </div>
-      <div class="main" id="s0">
-        <p class="p0">
+    </form>
+<!-- 
+TODO: RSS
+rss-feed-icon-16px-svg.png
+-->
+    <small>
+      <a href="#{path}/javascript.html#s0" onClick="javascript:toggle('styles');return false">Styles</a>
+    </small>
+    <div id="styles" style="display: none">
+      <small>
+        <br>
+        <a href="#" accesskey="1" onclick="setActiveStyleSheet('Default');  return false;">Default</a>
+        |
+        <a href="#" accesskey="2" onclick="setActiveStyleSheet('Dark');     return false;">Dark</a>
+        |
+        <a href="#" accesskey="3" onclick="setActiveStyleSheet('No Style'); return false;">No Style</a>
+        |
+        <a href="greasemonkey-and-stylish.html">Your Own!</a>
+      </small>
+    </div>
+    <br>
+    <small>
+      <a accesskey="t" href="#{path}/javascript.html#s0" onClick="javascript:toggle('toc');return false">Table of Contents</a>
+    </small>
+    <div class="toc" id="toc" style="display: none">
+      #{$toc}
+    </div>
+  </div>
+</div>
+<div class="main" id="s0">
+<p class="p0">
     HEREDOC
 # TODO: The opening <p> I have up here seems a bit off to me.  I don't think I'm appropriately closing it.  But leveraging #{$paragraph = '<!----></div>'} doesn't seem to be the answer!  Damn.
 
@@ -641,33 +677,43 @@ I simplified it, here's the original:
     end
     $paragraph||=''
     footer_replace += $paragraph
+=begin
+It's wasteful to have a duplicate table of contents at the bottom.. it's for people who have JavaScript disabled.
+=end
     footer_replace+=<<-"HEREDOC"
     </div> <!-- main -->
       <div class="footer">
-        &copy; <a href="#{path}/contact.html">Spiral of Hope</a> - all rights reserved (until I figure licensing out)
+        &copy; <a href="#{path}/contact.html#s0">Spiral of Hope</a> - all rights reserved (until I figure licensing out)
         <br>
         <!-- TODO -->
-        <img border="0" src="#{path}/i/FIXME.png">Hosting provided by (FIXME), <a href="#{path}/thanks.html#FIXME">thanks!</a>
+        Hosting provided by (FIXME), <a href="#{path}/thanks.html#s0">thanks!</a>
         <br>
         <em><small>(<a href="#{path}/sitemap.html">sitemap</a>)</small></em>
         <br>
-        <a style="display: none;" accesskey="e" href="file://#{source_file_full_path}">&nbsp;</a>
-      </div> <!-- footer -->
-      <!-- Start of StatCounter Code -->
-      <script type="text/javascript">
-      var sc_project=4910069;
-      var sc_invisible=1;
-      var sc_partition=57;
-      var sc_click_stat=1;
-      var sc_security="1ce5ea53";
-      </script>
-      <div id="statcounter_image"
-      style="display:inline;"><a title="web stats"
-      class="statcounter"
-      href="http://www.statcounter.com/free_web_stats.html"><img
-      src="http://c.statcounter.com/4910069/0/1ce5ea53/1/"
-      alt="web stats"
-      style="border:none;"/></a></div>
+
+#{
+# This was some experimentation..
+=begin
+<script type="text/javascript"><!--
+// nothing
+//--></script>
+<noscript>
+<br>
+<a id="toc">
+Table of Contents
+#{$toc}
+</noscript>
+=end
+}
+      <a style="display: none;" accesskey="e" href="file://#{source_file_full_path}">&nbsp;</a>
+    </div> <!-- footer -->
+    <div id="statcounter_image"
+    style="display:inline;"><a title="web stats"
+    class="statcounter"
+    href="http://www.statcounter.com/free_web_stats.html"><img
+    src="#{path}/i/statcounter.com-button2.gif"
+    alt="web stats"
+    style="border:none;"/></a></div>
   </body>
 </html>
 HEREDOC
