@@ -16,6 +16,7 @@ something
 - TODO: Manually-indent blocks between headers, like the original coWiki did.  I wonder what the HTML for that was.  Consider looking into my old archives, like my old RPG archives I sent to Angus.
 - TODO: implement "new page" creation concepts.  I would make a link like [[link]] and then the system would point me to the appropriate source .asc file.  This would summon my editor as usual, and I can make the page very easily.
 - TODO: tables, somehow..
+- TODO: Create a for-print version that changes inline links into anchor links to a nice list of endnotes.  I could even tinyurl all those links automatically..
 =end
 
 
@@ -76,6 +77,7 @@ def marked_no(string, internal_markup_flag)
     string=chew(string, /(^| )\*/, /\*(\.|$)/, '\1<b>', '</b>\1', true)
     string=chew(string, /(^| )_/, /_(\.|$)/, '\1<u>', '</u>\1', true)
     string=chew(string, /(^| )-/, /-(\.|$)/, '\1<s>', '</s>\1', true)
+    string=chew(string, /(^| )`/, /`(\.|$)/, '\1<tt>', '</tt>\1', true)
     string=chew(string, /(^| )((http\:\/\/|ftp:\/\/|irc:\/\/|gopher:\/\/)(.*)(\....?))( |$)/, /( |$)/, '\1<a href="\2">\2</a> ', '\1', true)
     internal_markup_flag=false
   end
@@ -149,6 +151,8 @@ this is some example text
 this is some text
 this is someexample text
 this issome example text
+some `code` here ## FIXME
+`something`
 HEREDOC
 
 document=automatic_linking(get_files(), document)
@@ -156,11 +160,10 @@ document=automatic_linking(get_files(), document)
 # Yes it outputs them with spaces between them, but that's ok for HTML. TODO: Check if tidy will clean that up.  Notice the right side doesn't need spaces, and you can even mash *** together.
 document=chew(document, /<.*?>/, /<.*?>/, nil, nil, false)
 
-puts document
-
-# FIXME: tidy isn't installed any more..
+# TODO: this works on files only, not variables..
 # system('tidy -indent -upper -clean -quiet -omit -asxhtml -access -output file', document)
 
+puts document
 
 
 
