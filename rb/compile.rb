@@ -240,7 +240,8 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
         n=($~[1].length).to_s
         total += 1
         prepend=if total > 1 then '</div>' else '' end
-        line.sub!(regex, prepend + '<h' + n + ' id="a' + total.to_s + '">\2</h' + n + '><div class="indent' + n + '">' + "\n")
+        section_link = '<a class="h-link" href="#a' + total.to_s + '"> &nbsp;&sect;&nbsp; </a>'
+        line.sub!(regex, prepend + '<h' + n + ' class="h-link" id="a' + total.to_s + '">\2' + section_link + '</h' + n + '><div class="indent' + n + '">' + "\n")
         indent=''
         #($~[1].length).times do
           #indent=indent + '&nbsp;'
@@ -414,7 +415,6 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
   # TODO: This does not allow lists of mixed types (e.g. ordered within unordered)
   # TODO: Fucking totally overhaul this piece of shit..  I'm chopping off \n and it's screwing with stuff..
   def lists(string, regex, opening, closing, line_start, line_end, line_continuation)
-    # working with lists!
     result=[]
     previous_nesting=0
     # FIXME: This won't end correctly if the list ends with EOF.  Not a big deal since TidyHTML will probably fix it, but I should code this better.
@@ -462,6 +462,9 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
     end
     return result.to_s
   end
+  def mixed_lists(string)
+    return string
+  end
   def header_and_footer(string, source_directory, source_file_full_path)
 
 if $toc == [] then $toc = ''
@@ -502,7 +505,7 @@ end
       <a name id="top">
       <div class="nav">
         <div class="float-left">
-          <a class="without_u" accesskey="z" href="#{path}/index.html">
+          <a accesskey="z" href="#{path}/index.html">
             <img align="left" src="#{path}/images/spiralofhope-96.png">
           </a>
           <br>
@@ -550,7 +553,7 @@ I simplified it, here's the original:
     <br>
     <em><small>(<a href="#{path}/sitemap.html">sitemap</a>)</small></em>
     <br>
-    <a class="without_u" accesskey="e" href="file://#{source_file_full_path}">&nbsp;</a>
+    <a style="display: none;" accesskey="e" href="file://#{source_file_full_path}">&nbsp;</a>
   </div> <!-- footer -->
   </body>
 </html>
@@ -585,6 +588,8 @@ HEREDOC
     contents=lists(contents, %r{^(:+) (.+)$}, '<dl>', "</dl>\n", '<dd> ', '</dd>', '')
     # Code blocks
     contents=lists(contents, %r{^( )(.*)$}, '<pre>', "</pre>\n", '', '', '<br>')
+
+    contents=mixed_lists(contents)
 
     # Links
     contents=links_plain(contents)
