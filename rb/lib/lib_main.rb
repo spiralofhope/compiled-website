@@ -254,3 +254,125 @@ def test_timestamp_sync()
   system( '\ls', '-lG', '--time-style=full-iso', working_dir )
   rm_directory( working_dir )
 end # test_timestamp_sync
+
+=begin
+TODO:  yield thing
+- to the inside block
+- to the outside block
+- to the begin match
+- to the end match
+---> just do one yield with four parameters.
+- The yield will be acting per-line.  To do something per-element the user would just do a normal array.each{}
+=end
+
+def line_partition(
+                    string='',
+                    # 1:  [ 'begin', 'end' ]
+                    # 2:  [ [ 'begin1', 'end1' ], [ 'begin2', 'end2' ] ]
+                    # 3:  [ [ [ 'begin1a', 'begin1b' ], [ 'end1a', 'end1b' ] ], [ [ 'begin2a', 'begin2b' ], [ 'end2' ] ] ]
+                    # Elements can be of class String or Regex.
+                    match_array=[],
+                    # 'in', 'out', 'omit'
+                    # in = include within the block.  xx<yy>zz => [ xx, <yy>, zz ]
+                    # out = outside the block.        xx<yy>zz => [ xx<, yy, >zz ]
+                    # omit = omit entirely.           xx<yy>zz => [ xx, yy, zz ]
+                    begin_in_or_out='in',
+                    end_in_or_out='in'
+                  )
+  #
+  return '' if string == ''
+  return '' if match_array == []
+  #
+  # This was built because I found that string.match(x) was slower than string == (x)  (for just using strings)
+  # TODO:  Benchmarking
+  #
+  if match_array[0].class != Array then
+    # using the simple syntax:  match_array = [ 'begin', 'end' ]
+    #                       =>
+    #                                         [ [ [ 'begin' ], [ 'end' ] ] ]
+    # Beef it up.
+    match_array.each_index{ |i|
+      match_array[i] = [ match_array[i] ]
+    }
+    match_array = [ match_array ]
+  elsif match_array[0][0].class != Array then
+    # using the syntax:  match_array = [
+    #                                    [ 'begin1a', 'end1a' ],
+    #                                    [ 'begin2a', 'end2a' ]
+    #                                  ]
+    #                => 
+    #                                  [
+    #                                    [ [ 'begin1a' ], [ 'end1b' ] ],
+    #                                    [ [ 'begin2a' ], [ 'end2a' ] ]
+    #                                  ]
+    # Beef it up.
+    match_array[0].each_index{ |i|
+      match_array[i].each_index{ |j|
+        match_array[i][j] = [ match_array[i][j] ]
+      }
+    }
+  end
+  #
+  result = [ '' ]
+  active_close_tags = []
+  #
+  string.each_line{ |line|
+    #
+    matched = false
+    #
+    if active_close_tags == [] then
+      # We're looking for a begin match.
+      match_array.each_index{ |i|
+        match_array[i][0].each{ |e|
+          if match_found( line, e ) == true then
+            matched = true
+            active_close_tags = match_array[i][1]
+            result << ''
+            if begin_in_or_out == 'in' then
+              result[-1].concat( line )
+            elsif begin_in_or_out == 'out' then
+              result[-2].concat( line )
+            else
+              # omit
+            end
+            break
+          end
+        }
+      }
+      if matched == false then
+        # No match.
+        # Append it.
+        result[-1].concat( line )
+      end
+    else
+      # We're in the middle of a block.
+      # Look for an end match.
+      active_close_tags.each{ |e|
+        if match_found( line, e ) == true then
+          matched = true
+          active_close_tags = []
+          result << ''
+          if end_in_or_out == 'in' then
+            result[-2].concat( line )
+          elsif end_in_or_out == 'out' then
+            result[-1].concat( line )
+          else
+            # omit
+          end
+          break
+        end
+      }
+      if matched == false then
+        # No match.
+        # Append it.
+        result[-1].concat( line )
+      end
+    end
+  }
+  return result
+end
+def match_found( string, matcher )
+  return true if matcher.class == Regexp and string.match( matcher ) != nil
+  return true if matcher.class == String and string.chomp == matcher.chomp
+  return false
+end

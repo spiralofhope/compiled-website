@@ -2,19 +2,6 @@
 # http://bfts.rubyforge.org/minitest/
 require 'minitest/autorun'
 
-def assert_equal_array( expected, result )
-  assert_equal(
-    expected.size.to_s,
-    result.size.to_s,
-  )
-  result.each_index{ |i|
-    assert_equal(
-      expected[i],
-      result[i],
-    )
-  }
-end
-
 class Test_Markup < MiniTest::Unit::TestCase
 
   def setup()
@@ -462,27 +449,6 @@ class Test_Markup < MiniTest::Unit::TestCase
     ]
     result = @o.split_string_by_line( string, rx )
     assert_equal_array( expected, result )
-    #
-    # TODO:  Move such test cases to a separate tc_libs.rb
-    # gpartition2
-    string = <<-heredoc.unindent
-      This is a test
-    heredoc
-    expected = [ string ]
-    rx = %r{Not matching}
-    result = string.gpartition2( rx )
-    assert_equal_array( expected, result )
-    #
-    ##
-    #string = <<-heredoc.unindent
-      #aaabbbcccddd
-    #heredoc
-    #expected = [ string ]
-    #rx = %r{bbb}
-    #result = string.gpartition2( rx )
-    #assert_equal_array( expected, result )
-
-
 
     ## Using HTML.
     ## Lines which match, but are inside HTML, are not considered matches.
@@ -2479,5 +2445,279 @@ skip
 
   end
 =end
+
+  def test_line_partition_1()
+    # Given a string, a beginning and an ending.
+    # Separate the string into an alternating array of matches and non-matches.
+    # Output type one.  The matched blocks are placed inside.
+    # [ ..., begin***end, ..., begin***end, ... ]
+    string = <<-heredoc.unindent
+      This is a string
+      Line two
+      Three
+    heredoc
+    match_array=[ 'BEGIN', 'END' ]
+    expected = [ string ]
+    result = line_partition(
+                              string,
+                              match_array
+                            )
+    assert_equal_array( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
+      This is a string
+      BEGIN
+      Line two
+      END
+      Three
+    heredoc
+    match_array = [ 'BEGIN', 'END' ]
+    expected = [
+      "This is a string\n",
+      "BEGIN\nLine two\nEND\n",
+      "Three\n",
+    ]
+    result = line_partition(
+                              string,
+                              match_array
+                            )
+    assert_equal_array( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
+      This is a string
+      BEGIN
+      Line two
+      END
+      Three
+    heredoc
+    match_array=[ %r{^BEGIN$}, %r{^END$} ]
+    expected = [
+      "This is a string\n",
+      "BEGIN\nLine two\nEND\n",
+      "Three\n",
+    ]
+    result = line_partition(
+                              string,
+                              match_array
+                            )
+    assert_equal_array( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
+      This is a string
+      BEGIN
+      Line two
+      END
+      Three
+    heredoc
+    match_array=[ %r{^BEGIN$}, %r{^END$} ]
+    expected = [
+      "This is a string\n",
+      "Line two\n",
+      "Three\n",
+    ]
+    result = line_partition(
+                              string,
+                              match_array,
+                              'omit',
+                              'omit'
+                            )
+    assert_equal_array( expected, result )
+  end
+
+  def test_line_partition_2()
+    # Output type two.  The matched blocks are placed outside.
+    # [ ...begin, ***, end...begin, ***, end... ]
+    string = <<-heredoc.unindent
+      This is a string
+      BEGIN
+      Line two
+      END
+      Three
+    heredoc
+    match_array = [ 'BEGIN', 'END' ]
+    expected = [
+      "This is a string\nBEGIN\n",
+      "Line two\n",
+      "END\nThree\n",
+    ]
+    result = line_partition(
+                              string,
+                              match_array,
+                              'out',
+                              'out',
+                            )
+    assert_equal_array( expected, result )
+    #
+    #
+    match_array = [ 'BEGIN', 'END' ]
+    expected = [
+      "This is a string\n",
+      "BEGIN\nLine two\n",
+      "END\nThree\n",
+    ]
+    result = line_partition(
+                              string,
+                              match_array,
+                              'in',
+                              'out',
+                            )
+    assert_equal_array( expected, result )
+  end
+
+  def test_line_partition_3()
+    # Allow multiple separator triggers.
+    string = <<-heredoc.unindent
+      This is a string
+      BEGIN
+      Line two
+      END
+      Three
+    heredoc
+    match_array = [
+                    [ 'BEGIN1', 'END1' ],
+                    [ 'BEGIN2', 'END2' ]
+                  ]
+    expected = [
+      "This is a string\nBEGIN\n",
+      "Line two\n",
+      "END\nThree\n",
+    ]
+    expected = [ string ]
+    result = line_partition(
+                              string,
+                              match_array,
+                              'out',
+                              'out',
+                            )
+    assert_equal_array( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
+      This is a string
+      BEGIN1
+      Line two
+      END1
+      Three
+    heredoc
+    match_array = [
+                    [ 'BEGIN1', 'END1' ],
+                    [ 'BEGIN2', 'END2' ]
+                  ]
+    expected = [
+      "This is a string\n",
+      "BEGIN1\nLine two\nEND1\n",
+      "Three\n",
+    ]
+    result = line_partition(
+                              string,
+                              match_array,
+                            )
+    assert_equal_array( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
+      This is a string
+      BEGIN1
+      Line two
+      END1
+      Three
+    heredoc
+    match_array = [
+                    [ 'BEGIN1', 'END1' ],
+                    [ 'BEGIN2', 'END2' ]
+                  ]
+    expected = [
+      "This is a string\nBEGIN1\n",
+      "Line two\n",
+      "END1\nThree\n",
+    ]
+    result = line_partition(
+                              string,
+                              match_array,
+                              'out',
+                              'out',
+                            )
+    assert_equal_array( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
+      This is a string
+      BEGIN2
+      Line two
+      END2
+      Three
+    heredoc
+    match_array = [
+                    [ 'BEGIN1', 'END1' ],
+                    [ 'BEGIN2', 'END2' ]
+                  ]
+    expected = [
+      "This is a string\nBEGIN2\n",
+      "Line two\n",
+      "END2\nThree\n",
+    ]
+    result = line_partition(
+                              string,
+                              match_array,
+                              'out',
+                              'out',
+                            )
+    assert_equal_array( expected, result )
+  end
+
+  def test_line_partition_4()
+    # Allow each separator trigger to have multiple beginnings and endings.
+    string = <<-heredoc.unindent
+      This is a string
+      BEGIN1a
+      Line two
+      END1b
+      Three
+    heredoc
+    match_array = [
+                    [ [ 'BEGIN1a', 'BEGIN1b' ], [ 'END1a', 'END1b' ] ],
+                    [ [ 'BEGIN2' ], [ 'END2' ] ]
+                  ]
+    expected = [
+      "This is a string\nBEGIN1a\n",
+      "Line two\n",
+      "END1b\nThree\n",
+    ]
+    result = line_partition(
+                              string,
+                              match_array,
+                              'out',
+                              'out',
+                            )
+    assert_equal_array( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
+      This is a string
+      BEGIN2
+      Line two
+      END2
+      Three
+    heredoc
+    match_array = [
+                    [ [ 'BEGIN1a', 'BEGIN1b' ], [ 'END1a', 'END1b' ] ],
+                    [ [ 'BEGIN2' ], [ 'END2' ] ]
+                  ]
+    expected = [
+      "This is a string\nBEGIN2\n",
+      "Line two\n",
+      "END2\nThree\n",
+    ]
+    result = line_partition(
+                              string,
+                              match_array,
+                              'out',
+                              'out',
+                            )
+    assert_equal_array( expected, result )
+  end
 
 end # class Test_Markup < MiniTest::Unit::TestCase

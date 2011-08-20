@@ -1,3 +1,7 @@
+  * Split up some library code and test cases into separate files.
+  This will reduce the complexity of test cases which are important to
+  the project versus tried-and-true code.
+  
   * String processing can be made faster, I've heard:
     slow:    "string" <<      "string"
     better:  "string" +=      "string"
