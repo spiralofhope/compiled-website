@@ -1,3 +1,38 @@
+2011-05-20  spiralofhope  <spiralofhope@lavabit.com>
+  
+  1.0.5
+  Massive rewrite.  Messy.
+  
+  * Rewrote paragraphs
+
+  * Rewrote horizontal rules
+
+  * Rewrote plain, named, numbered, automatic local and new local links.
+  Automatic local and new local links needed to have test cases that 
+  touch the disk.  Those test cases might cause issues on non-Linux and
+   needs some more testing.  =(  Ugh, tests that need testing.
+
+  * Lists were rewritten from scratch .. maybe four times.
+  Still working on lists of mixed-type.
+
+  * Starting a list of corner-cases or missing test cases / bugs I 
+  found.
+
+  * Rewrote <pre> blocks.
+
+2011-04-06  spiralofhope  <spiralofhope@lavabit.com>
+  
+  1.0.4
+
+  * Moved more code over, and corrected the formatting of it.
+
+  * Just using the new markup_everything() for now, but it works!
+
+  * Included a bunch of my library methods.
+  I'll end up pushing it all back out into one or more library files,
+  but they'll be specific to this project instead of being outside 
+  files as before.
+
 2011-04-01  spiralofhope  <spiralofhope@lavabit.com>
   
   1.0.1_internal
