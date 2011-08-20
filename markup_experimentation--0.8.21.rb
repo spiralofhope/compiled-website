@@ -1,4 +1,3 @@
-
 =begin
 To do:
 
@@ -12,6 +11,14 @@ To do:
 - Prepending a header, appending a footer.
 - HTML Tidy
 - The background pid stuff.
+
+
+- "proper" footnoting/endnoting
+-- The user creates [1] markers, manually incrementing the number.
+-- The user creates matching [1] markers at the bottom of the section or the end of the page.
+-- The system detects if the user put them at the bottom or end.
+-- The system picks up all of the [1] markers and re-numbers them so they are in-order.  The foot/endnotes are also picked up and sorted the same way.
+-- This allows a person to go [2] [1] [4] [3] and the system will freely correct everything.
 
 =end
 
@@ -188,12 +195,6 @@ class Markup
     return match_new( string, html_exclusion_rx, false )
   end
 
-  def section_arrays( string )
-    rx=%r{(^=+)()()(.*?)()()(=+$)}
-    # returns two arrays:  nonhtml, html (nomatch, match)
-    return match_new( string, rx, false )
-  end
-
   def markup( string, left_rx, right_rx, left_replace, right_replace )
     rx = punctuation_rx( left_rx, right_rx )
     # Separate HTML from non-HTML content.
@@ -257,18 +258,38 @@ if nonhtml.count != html.count then puts "markup error:  unbalanced element coun
     )
   end
 
-  def sections( string )
-    string = "====Testing testing one two three"
-    rx = %r{(=+)}
-    puts string.match( rx ).to_s.length
-    # => 4
+  def section_arrays( string )
+    rx=%r{(^=+)(\ )()(.*?)()(\ )(=+$)}
+    # returns two arrays:  nonhtml, html (nomatch, match)
+    return match_new( string, rx, false )
   end
+
+  def sections( string )
+    nomatch, match = section_arrays( string )
+    match.each_index do |i|
+      # ---
+      # = Title =  =>  <h1>Title</h1>
+      # ---
+      next if match[i] == nil
+      match[i].match( %r{(^=+)(\ )()(.*?)()(\ )(=+$)} )
+      heading_level = $~[1].length
+      match[i] = "<h#{heading_level}>" + $~[4] + "</h#{heading_level}>"
+      # ---
+      # <h1>Title</h1>  =>  <div class=\"s1"><h1>Title</h1>
+      # ---
+      # All sections have (at least) one 'div class=' leading it.
+      match[i] = "<div class=\"s#{heading_level}\">" + match[i]
+    end
+    return recombine( match, nomatch ).join
+  end
+
 
 end # class Markup
 
 
 # http://bfts.rubyforge.org/minitest/
 require 'minitest/autorun'
+# require 'minitest/pride'
 class Test_Markup < MiniTest::Unit::TestCase
 
   def setup()
@@ -641,6 +662,24 @@ class Test_Markup < MiniTest::Unit::TestCase
     assert_equal(
       [ nil, '= Title One =', nil, nil, '= Title Two =', nil],
       match,
+    )
+  end
+
+  def test_sections()
+    assert_equal(
+      ( <<-heredoc.unindent
+        <div class="s1"><h1>1</h1>
+
+        <div class="s1"><h1>2</h1>
+      heredoc
+      ),
+      (
+        @o.sections( <<-heredoc.unindent
+          = 1 =
+          = 2 =
+        heredoc
+        )
+      ),
     )
   end
 
