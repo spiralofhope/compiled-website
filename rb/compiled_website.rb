@@ -20,6 +20,9 @@ To do:
 -- The system picks up all of the [1] markers and re-numbers them so they are in-order.  The foot/endnotes are also picked up and sorted the same way.
 -- This allows a person to go [2] [1] [4] [3] and the system will freely correct everything.
 
+
+Allow only one document-links for each header-section.  For each section maintain an array of already-existing links.  Check for each addition and don't add duplicates.
+
 =end
 
 
@@ -338,6 +341,7 @@ if nonhtml.count != html.count then puts "markup error:  unbalanced element coun
   end
 
 end # class Markup
+
 
 # http://bfts.rubyforge.org/minitest/
 require 'minitest/autorun'
@@ -863,25 +867,374 @@ class Test_Markup < MiniTest::Unit::TestCase
   end
 
   def test_lists()
-    expected = <<-heredoc.unindent
-      test
-      <ul><li>1</li>
-      </ul>
-    heredoc
-    match, nomatch = @o.sections( <<-heredoc.unindent
-      test
-       - 1
-    heredoc
-    )
-    result = @o.recombine( match, nomatch ).join + "\n"
-    assert_equal(
-      ( expected ),
-      ( result ),
-    )
+    #expected = <<-heredoc.unindent
+      #test
+      #<ul><li>1</li>
+      #</ul>
+    #heredoc
+    #match, nomatch = @o.sections( <<-heredoc.unindent
+      #test
+       #- 1
+    #heredoc
+    #)
+    #result = @o.recombine( match, nomatch ).join + "\n"
+    #assert_equal(
+      #( expected ),
+      #( result ),
+    #)
   end
 
 
 end
+
+
+# ------------------------------------
+
+
+def create_file( file, file_contents )
+  # TODO: This can't create a file if it's in a subdirectory that doesn't exist.  I get a TypeError.  Perhaps I could intelligently create the directory..
+  vputs "creating file: " + file
+  # TODO: check that I have write access to my current directory.
+  # TODO: check for overwriting an existing file.  Also implement an optional flag to overwrite it.
+  begin
+    File.open(file, 'w+') do |f| # open file for update
+      f.print file_contents      # write out the example description
+    end                          # file is automatically closed
+  rescue Exception
+    # TODO:  Causes issues, but I'm not sure why.
+#    raise "\nCreating the text file #{file.inspect} has failed with: "
+  end
+end
+
+def vputs( string )
+  if $VERBOSE == true || $VERBOSE == nil then
+    puts string
+  end
+end
+
+def cd_directory( directory )
+  # TODO:  I have not done proper testing on any of this.  I don't even know if "raise" works.
+  # This is the equivalent of:  directory=exec("readlink", "-f", Dir.getwd)
+  directory=File.expand_path(directory)
+  start_directory = Dir.getwd
+
+  # TODO: Check permissions
+  if directory == start_directory then
+    vputs "cd_directory: I'm already in that directory:  " + directory.inspect
+    return 0
+  end
+  if not File.directory?(directory) then
+    raise "cd_directory: That's not a directory:  " + directory.inspect
+    return 1
+  end
+  if not File.exists?(directory) then
+    raise "cd_directory: That directory doesn't exist:  " + directory.inspect
+    return 1
+  end
+
+  vputs "cd_directory: entering directory: " + directory.inspect
+  Dir.chdir(directory)
+  # This is a good idea, but it fails if I'm in a symlinked directory..
+  # TODO: Recursively check if I'm in a symlinked dir.  =)
+#   if Dir.getwd != directory then
+#     puts "cd failed.  I'm in\n" + Dir.getwd + "\n.. but you wanted \n" + directory
+#     return 1
+#   end
+end
+
+# used for FileUtils.mkdir_p
+require 'fileutils'
+# TODO:  Automatically make parent directories if they don't exist, like `md --parents`.
+def md_directory( directory )
+  directory=File.expand_path(directory)
+  if File.exists?(directory) then
+    if File.directory?(directory) then
+      # All is good!
+      return 0
+    else
+      raise "md_directory: It's a file, I can't make a directory of the same name!:  " + directory.inspect
+      return 1
+    end
+  end
+  # TODO:  Suppress explosions using Signal.trap, and deal with things gracefully.
+  #        e.g.  Signal.trap("HUP") { method() }
+  #        Apply this technique elsewhere/everywhere.
+  vputs "md_directory: making directory: " + directory.inspect
+
+  # This can make parent directories
+  FileUtils.mkdir_p( directory )
+  # This cannot make parent directories.  I could program a workaround so I don't need to require 'fileutils', but why?
+  # Dir.mkdir( directory )
+
+  # Fails if I'm in a symlinked directory.  See notes with cd_directory.
+#   if File.directory?(directory) == false then raise "directory creation failed: " + directory end
+  # TODO: ensure that I have complete access (read/write, make directories)
+  # TODO: Attempt to correct the permissions.
+end
+
+def pid_exists?( pid )
+  begin
+    Process.kill(0, pid)
+    # exists
+    return 0
+  rescue Errno::EPERM
+    # changed uid
+    return 128
+  rescue Errno::ESRCH
+    # does not exist or zombied
+    # TODO: zombied?  That could be really bad.  I would want to kill-9 those, but I can't tell the difference between nonexistant and zombied.. argh argh argh!
+    return 1
+  rescue
+    # Could not check the status?  See  $!
+    return 255
+  end
+end
+
+def fork_killer( pid_file )
+  # TODO: Allow a method before the loop and after the loop (in seppuku).  This prevents unnecessarily repeating code.  However, it introduces the issue of how I ought to pass variables around.  It's not worth the work right now, but it's a big issue to solve later.
+  Dir[pid_file + '**'].each do |file|
+    pid=File.extname( file )[1..-1].to_i
+    # If the process exists:
+    if pid_exists?( pid ) == 0 then
+      # Ask it to terminate.
+      begin
+        Process.kill( "HUP", pid )
+      rescue Errno::ESRCH
+        vputs "**explosion!**"
+      end
+      # The exiting process will kill its own pid file.
+    else
+      vputs file + " doesn't actually have a running process.  Deleting it."
+      File.delete( file )
+    end
+  end
+end
+
+def fork_helper( *args, &block )
+  pid_file = args[0]
+  # NOTE: This code has been copied verbatim.  If you need to edit it, edit the source misc.rb from which it came.
+  pid = fork do
+    pidfile = pid_file + "." + $$.to_s
+    create_file( pidfile, $$ )
+    def fork_helper_seppuku( pid_file )
+        vputs "pid #{$$} was killed."
+        # TODO: Appropriately-kill any other forked processes, and delete their pid files.
+        # 1.9.2 introduced an oddity where after a time this would get triggered twice.
+        # Checking for existence is a cludgy workaround.
+        if File.exists?( pid_file + "." + $$.to_s ) then
+          File.delete(   pid_file + "." + $$.to_s )
+        end
+        exit
+    end
+    Signal.trap( "HUP"  ) { fork_helper_seppuku( pid_file ) }
+    Signal.trap( "TERM" ) { fork_helper_seppuku( pid_file ) }
+    vputs "started #{$$}"
+#    until "sky" == "falling" do
+    loop do
+#       vputs "pid #{$$} sleeping"
+      yield
+#       vputs "\n\n\n\n\n\n\n"
+      sleep 1
+    end
+  end
+end
+def test_fork
+  pid_file = File.join( '', 'tmp' 'test_fork_pid' )
+
+  fork_killer( pid_file )
+  fork_helper( pid_file ) {
+    puts "process #{$$} is working:  #{Time.now}"
+  }
+end
+#test_fork()
+# Once your done testing, comment out test_fork and uncomment this.  It'll kill the one remaining fork.
+# fork_killer( File.join( '', 'tmp', 'test_fork_pid' ) )
+
+def file_read( file )
+  vputs "Reading file " + file
+  # I suspect that there are issues reading files with a space in them.  I'm having a hard time tracking it down though.. TODO: I should adjust the test case.
+  if ! File.exists?( file ) then
+    puts "That file doesn't exist: "  + file.inspect
+    return ""
+  end
+  # TODO: Check permissions, etc.
+# file=file.sub(' ', '_')
+  f = File.open( file, 'r' )
+    string = f.read
+  f.close
+  return string
+end
+def test_file_read()
+  lib = "~/bin/rb/lib/"
+  # FIXME:  This shouldn't be requiring other stuff, that'd be bad testing!
+  require lib + "mine/misc.rb"
+  require lib + "mine/files.rb"
+  working_file = "/tmp/test_file_read.#{$$}"
+  create_file( working_file, "This is some content!" )
+  puts file_read( working_file )
+  File.delete( working_file )
+end
+
+
+# ------------------------------------------
+
+def timestamp_sync( source_file, target_file, &block )
+  # TODO:  Sanity-checking.
+  if ! File.exists?( source_file ) || ! File.exists?( target_file ) then return 1 end
+  stime = File.stat( source_file ).mtime
+  ttime = File.stat( target_file ).mtime
+  if stime != ttime then
+#     puts "this should be displayed ONCE"
+    vputs " # The source and target times are different.  Fixing the target time."
+    vputs "   Source: #{source_file} to #{stime}"
+    vputs "   Target: #{target_file} to #{ttime}"
+    File.utime( stime, stime, target_file )
+    if File.stat( target_file ).mtime != stime then
+      puts "Failed to set the time!"
+      return 1
+    end
+    yield if block_given?
+    return true
+  else
+    return false
+  end
+end
+def test_timestamp_sync()
+  # Setup
+  lib = File.join('', 'home', 'user', 'bin', 'rb', 'lib')
+  require File.join(lib, "mine", "misc.rb")
+  require File.join(lib, "mine", "strings.rb")
+  require File.join(lib, "mine", "directories.rb")
+  require File.join(lib, "mine", "files.rb")
+  # $$ is the pid of the current process.  That should make this safer.
+  working_dir=File.join('', 'tmp', "test_timestamp_sync.#{$$}")
+  source_file=File.join(working_dir, "source")
+  target_file=File.join(working_dir, "target")
+  # Preparing directories
+  md_directory(working_dir)
+  # Preparing files
+  create_file(source_file, "content")
+  # Sleep, to force the timestamp to be wrong
+  sleep 1.5
+  create_file(target_file, "content")
+  # NOTE: The following code is not portable!
+  system("\ls", "-lG", "--time-style=full-iso", working_dir)
+
+  # Test
+  puts " # First pass."
+  timestamp_sync(source_file, target_file)
+  puts " # Second pass."
+  timestamp_sync(source_file, target_file)
+  puts " # There should be no output."
+  # Teardown
+  # FIXME: Trap all errors and then perform my cleanup.  Fix all my test scripts to do this.
+  # NOTE: The following code is not portable!
+  system("\ls", "-lG", "--time-style=full-iso", working_dir)
+  rm_directory( working_dir )
+end # test_timestamp_sync
+
+def generate_sitemap( target_file_full_path, local_dir, source_file_full_path, type )
+  return 0
+end
+
+
+def main( local_wiki, local_blog, remote_wiki, remote_blog, pid_file )
+  def process( local_dir, source_file_full_path, target_file_full_path, type )
+    compile(        source_file_full_path, target_file_full_path, type )
+    timestamp_sync( source_file_full_path, target_file_full_path )
+    # TODO/FIXME: Re-compile all files in that same source directory, to ensure that automatic linking is re-applied to include this new file
+  end
+
+  def check_for_source_changes( local_dir, remote_dir, type )
+=begin
+    case type
+      when 'wiki' then
+      when 'blog' then
+        # I haven't figured this out yet.
+        return nil
+#        local_dir  = File.join( local_dir,   '..', 'blog' )
+#        remote_dir = File.join( remote_dir,        'blog' )
+      else
+        puts 'eek!'
+        return nil
+    end
+=end
+
+    if Dir.getwd != File.expand_path( local_dir ) then
+      # Yes, this keeps switching directories between the wiki and blog.  I don't need vputs to constantly tell me this.
+      oldverbose = $VERBOSE
+      $VERBOSE = false
+      cd_directory( local_dir )
+      $VERBOSE = oldverbose
+    end
+    # This was '**/*.asc' but I'm not going to look into subdirectories any more.
+    Dir['*.asc'].each do |asc_file|
+      target_file_full_path = File.expand_path( File.join( remote_dir, asc_file.chomp( '.asc' ) + '.html' ) )
+      source_file_full_path = File.expand_path(asc_file)
+      # Skip empty files.
+      next if not File.size?( source_file_full_path )
+      if not File.exists?( target_file_full_path )  then
+        vputs ''
+        vputs 'Building missing file:  ' + source_file_full_path.inspect
+        vputs ' ...             into:  ' + target_file_full_path.inspect
+        process( local_dir, source_file_full_path, target_file_full_path, type )
+        generate_sitemap( File.dirname( target_file_full_path ), local_dir, source_file_full_path, type )
+        next
+      end
+      source_time=File.stat( source_file_full_path ).mtime
+      target_time=File.stat( target_file_full_path ).mtime
+      if not source_time == target_time then
+        target_path=File.join( remote_dir, File.dirname( asc_file ) )
+        vputs ''
+        vputs 'Building unsynced timestamps:  ' + source_file_full_path.inspect
+        vputs ' ...                    with:  ' + target_file_full_path.inspect
+        process( local_dir, source_file_full_path, target_file_full_path, type )
+        next
+      end
+    end # Dir['*.asc'].each do |asc_file|
+  end # check_for_source_changes( local_dir, remote_dir, type )
+
+
+  # Kill any existing process.
+  fork_killer( pid_file )
+
+  # The main loop - once a second.
+  fork_helper( pid_file ) do
+    check_for_source_changes( local_wiki, remote_wiki, 'wiki' )
+    check_for_source_changes( local_blog, remote_blog, 'blog' )
+    vputs Time.now
+  end
+end # main
+
+
+
+
+def compile( source_file_full_path, target_file_full_path, type )
+
+  @o = Markup.new
+  create_file(
+    target_file_full_path,
+    @o.markup_everything( file_read( source_file_full_path ) ),
+  )
+
+end
+
+
+$VERBOSE=true
+# TODO:  Check for an environment variable like $TEMP and use that instead!
+#        I see nothing in ENV which I can use.  =/
+pid_file = File.join( '', 'tmp', 'compile_child_pid' )
+local_wiki = '/tmp/cw/w'
+local_blog = '/tmp/cw/b'
+remote_wiki = '/tmp/cw/remote'
+remote_blog = remote_wiki
+
+md_directory( local_wiki )
+md_directory( local_blog )
+md_directory( remote_wiki )
+md_directory( remote_blog )
+
+main( local_wiki, local_blog, remote_wiki, remote_blog, pid_file )
 
 
 __END__
