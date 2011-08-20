@@ -19,16 +19,29 @@ class String
 end
 
 def line_partition(
-                      string='',
-                      match_array=[],
-                      begin_in_or_out='in',
-                      end_in_or_out='in'
-                    )
+                    string='',
+                    # 1:  [ 'begin', 'end' ]
+                    # 2:  [ [ 'begin1', 'end1' ], [ 'begin2', 'end2' ] ]
+                    # 3:  [ [ [ 'begin1a', 'begin1b' ], [ 'end1a', 'end1b' ] ], [ [ 'begin2a', 'begin2b' ], [ 'end2' ] ] ]
+                    # Elements can be of class String or Regex.
+                    match_array=[],
+                    # 'in', 'out', 'omit'
+                    begin_in_or_out='in',
+                    end_in_or_out='in'
+                  )
   #
-  return '' if string == nil
+  return '' if string == ''
   return '' if match_array == []
   #
-  if match_array[0].class == String then
+  # This was built because I found that string.match(x) was slower than string == (x)  (for just using strings)
+  # TODO:  Benchmarking
+  def match_found( string, matcher )
+    return true if matcher.class == Regexp and string.match( matcher ) != nil
+    return true if matcher.class == String and string.chomp == matcher.chomp
+    return false
+  end
+  #
+  if match_array[0].class != Array then
     # using the simple syntax:  match_array = [ 'begin', 'end' ]
     #                       =>
     #                                         [ [ [ 'begin' ], [ 'end' ] ] ]
@@ -37,8 +50,7 @@ def line_partition(
       match_array[i] = [ match_array[i] ]
     }
     match_array = [ match_array ]
-    end
-  if match_array[0][0].class == String then
+  elsif match_array[0][0].class != Array then
     # using the syntax:  match_array = [
     #                                    [ 'begin1a', 'end1a' ],
     #                                    [ 'begin2a', 'end2a' ]
@@ -67,8 +79,7 @@ def line_partition(
       # We're looking for a begin match.
       match_array.each_index{ |i|
         match_array[i][0].each{ |j|
-          if line.chomp == j.chomp then
-            # We found a begin match.
+          if match_found( line, j ) == true then
             matched = true
             active_close_tags = match_array[i][1]
             result << ''
@@ -90,7 +101,7 @@ def line_partition(
       # We're in the middle of a block.
       # Look for an end match.
       active_close_tags.each{ |e|
-        if line.chomp == e.chomp then
+        if match_found( line, e ) == true then
           matched = true
           active_close_tags = []
           # Match.  Found the end of a block.
@@ -170,6 +181,27 @@ class Test_line_partition < MiniTest::Unit::TestCase
                               match_array
                             )
     assert_equal_array( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
+      This is a string
+      BEGIN
+      Line two
+      END
+      Three
+    heredoc
+    match_array=[ %r{^BEGIN$}, %r{^END$} ]
+    expected = [
+      "This is a string\n",
+      "BEGIN\nLine two\nEND\n",
+      "Three\n",
+    ]
+    result = line_partition(
+                              string,
+                              match_array
+                            )
+    assert_equal_array( expected, result )
+
   end
 
   def test_line_partition_2()
