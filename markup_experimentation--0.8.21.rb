@@ -191,15 +191,19 @@ class Markup
     # For the nonhtml components.
     nonhtml.each_index do |i|
       next if nonhtml[i] == nil
-      # Perform markup.
-      # TODO:  This would be better as a timer, and not as a counter like this.
-      c=0
-      until ( nonhtml[i].match( rx ) == nil ) or ( c > 1000 ) do
-        c=c+1
+      if nonhtml[i].match( rx ) != nil then
         nonhtml[i].sub!( rx, $~[1] + left_replace + $~[3] + right_replace + $~[5] )
+        # Now that a search-and-replace has been performed, I re-split from that element.
+        # TODO:  I should be able to do this without these intermediate variables, but how?
+        nonhtml_append, html_append = html_arrays( nonhtml[i] )
+        if nonhtml_append.count != html_append.count then puts "markup error:  unbalanced element count" end
+        nonhtml[i] = nonhtml_append
+           html[i] = html_append    # This is stomping over it, but that ought to be ok.. it's nil.
+        nonhtml.flatten!
+           html.flatten!
       end
-      if c > 1000 then puts "ERROR:  markup_underline() received a huge number of matches" end
     end
+if nonhtml.count != html.count then puts "markup error:  unbalanced element count" end
     return recombine( nonhtml, html ).join
   end
 
@@ -546,7 +550,7 @@ class Test_Markup < MiniTest::Unit::TestCase
     )
   end
 
-  # This demonstrates an issue with markup iterating through multiple times and not honouring the not-in-html process.
+  # This is now showing an issue with the punctuation rx or the main rx.
   def test_markup_emphasis3()
     assert_equal(
       '<em>usr/bin</em>',
