@@ -330,17 +330,17 @@ if nonhtml.count != html.count then puts "markup error:  unbalanced element coun
       end
     end
 
-    return recombine( match, nomatch ).join
+    return match, nomatch
   end # def sections( string )
 
-  def lists( string )
+  def lists( section_titles_array, section_contents_array )
+    return section_titles_array, section_contents_array
   end
 
 end # class Markup
 
 # http://bfts.rubyforge.org/minitest/
 require 'minitest/autorun'
-# require 'minitest/pride'
 class Test_Markup < MiniTest::Unit::TestCase
 
   def setup()
@@ -717,155 +717,166 @@ class Test_Markup < MiniTest::Unit::TestCase
   end
 
   def test_sections()
+    expected = <<-heredoc.unindent
+      <div class="s1"><h1>1</h1>
+      </div>
+    heredoc
+    match, nomatch = @o.sections( <<-heredoc.unindent
+      = 1 =
+    heredoc
+    )
+    result = @o.recombine( match, nomatch ).join + "\n"
     assert_equal(
-      ( <<-heredoc.unindent
-        <div class="s1"><h1>1</h1>
-        </div>
-      heredoc
-      ),
-      (
-        @o.sections( <<-heredoc.unindent
-          = 1 =
-        heredoc
-        ) + "\n"
-      ),
+      ( expected ),
+      ( result ),
     )
   end
 
   def test_sections_large()
+    expected = <<-heredoc.unindent
+      <div class="s1"><div class="s2"><div class="s3"><h3>3</h3>
+      </div></div></div>
+    heredoc
+    match, nomatch = @o.sections( <<-heredoc.unindent
+      === 3 ===
+    heredoc
+    )
+    result = @o.recombine( match, nomatch ).join + "\n"
     assert_equal(
-      ( <<-heredoc.unindent
-        <div class="s1"><div class="s2"><div class="s3"><h3>3</h3>
-        </div></div></div>
-      heredoc
-      ),
-      (
-        @o.sections( <<-heredoc.unindent
-          === 3 ===
-        heredoc
-        ) + "\n"
-      ),
+      ( expected ),
+      ( result ),
     )
   end
 
   def test_sections_multiple()
+    expected = <<-heredoc.unindent
+      <div class="s1"><h1>1</h1>
+  
+      </div><div class="s1"><h1>2</h1>
+      </div>
+    heredoc
+    match, nomatch = @o.sections( <<-heredoc.unindent
+      = 1 =
+      = 2 =
+    heredoc
+    )
+    result = @o.recombine( match, nomatch ).join + "\n"
     assert_equal(
-      ( <<-heredoc.unindent
-        <div class="s1"><h1>1</h1>
-
-        </div><div class="s1"><h1>2</h1>
-        </div>
-      heredoc
-      ),
-      (
-        @o.sections( <<-heredoc.unindent
-          = 1 =
-          = 2 =
-        heredoc
-        ) + "\n"
-      ),
+      ( expected ),
+      ( result ),
     )
   end
 
   def test_sections_increment()
+    expected = <<-heredoc.unindent
+      <div class="s1"><h1>1</h1>
+  
+      <div class="s2"><h2>2</h2>
+      </div></div>
+    heredoc
+    match, nomatch = @o.sections( <<-heredoc.unindent
+      = 1 =
+      == 2 ==
+    heredoc
+    )
+    result = @o.recombine( match, nomatch ).join + "\n"
     assert_equal(
-      ( <<-heredoc.unindent
-        <div class="s1"><h1>1</h1>
-
-        <div class="s2"><h2>2</h2>
-        </div></div>
-      heredoc
-      ),
-      (
-        @o.sections( <<-heredoc.unindent
-          = 1 =
-          == 2 ==
-        heredoc
-        ) + "\n"
-      ),
+      ( expected ),
+      ( result ),
     )
   end
 
   def test_sections_increment_lots()
-    assert_equal(
-      ( <<-heredoc.unindent
-        <div class="s1"><h1>1</h1>
+    expected = <<-heredoc.unindent
+      <div class="s1"><h1>1</h1>
 
-        <div class="s2"><div class="s3"><h3>3</h3>
-        </div></div></div>
-      heredoc
-      ),
-      (
-        @o.sections( <<-heredoc.unindent
-          = 1 =
-          === 3 ===
-        heredoc
-        ) + "\n"
-      ),
+      <div class="s2"><div class="s3"><h3>3</h3>
+      </div></div></div>
+    heredoc
+    match, nomatch = @o.sections( <<-heredoc.unindent
+      = 1 =
+      === 3 ===
+    heredoc
+    )
+    result = @o.recombine( match, nomatch ).join + "\n"
+    assert_equal(
+      ( expected ),
+      ( result ),
     )
   end
 
   def test_sections_increment2()
+    expected = <<-heredoc.unindent
+      <div class="s1"><div class="s2"><h2>2</h2>
+  
+      <div class="s3"><div class="s4"><h4>4</h4>
+      </div></div></div></div>
+    heredoc
+    match, nomatch = @o.sections( <<-heredoc.unindent
+      == 2 ==
+      ==== 4 =====
+    heredoc
+    )
+    result = @o.recombine( match, nomatch ).join + "\n"
     assert_equal(
-      ( <<-heredoc.unindent
-        <div class="s1"><div class="s2"><h2>2</h2>
-
-        <div class="s3"><div class="s4"><h4>4</h4>
-        </div></div></div></div>
-      heredoc
-      ),
-      (
-        @o.sections( <<-heredoc.unindent
-          == 2 ==
-          ==== 4 =====
-        heredoc
-        ) + "\n"
-      ),
+      ( expected ),
+      ( result ),
     )
   end
 
   def test_sections_decrement()
-    assert_equal(
-      ( <<-heredoc.unindent
-        <div class="s1"><div class="s2"><h2>2</h2>
+    expected = <<-heredoc.unindent
+      <div class="s1"><div class="s2"><h2>2</h2>
 
-        </div></div><div class="s1"><h1>1</h1>
-        </div>
-      heredoc
-      ),
-      (
-        @o.sections( <<-heredoc.unindent
-          == 2 ==
-          = 1 =
-        heredoc
-        ) + "\n"
-      ),
+      </div></div><div class="s1"><h1>1</h1>
+      </div>
+    heredoc
+    match, nomatch = @o.sections( <<-heredoc.unindent
+      == 2 ==
+      = 1 =
+    heredoc
+    )
+    result = @o.recombine( match, nomatch ).join + "\n"
+    assert_equal(
+      ( expected ),
+      ( result ),
     )
   end
 
   def test_sections_decrement_lots()
-    assert_equal(
-      ( <<-heredoc.unindent
-        <div class="s1"><div class="s2"><div class="s3"><h3>3</h3>
+    expected = <<-heredoc.unindent
+      <div class="s1"><div class="s2"><div class="s3"><h3>3</h3>
 
-        </div></div></div><div class="s1"><h1>1</h1>
-        </div>
-      heredoc
-      ),
-      (
-        @o.sections( <<-heredoc.unindent
-          === 3 ===
-          = 1 =
-        heredoc
-        ) + "\n"
-      ),
+      </div></div></div><div class="s1"><h1>1</h1>
+      </div>
+    heredoc
+    match, nomatch = @o.sections( <<-heredoc.unindent
+      === 3 ===
+      = 1 =
+    heredoc
+    )
+    result = @o.recombine( match, nomatch ).join + "\n"
+    assert_equal(
+      ( expected ),
+      ( result ),
     )
   end
 
   def test_lists()
+    expected = <<-heredoc.unindent
+      test
+      <ul><li>1</li>
+      </ul>
+    heredoc
+    match, nomatch = @o.sections( <<-heredoc.unindent
+      test
+       - 1
+    heredoc
+    )
+    result = @o.recombine( match, nomatch ).join + "\n"
     assert_equal(
-      ( 'aaaaaaaaaaaaaa' ),
-      ( 'baaaaaaaaaaaaa' ),
+      ( expected ),
+      ( result ),
     )
   end
 
@@ -874,9 +885,6 @@ end
 
 
 __END__
-
-- How do I make my failures easier to read?  It's ugly being all on one line like that.
-
 
 require File.join(Dir.pwd, 'rb/lib/lib_misc.rb')
 require File.join(Dir.pwd, 'rb/lib/lib_files.rb')
