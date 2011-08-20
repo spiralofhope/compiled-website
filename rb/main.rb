@@ -347,7 +347,7 @@ class Markup
           array[i] = "<div class=\"s#{ a }\">" + array[i]
           a -= 1
         end
-        array[i] += title
+        array[i].concat( title )
         next
       end
 
@@ -367,7 +367,7 @@ class Markup
           array[i] = "<div class=\"s#{ a }\">" + array[i]
           a -= 1
         end
-        array[i] += title
+        array[i].concat( title )
         next
       end
 
@@ -389,7 +389,7 @@ class Markup
     # RECHECK
     if heading_level > 0 then
       heading_level.times do
-        array[-1] += '</div>'
+        array[-1].concat( '</div>' )
       end
     end
 
@@ -606,7 +606,7 @@ class Markup
       if line.match( rx ) then
         result << '' if previous_line_matched == false
         line.lstrip! if lstrip == true
-        result[-1] += line
+        result[-1].concat( line )
         previous_line_matched = true
       else # this line doesn't match.
         if merge_items_separated_by_single_spaces == true  and
@@ -614,7 +614,6 @@ class Markup
                                           previous_line_matched == true  and  # the previous line was a match
                                      matchedtwice == false then # the previous line was not a "match" with \n
           # not adding \n
-          result[-1] += ''
           # allow a consecutive match to append.
           previous_line_matched = true
           # don't do this for every consecutive \n, just one.
@@ -623,10 +622,10 @@ class Markup
           result << '' if previous_line_matched == true
           if merge_items_separated_by_single_spaces == true and
                                        matchedtwice == true then
-            result[-1] += "\n"
+            result[-1].concat( "\n" )
             matchedtwice = false
           end
-          result[-1] += line
+          result[-1].concat( line )
           previous_line_matched = false
           matchedtwice = false
         end
@@ -663,16 +662,16 @@ class Markup
       # The element boundery is the change from match to not match, e.g.:  [ 'nomatch1', (match), 'nomatch2', (match2) ]
       if array[i].match( rx ) == nil then
         if matched_previously == false then
-          result[-1] += array[i] += "\n"
+          result[-1].concat( array[i] ).concat( "\n" )
         else
-          result << array[i] += "\n"
+          result << array[i].concat( "\n" )
         end
         matched_previously = false
       else # matched
         if matched_previously == true then
-          result[-1] += array[i] += "\n"
+          result[-1].concat( array[i]).concat( "\n" )
         else
-          result << array[i] += "\n"
+          result << array[i].concat( "\n" )
         end
         matched_previously = true
       end
@@ -733,16 +732,16 @@ result_element_killer.each{ |i|
       # The element boundery is the change from match to not match, e.g.:  [ 'nomatch1', (match), 'nomatch2', (match2) ]
       if array[i].match( rx ) == nil then
         if matched_previously == false then
-          result[-1] += array[i] += "\n"
+          result[-1].concat( array[i] ).concat( "\n" )
         else
-          result << array[i] += "\n"
+          result << array[i].concat( "\n" )
         end
         matched_previously = false
       else # matched
         if matched_previously == true then
-          result[-1] += array[i] += "\n"
+          result[-1].concat( array[i] ).concat( "\n" )
         else
-          result << array[i] += "\n"
+          result << array[i].concat( "\n" )
         end
         matched_previously = true
       end
@@ -920,7 +919,7 @@ two         <- this is included in the full "html" block.
 
         # If I'm at the end of the list.
         if current_list[ j + 1 ] == nil then
-          current_list[-1] += '</li>'
+          current_list[-1].concat( '</li>' )
           close_tally.each { |e|
             current_list[-1] = current_list[-1] + e
           }
@@ -980,7 +979,7 @@ two         <- this is included in the full "html" block.
         after = '</pre>'
       end
       string[i] = before + string[i] + after
-      if string[i+1] != nil and string[i+1][0] != "\n" then string[i] += "\n" end
+      if string[i+1] != nil and string[i+1][0] != "\n" then string[i].concat( "\n" ) end
     }
     return string.join
   end

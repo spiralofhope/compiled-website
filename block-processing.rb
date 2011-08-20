@@ -87,9 +87,9 @@ def line_partition(
             active_close_tags = match_array[i][1]
             result << ''
             if begin_in_or_out == 'in' then
-              result[-1] += line
+              result[-1].concat( line )
             elsif begin_in_or_out == 'out' then
-              result[-2] += line
+              result[-2].concat( line )
             else
               # omit
             end
@@ -100,7 +100,7 @@ def line_partition(
       if matched == false then
         # No match.
         # Append it.
-        result[-1] += line
+        result[-1].concat( line )
       end
     else
       # We're in the middle of a block.
@@ -111,9 +111,9 @@ def line_partition(
           active_close_tags = []
           result << ''
           if end_in_or_out == 'in' then
-            result[-2] += line
+            result[-2].concat( line )
           elsif end_in_or_out == 'out' then
-            result[-1] += line
+            result[-1].concat( line )
           else
             # omit
           end
@@ -123,7 +123,7 @@ def line_partition(
       if matched == false then
         # No match.
         # Append it.
-        result[-1] += line
+        result[-1].concat( line )
       end
     end
   }

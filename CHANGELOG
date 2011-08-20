@@ -1,3 +1,17 @@
+  * String processing can be made faster, I've heard:
+    slow:    "string" <<      "string"
+    better:  "string" +=      "string"
+    best:    "string".concat( "string" )
+
+  * examples/demo.html
+    examples/demo.asc
+  Added my examples into the projects.  Did some tweaking to make
+  sure everything is synced from my live website.
+    - I'm not going to add the bugs list, because it is supposed to be
+      migrated into test cases.
+    - The TODO list needs some major work before some version of it can
+      be included in the repository.
+  
   * Moved some files around, for better organization.
   
   * Removed the style experimentation stuff.  It'll be archived in 
