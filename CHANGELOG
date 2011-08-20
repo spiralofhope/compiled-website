@@ -1,9 +1,25 @@
+2011-03-26  spiralofhope  <spiralofhope@lavabit.com>
+  
+  1.0.0_internal
+  This represents another complete rewrite.  Previous content was 
+  originally kept in old directories, but is now kept in git's history.
+  
+  I had a changelog marked 2010-04-01 which said:
+    
+    A complete rewrite.  Presently not functional, but the challenging
+    core components have been completed.  Many revisions of my
+    experimentation have been left here.
+  
+  This version only had a slew of markup_experimentation--0.8.21.rb
+  files, all with revision numbers.  I'll add them into git.
+
 2011-03-04  spiralofhope  <spiralofhope@lavabit.com>
   
   0.8.21_internal
   
   * Ported to Ruby 1.9.2.  Still compatible with 1.8.7.
-  It was a simple change with my use of the `result` variable and arrays.
+  It was a simple change with my use of the `result` variable and
+  arrays.
 
 2011-03-02  spiralofhope  <spiralofhope@lavabit.com>
   
