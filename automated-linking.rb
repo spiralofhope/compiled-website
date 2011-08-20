@@ -1,3 +1,29 @@
+# TODO - totally gut and rework this, to untangle everything.
+
+=begin
+Requirements:
+HTML Tidy
+  http://tidy.sourceforge.net/
+
+  cvs -d:pserver:anonymous@tidy.cvs.sourceforge.net:/cvsroot/tidy login
+  cvs -z3 -d:pserver:anonymous@tidy.cvs.sourceforge.net:/cvsroot/tidy co -P tidy
+  cd tidy/build/gmake
+  make
+  su
+  make install
+
+
+
+
+Notes:
+I'd love to use Ruby/HTML Tidy, but I don't know how to make it go.
+  http://tidy.rubyforge.org/
+  http://rubyforge.org/projects/tidy
+  http://tidy.rubyforge.org/classes/Tidy.html
+  gem install tidy
+=end
+
+
 # TODO - automatic-linking.
 #   I guess I would make some variation on chew.. not sure how I would do that.
 # TODO - I don't think I can remove marked_yes, because that could be useful to make sure I don't have nested markup.
@@ -18,6 +44,7 @@ def marked_yes(string, search_left, search_right, replace_left, replace_right)
   #  - remote = check if it exists, and cache the results?  Only check once a day?
   return string.sub(search_left, replace_left).sub(search_right, replace_right)
 end
+
 def marked_no(string, internal_markup_flag)
   if string == nil then return '' end
   # TODO: Automatic-linking
@@ -27,7 +54,10 @@ def marked_no(string, internal_markup_flag)
   else
     # TODO: I need to play around more with the regex to handle additional situations.
     string=chew(string, /(^| )\//, /\/( |.|$)/, '\1<em>', '</em>\1', true)
+    string=chew(string, /(^| )\*\*/, /\*\*( |.|$)/, '\1<big>', '</big>\1', true)
+    string=chew(string, /(^| )\*/, /\*( |.|$)/, '\1<b>', '</b>\1', true)
     string=chew(string, /(^| )_/, /_( |.|$)/, '\1<u>', '</u>\1', true)
+    string=chew(string, /(^| )-/, /-( |.|$)/, '\1<s>', '</s>\1', true)
     internal_markup_flag=false
   end
   return string
@@ -55,13 +85,86 @@ def chew(string, search_left, search_right, replace_left, replace_right, interna
   return processed
 end
 
-document="/example/ text"
-document="text [[with a link]] text _internal_ /markup/. [[with a link2]] etc."
-document=chew(document, /\[\[/, /\]\]/, '<', '>', false)
+# document='/example/ text'
+# document='text [[with a link]] text _internal_ /markup/. [[with a link2]] etc.'
+# document=chew(document, /\[\[/, /\]\]/, '<', '>', false)
 
-puts document.inspect
+document='example [[this _is not_ markup]] string'
+document='*example* [[this _is not_ markup]] string'
+
+document=<<-HEREDOC
+[[basic]]
+[[two words]]
+before [[link here]] after
+[[This _not markup_ example]] string
+
+*bold*
+**big**         (demonstrates presidence)
+_underline_
+/italics/
+-strikethrough-
+
+*two words*
+*two _words* test_  - Yes, this is legal in my code.  I'll just clean it up with HTML Tidy.
+HEREDOC
+
+# left=/\[\[/
+# right=//
+#
+# document=chew(document, /\[\[/, /\]\]/, '<', '>', false)
+# puts document
+
+
+
+document=<<-HEREDOC
+*bold* **big** _underline_ /italics/ -strikethrough-
+*two _words* test_
+<a href="http://example.com">An example link which should not be re-linked</a>
+example
+HEREDOC
+def crunch(string)
+  string=chew(string, /(^| )\//, /\/( |.|$)/, '\1<em>', '</em>\1', true)
+  string=chew(string, /(^| )\*\*/, /\*\*( |.|$)/, '\1<big>', '</big>\1', true)
+  string=chew(string, /(^| )\*/, /\*( |.|$)/, '\1<b>', '</b>\1', true)
+  string=chew(string, /(^| )_/, /_( |.|$)/, '\1<u>', '</u>\1', true)
+  string=chew(string, /(^| )-/, /-( |.|$)/, '\1<s>', '</s>\1', true)
+
+  # TODO:  Only allow one link for each file?
+  #  Possibly only one link for every header-section.
+  #  Possibly only allow x number of links maximum, to avoid issues with linking common things like 'a' or 'the'.
+  files=['some', 'example', 'files']
+  files.each do |file|
+#     chew(document, //, //, )
+  end
+
+  return string
+end
+document=crunch(document)
+
+
+# system('tidy -indent -upper -clean -quiet -omit -asxhtml -access -output file', document)
+
+#  -indent, -i         indent element content
+#  -upper, -u          force tags to upper case
+#  -clean, -c          replace FONT, NOBR and CENTER tags by CSS
+#  -quiet, -q          suppress nonessential output
+#  -omit               omit optional end tags
+#  -asxml, -asxhtml    convert HTML to well formed XHTML
+#  -access <level>     do additional accessibility checks (<level> = 0, 1, 2, 3).
+#                      0 is assumed if <level> is missing.
+
+
+
 
 __END__
+
+
+
+
+
+
+
+
 
 def automated_linking()
 end
