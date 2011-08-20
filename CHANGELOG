@@ -1,5 +1,13 @@
 2010-04-14  spiralofhope  <spiralofhope@lavabit.com>
   
+  0.5.8_internal
+  
+  * Pre-CHANGELOG
+  
+  * old_lists_experimentation.rb:  First appearance.
+
+2010-04-14  spiralofhope  <spiralofhope@lavabit.com>
+  
   0.5.6_internal
   This one introduces CSS, which I will not add to git.  At some future
   point I will create some kind of default theme/templating which can

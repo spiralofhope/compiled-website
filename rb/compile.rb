@@ -30,14 +30,6 @@ TODO: I'd love to use Ruby/HTML Tidy, but I don't know how to make it go.
 
 
 =begin
-FIXME list:
-1) 'example' is an existing file
-2) within my source, I have the text 'example'.  I am expecting it to become a link to that local file.
-3) within my source, I put 'http://example.com' as plain text.
-- It creates a link to the local file 'example'
-+ I am expecting it to become <a href="http://example.com">http://example.com</a>
----
-
 TODO list:
 - what does 'abort' do?  Is it some routine I have in a library somewhere?
 - Implement a hyphon - for unordered lists, and # for ordered lists
@@ -127,6 +119,9 @@ def view_html(file_full_path)
     abort
   end
 end
+def tidy_html(source_file_full_path)
+  system('tidy', '--drop-empty-paras', 'true', '--indent', 'true', '--keep-time', 'true', '--wrap', '0', '-clean', '-quiet', '-omit', '-asxhtml', '-access', '-modify', '--force-output', 'true', '--show-errors', '0', '--show-warnings', 'false', '--break-before-br', 'true', '--tidy-mark', 'false', source_file_full_path)
+end
 
 def compile(source_file_full_path, target_file_full_path)
   # TODO:  Only allow one document-link within each file?  I'd have to maintain a working array of all the already-created links, and know if I'm creating a duplicate.  Not too tough to do
@@ -143,9 +138,6 @@ def compile(source_file_full_path, target_file_full_path)
     # Future TODO:  If I ever do nested linking, I should make sure that the parent director(y|ies) exist.
   end
   sanity_check(source_file_full_path, target_file_full_path)
-  def tidy_html(source_file_full_path)
-    system('tidy', '--drop-empty-paras', 'true', '--indent', 'true', '--keep-time', 'true', '--wrap', '0', '-clean', '-quiet', '-omit', '-asxhtml', '-access', '-modify', '--force-output', 'true', '--show-errors', '0', '--show-warnings', 'false', '--break-before-br', 'true', '--tidy-mark', 'false', source_file_full_path)
-  end
   def markup(string, search_left, search_right, replace_left, replace_right, internal_markup_flag)
     def marked_yes(string, search_left, search_right, replace_left, replace_right)
       if string == nil then return '' end
@@ -262,7 +254,8 @@ end
 
         file='./' + file + '.html'
         # Note: case-insensitivity is defined by the /i .. I don't think I'd ever want case-sensitivity.
-        line=markup(line, /(#{file_string})/i, //, '<a href="' + file + '">\1</a>', '', true)
+        # I'm being pretty cheap here.  Instead of being smart about auto-linking URLs, and intentionally avoiding odd broken-assed web+local links, I'm limiting what things can be auto-linked as local links.
+        line=markup(line, /(^| )(#{file_string})($| )/i, //, '\1<a href="' + file + '">\2</a>\3', '', true)
       end
       file_working << line
     end
@@ -302,11 +295,12 @@ end
     footer_replace=<<-"HEREDOC"
           </div> <!-- main -->
           <div class="footer">
-<!-- FIXME: I should probably align this left and right in some nice way -->
-            <img border="0" src="#{$WEBSITE}/images/spiralofhope-16.png"> Spiral of Hope / spiralofhope - <a href="mailto:@gmail.com">@gmail.com</a>
+            <img border="0" src="#{$WEBSITE}/images/spiralofhope-16.png"> Spiral of Hope / <a href="mailto:@gmail.com">spiralofhope</a><a href="mailto:@gmail.com">@gmail.com</a>
             <br>
             <!-- TODO -->
             <img border="0" src="#{$WEBSITE}/images/FIXME.png">Hosting provided by (FIXME), <a href="#{$WEBSITE}/thanks.html#FIXME">thanks!</a>
+            <br>
+            <em><small>(<a href="#{$WEBSITE}/sitemap.html">sitemap</a>)</small></em>
             <br>
             <a class="without_u" accesskey="e" href="file://#{source_file_full_path}">&nbsp;</a>
           </div> <!-- footer -->
@@ -318,34 +312,35 @@ end
     string=multiline_replace(footer_search, string, footer_replace)
     return string
   end
-
-  def compile(source_file_full_path, target_file_full_path)
-    contents=file_read(source_file_full_path)
-    contents=markup(contents, /<.+>/, /<.+>/, nil, nil, false)
-    contents=automatic_linking(File.dirname(source_file_full_path), contents)
-    # '~~~~FOOTER~~~~' is a totally hackish thing for me to do, but oh well.
-    # I should just redo this to make it a simple header + contents + footer.. eesh.
-    contents=header_and_footer(contents + '~~~~FOOTER~~~~', source_file_full_path)
-
+  # TODO: This does not allow lists of mixed types (e.g. ordered within unordered)
+  #       I don't know that I care to fix this..
+  def lists(string, regex, opening, closing, line_start, line_end, line_continuation)
     # working with lists!
     result=[]
     previous_nesting=0
-    # FIXME: This won't end correctly if the list ends with an EOF.  Not a big deal since TidyHTML will fix it, but I should code this better.
-    contents.each do |line|
-      # Search for a list with leading dashes.
-      line =~ /^(-+) (.*)$/
+    # FIXME: This won't end correctly if the list ends with EOF.  Not a big deal since TidyHTML will probably fix it, but I should code this better.
+    string.each do |line|
+      # Search for the list..
+      line =~ regex
       if $~ != nil then
         # I'm in a list.
-        # Add the HTML elements to the line.
-        line = "<li> " + $~[2] + " </li>"
         # Specify what nesting level I'm in.
         current_nesting = $~[1].length
+        if previous_nesting == 0 then
+          # This is the first item.
+          # Add the HTML elements to the line.
+          line = line_start + $~[2] + line_end
+        else
+          # We're continuing an existing list.
+          # Add the HTML elements to the line.
+          line = line_continuation + line_start + $~[2] + line_end
+        end
         if current_nesting > previous_nesting then
           # I'm up a level.
-          line="<ul> " + line
+          line = opening + line
         elsif current_nesting < previous_nesting then
           # I'm down one or more levels.
-          line=( "</ul> " * (previous_nesting - current_nesting)) + line
+          line = ( closing * (previous_nesting - current_nesting)) + line
         else
           # I'm at the same level.
           # Nothing special needs to be done, I've already added the HTML elements to the line.
@@ -356,7 +351,7 @@ end
         current_nesting=0
         if previous_nesting > 0 then
           # I'm down one or more levels (to the last level from a list).
-          line=( "</ul> " * (previous_nesting - current_nesting)) + line
+          line=( closing * (previous_nesting - current_nesting)) + line
         else
           # I'm at the same level (I wasn't nested before).
           # Nothing special needs to be done.
@@ -366,11 +361,33 @@ end
       previous_nesting=current_nesting
       result << line
     end
-    contents=result.to_s
+    return result.to_s
+  end
+
+  def compile(source_file_full_path, target_file_full_path)
+    contents=file_read(source_file_full_path)
+    contents=markup(contents, /<.+>/, /<.+>/, nil, nil, false)
+    contents=automatic_linking(File.dirname(source_file_full_path), contents)
+    # Unordered lists
+    contents=lists(contents, /^(-+) (.*)$/, '<ul>', '</ul>', '<li>', '</li>', '')
+    # Ordered lists
+    contents=lists(contents, /^(#+) (.*)$/, '<ol>', '</ol>', '<li>', '</li>', '')
+    # Code blocks
+    contents=lists(contents, /^( )(.+)$/, '<pre>', '</pre>', '', '', '<br>')
+    # '~~~~FOOTER~~~~' is a totally hackish thing for me to do, but oh well.
+    # I should just redo this to make it a simple header + contents + footer.. eesh.
+    contents=header_and_footer(contents + '~~~~FOOTER~~~~', source_file_full_path)
+
+    # Headers
+    contents.gsub!(/^= (.*) =$/, '<h1>\1</h1>')
+    contents.gsub!(/^== (.*) ==$/, '<h2>\1</h2>')
+    contents.gsub!(/^=== (.*) ===$/, '<h3>\1</h3>')
+    contents.gsub!(/^==== (.*) ====$/, '<h4>\1</h4>')
+    contents.gsub!(/^===== (.*) =====$/, '<h5>\1</h5>')
 
     # A hackish way to do paragraphs.
     # This is here and not earlier because it'll interfere with the listing functionality.
-    contents.gsub!(/(\n\n)/, "<\/p>\1<p>")
+    contents.gsub!(/(\n\n)/, '</p>\1<p>')
 
     create_file(target_file_full_path, contents)
     tidy_html(target_file_full_path)
@@ -453,6 +470,24 @@ end
 # clean up the working directories with something like:
 # rm -rf /tmp/test_markup.???? /tmp/test_markup.????
 
+def generate_sitemap(directory)
+  def sanity_check(directory)
+    # TODO
+  end
+  #sanity_check(directory)
+  contents=[]
+  Dir["#{directory}/*"].each do |file|
+    next if not File.file?(file)
+    file=File.basename(file)
+    contents << '<a href="' + file + '">' + file + '</a><br>' + "\n"
+  end
+  contents.sort!
+  sitemap_file=File.join(directory, 'sitemap.html')
+  create_file(sitemap_file, contents)
+  tidy_html(sitemap_file)
+end
+#generate_sitemap(compiled_directory)
+
 def main(source_directory, compiled_directory)
   def process(source_file_full_path, target_file_full_path)
     compile(source_file_full_path, target_file_full_path)
@@ -472,6 +507,8 @@ def main(source_directory, compiled_directory)
         vputs 'Building missing file:  ' + source_file_full_path.inspect
         vputs ' ...             into:  ' + target_file_full_path.inspect
         process(source_file_full_path, target_file_full_path)
+        # TODO: Re-generate the sitemap, so that this new item will be created.
+        generate_sitemap(File.dirname(target_file_full_path))
         next
       end
       source_time=File.stat(source_file_full_path).mtime
@@ -494,171 +531,5 @@ main(source_directory, compiled_directory)
 # viewer(File.join(target_directory_path, 'index.html'))
 # sleep 3
 # fork_killer(File.join('', 'tmp', 'compile_child_pid'))
-
-#__END__
-
-## comments in a regular expression...
-## incomplete
-#contents.gsub! %r{
-  #(
-  #\[Bindable)(\]
-  #\s*
-  #public
-  #\s+
-  #function
-  #\s+
-  #get
-  #\s+)
-  #(\w+) # property name $3
-  #\s*
-  #\([^)]*\)
-#....
-#}x, '\\1(event="\\3Change")\\2\\3...'
-
-
-
-# TO DO:
-# 1) nest all of these together into two things.  1) header, 2) footer
-# 2) review all of the parameters and give them only source_file_full_path and target_file_full_path
-
-def search_replace(working_directory, source_directory, target_directory, source_directory_path, target_directory_path, source_file, target_file)
-
-  
-  search=Regexp.new(header_search)
-  replace=header_replace(working_directory, source_directory, target_directory, source_directory_path, target_directory_path, source_file, target_file)
-  original_contents=file_read(target_file)
-  replacement_contents=multiline_replace(search, original_contents, replace)
-  if original_contents != replacement_contents then
-    vputs 'Applying the header to ' + target_file
-    f = File.open(target_file, 'w')
-      f.write(replacement_contents)
-    f.close
-  end
-  # Footer
-  search=Regexp.new(footer_search(working_directory, source_directory, target_directory, source_directory_path, target_directory_path))
-  replace=footer_replace(working_directory, source_directory, target_directory, source_directory_path, target_directory_path)
-  original_contents=file_read(target_file)
-  replacement_contents=multiline_replace(search, original_contents, replace)
-  if original_contents != replacement_contents then
-    vputs 'Applying the footer to ' + target_file
-    f = File.open(target_file, 'w')
-      f.write(replacement_contents)
-    f.close
-  end
-end
-
-
-__END__
-
-string=<<-"HEREDOC"
-- 1
--- 2
---- 3
--- 4
-- 5
-
-HEREDOC
-result=[]
-previous_nesting=0
-# FIXME: This won't end correctly if the list ends with an EOF.  Not a big deal since TidyHTML will fix it, but I should code this better.
-string.each do |line|
-  # Search for a list with leading dashes.
-  line =~ /^(-+) (.*)$/
-  if $~ != nil then
-    # I'm in a list.
-    # Add the HTML elements to the line.
-    line = "<li> " + $~[2] + " </li>"
-    # Specify what nesting level I'm in.
-    current_nesting = $~[1].length
-    if current_nesting > previous_nesting then
-      # I'm up a level.
-      line="<ul> " + line
-    elsif current_nesting < previous_nesting then
-      # I'm down one or more levels.
-      line=( "</ul> " * (previous_nesting - current_nesting)) + line
-    else
-      # I'm at the same level.
-      # Nothing special needs to be done, I've already added the HTML elements to the line.
-      line = line
-    end
-  else
-    # not in a list.
-    current_nesting=0
-    if previous_nesting > 0 then
-      # I'm down one or more levels (to the last level from a list).
-      line=( "</ul> " * (previous_nesting - current_nesting)) + line
-    else
-      # I'm at the same level (I wasn't nested before).
-      # Nothing special needs to be done.
-      line = line
-    end
-  end
-  previous_nesting=current_nesting
-  result << line
-end
-puts result
-__END__
-
-
-
-string=<<-"HEREDOC"
-not a list
-- list1
-- list2
-no
-HEREDOC
-result=[]
-previous_nesting=0
-string.each do |line|
-  if ( line =~ /^(-+) (.*)/ ) != nil then # found a list (any nesting level)
-    # The actual content of the line, without the dashes.
-    line=$~[2]
-    # The number of dashes found.
-    current_nesting=$~[1].length
-    if current_nesting > previous_nesting then # I'm up a level.
-      result << "<ul>" + "<li>" + line + "</li>"
-    elsif current_nesting < previous_nesting then # I'm down a level.
-      result  << "<li>" + line + "</li>" + "</ul>"
-    else # no level change (but I'm still in a list)
-      result << "<li>" + line + "</li>"
-    end
-    # The number of dashes found.
-    previous_nesting=current_nesting
-  else # Didn't find a list.
-    if previous_nesting > 0 then # One or more lists have terminated
-      result << "<li>" + line + "</li>" + ( "</ul>" * previous_nesting )
-    else # I wasn't working on a list before.
-      result << line
-    end
-  end
-end
-puts result
-__END__
-
-
-
-string=<<-"HEREDOC"
-not a list
-- list1
-- list2
-no
-HEREDOC
-result=[]
-list=[]
-string.each do |line|
-  if ( line =~ /^- (.*)/ ) != nil then
-    list << "<li>#{$~[1]}</li>"
-  else
-    if list!=[] then
-      result << "<ul>" << list << "</ul>"
-      list=[]
-      result << line
-    else
-      result << line
-    end
-  end
-end
-puts result
-__END__
 
 
