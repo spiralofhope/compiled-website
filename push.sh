@@ -10,8 +10,8 @@
 
 # git commit -m ''
 
-\git push -u origin master
-# \git push -u git@github.com:spiralofhope/compiled-website.git
+# \git push -u origin master
+\git push -u git@github.com:spiralofhope/compiled-website.git
 
 :<<'heredoc'
 http://help.github.com/git-cheat-sheets/
