@@ -1,9 +1,26 @@
-Note that I am still in the process of importing a large amount of previous
-versions into git.
-
-
 http://spiralofhope.com/compiled-website.html
 
 http://spiralofhope.com/compiled-website-reasoning.html
 
 http://spiralofhope.com/compiled-website-demo.html
+
+
+How versions work:
+
+major.minor.revision
+
+Even minor/revision numbers are stable.
+
+Odd minor/revision numbers are unstable: unfinished, experimental
+and generally buggy as hell and I know it.
+- Don't expect these to actually work.  They almost never do!
+- Also, don't expect the most current stuff to actually work.  Until I
+  learn more about branches and other git stuff, I will only be working
+  on the one main branch.  I'll begin tagging things, which should
+  help.
+
+So:
+
+- 1.0.0 is stable.
+- 1.0.1 is unstable.
+- 1.1.0 is unstable.
