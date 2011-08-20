@@ -1,4 +1,17 @@
 
+=begin
+To do:
+
+- Sections creating <p>
+- Sections counting and incrementing a CSS counter (for my funky sidebar or colour changes)
+- Linking plain URLs. http://example.com  ->  <a href="http://example.com">example.com</a>
+- Linking markup (named URLs) [http://example.com example] -> <a href="http://example.com">example</a>
+- HTMLizing the document.  Make \n\n into multiple-<br>, and such.
+- Auto-linking.
+
+=end
+
+
 # http://stackoverflow.com/questions/3772864/how-do-i-remove-leading-whitespace-chars-from-ruby-heredoc/4465640#4465640
 class String
   # Bug-fixed:  If there is no indenting, this explodes.  I changed \s+ to \s*
@@ -209,18 +222,34 @@ if nonhtml.count != html.count then puts "markup error:  unbalanced element coun
     return markup( string, %r{\*}, %r{\*}, '<strong>', '</strong>' )
   end
 
+  def markup_big( string )
+    return markup( string, %r{\*\*}, %r{\*\*}, '<big>', '</big>' )
+  end
+
   def markup_emphasis( string )
     return markup( string, %r{\/}, %r{\/}, '<em>', '</em>' )
   end
 
+  def markup_truetype( string )
+    return markup( string, %r{`}, %r{`}, '<tt>', '</tt>' )
+  end
+
+# Stuff that's possible but which I don't care about.
+# <sup> - Superscript
+# <sub> - Subscribe
+
   # TODO:  Is there an elegant way for me to just iterate through all methods of a certain name?  markup_* ?
   def markup_everything( string )
     return (
+      # Items lower down are performed first.
+      # This is important for things like **big** being matched before *strong* .
+      markup_truetype(
       markup_underline(
       markup_emphasis(
-      markup_strong (
+      markup_strong(
+      markup_big(
         string
-      )))
+      )))))
     )
   end
 
@@ -572,7 +601,19 @@ class Test_Markup < MiniTest::Unit::TestCase
     # This demonstrates how the first markup's html-result will stop any future markup from acting within that html.
     assert_equal(
       '<u>*underlined*</u> <strong>strong</strong>',
-      @o.markup_strong( @o.markup_underline( '_*underlined*_ *strong*' ) ),
+      @o.markup_everything( @o.markup_underline( '_*underlined*_ *strong*' ) ),
+    )
+  end
+
+  def test_big()
+    assert_equal(
+      '<big>big</big>',
+      @o.markup_big( @o.markup_underline( '**big**' ) ),
+    )
+    # This demonstrates the need for markup done in a specific order.  Big has to be performed before bold.
+    assert_equal(
+      '<big>big</big>',
+      @o.markup_everything( @o.markup_underline( '**big**' ) ),
     )
   end
 
