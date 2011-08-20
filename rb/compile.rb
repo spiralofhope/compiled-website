@@ -20,10 +20,10 @@ HTML Tidy (the executable, not the Ruby library)
 
 # No trailing slashes
 # The directory with the original .asc files
-source_directory='local/source'
+source_directory='source'
 # The directory with the cached hybrid asc-html files:  asc-markup => html-markup
 # The directory with the completed html files
-compiled_directory='local/compiled'
+compiled_directory='compiled'
 # TODO: A variable for the web browser?  Seems non-obvious..
 
 source_directory=File.expand_path(File.join(File.dirname(__FILE__), '..', source_directory))
@@ -50,9 +50,13 @@ $punctuation_start=%r{
   |^"
   |\ "
   |\ 
+  |\ \(
+  |^\(
 }x
+# Note that something like 'oldschool-linux.asc' won't get linked, because I require an ending like '. ' .. a simple '|\.' can be added to relax this restriction.
 $punctuation_end=%r{
-  \.\ 
+  $
+  |\.\ 
   |,\ 
   |!\ 
   |'$
@@ -64,7 +68,8 @@ $punctuation_end=%r{
   |",
   |,"
   |\ 
-  |$
+  |\)\ 
+  |\)$
 }x
 
 def sanity_check(source_directory, compiled_directory)
@@ -144,11 +149,11 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
   sanity_check(source_file_full_path, target_file_full_path)
   def markup(string, search_left, search_right, replace_left, replace_right, internal_markup_flag)
     def marked_yes(string, search_left, search_right, replace_left, replace_right)
-      if string == nil then return '' end
+      if string == nil or string == '' then return '' end
       # TODO: If a link, check that the destination exists
       #  - local = create the file
       #  - remote = check if it exists, and cache the results?  Only check once a day?  Then I can redirect to a page if I know the link is bad, and create a notification to myself.. maybe updating a master status log file.
-      if replace_left == nil && replace_right == nil then
+      if replace_left == nil and replace_right == nil then
         return string
       elsif replace_left == nil then
         return string.sub(search_right, replace_right)
@@ -291,46 +296,30 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
     end
     return processed
   end
-  def automatic_linking(string, directory)
-=begin
-TODO: How to link long chains of multiple words before smaller chains or single-words:
-- some_variable=""
-- (done) iterate through each word individually (that's 'current')
-- check for some_variable+current
-
-... then something like:
-
-if matched, look ahead one word
-  if matched
-    some_variable += current
-  else
-    deposit some_variable and current back in the completed string
-else
-  deposit some_variable and current back in the completed string
-end
-
-=end
-
-    # Future TODO:  Allow linking into subdirectory-index.html and subdirectory/*.asc (etc)
+  def automatic_linking(source_file_full_path, string, directory)
+    source_name=File.basename(source_file_full_path, '.asc')
     # Get the files in the present directory:
     array_files=[]
     Dir["#{directory}/*.asc"].each do |file|
       next if not File.file?(file)
+      next if file == source_file_full_path
       # "/path/foo/file name.asc" => "file name"
-      array_files << File.basename(file.chomp(File.extname(file)))
+      array_files << File.basename(file, '')
     end
+    # This sort prioritizes multiple-word files ahead of single-word files.
     array_files.sort!
 
     file_working=[]
     string.each do |line|
       array_files.each do |file|
-        # remove the ending .html
-        file_string=file.sub(/\.html$/, '')
-
-        file='./' + file + '.html'
-        # Note: case-insensitivity is defined by the /i .. I don't think I'd ever want case-sensitivity.
+        file_string=file.chomp('.asc')
+        file_url=file_string + '.html'
         # I'm being pretty cheap here.  Instead of being smart about auto-linking URLs, and intentionally avoiding odd broken-assed web+local links, I'm limiting what things can be auto-linked as local links.
-        line=markup(line, %r{(#{$punctuation_start})(#{file_string})(#{$punctuation_end})}i, //, '\1<a href="' + file + '">\2</a>\3', '', true)
+        # Link the exact filename.
+        line=markup(line, %r{(#{$punctuation_start})(#{file_string})(#{$punctuation_end})}i, //, '\1<a href="' + file_url + '">\2</a>\3', '', true)
+        # Also be forgiving for punctuation like dashes.
+        file_string.gsub!('-', ' ')
+        line=markup(line, %r{(#{$punctuation_start})(#{file_string})(#{$punctuation_end})}i, //, '\1<a href="' + file_url + '">\2</a>\3', '', true)
       end
       file_working << line
     end
@@ -398,6 +387,7 @@ end
 <link rel="icon" href="#{path}/images/favicon.ico" type="image/x-icon">
 <link rel="shortcut icon" href="#{path}/images/favicon.ico" type="image/x-icon">
 <link rel="stylesheet" type="text/css" href="#{path}/css/main.css" />
+<title>#{File.basename(source_file_full_path, '.asc')}</title>
 </head>
 <body>
 <a name id="top">
@@ -457,7 +447,7 @@ I simplified it, here's the original:
   def compile(source_directory, source_file_full_path, target_file_full_path)
     contents=file_read(source_file_full_path)
     contents=markup(contents, /<.+>/, /<.+>/, nil, nil, false)
-    contents=automatic_linking(contents, File.dirname(source_file_full_path))
+    contents=automatic_linking(source_file_full_path, contents, File.dirname(source_file_full_path))
 
     # Unordered lists
     #   FIXME:  FUCK, it's interacting with the strikethrough feature!
@@ -570,7 +560,7 @@ end
 # clean up the working directories with something like:
 # rm -rf /tmp/test_markup.???? /tmp/test_markup.????
 
-def generate_sitemap(directory)
+def generate_sitemap(directory, source_directory, source_file_full_path)
   def sanity_check(directory)
     # TODO
   end
@@ -579,9 +569,19 @@ def generate_sitemap(directory)
   Dir["#{directory}/*"].each do |file|
     next if not File.file?(file)
     file=File.basename(file)
-    contents << '<a href="' + file + '">' + file + '</a><br>' + "\n"
+    contents << '<li><a href="' + file + '">' + file + '</a></li>' + "\n"
   end
   contents.sort!
+
+  a=Pathname.new(source_directory)
+  b=Pathname.new(File.dirname(source_file_full_path))
+  path=a.relative_path_from(b)
+  footer=<<-"HEREDOC"
+    <a class="without_u" accesskey="z" href="#{path}/index.html">
+  HEREDOC
+  contents.unshift('<ol>')
+  contents << footer + "\n</ol>"
+
   sitemap_file=File.join(directory, 'sitemap.html')
   create_file(sitemap_file, contents)
   tidy_html(sitemap_file)
@@ -607,7 +607,7 @@ def main(source_directory, compiled_directory)
         vputs 'Building missing file:  ' + source_file_full_path.inspect
         vputs ' ...             into:  ' + target_file_full_path.inspect
         process(source_directory, source_file_full_path, target_file_full_path)
-        generate_sitemap(File.dirname(target_file_full_path))
+        generate_sitemap(File.dirname(target_file_full_path), source_directory, source_file_full_path)
         next
       end
       source_time=File.stat(source_file_full_path).mtime
