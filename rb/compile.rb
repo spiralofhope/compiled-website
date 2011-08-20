@@ -161,11 +161,12 @@ def compile(source_file_full_path, target_file_full_path)
   #   }, "\1#{i[1]}", "#{i[2]}\1", true)
   # end
 
+        # TODO: Strikethrough was removed because it interferes with lists, and I didn't feel like recoding everything to get this very rarely-used markup to work.
+        #string=markup(string, %r{(#{start})-}, %r{-(#{punctuation})}, '\1<s>', '</s>\1', true)
         string=markup(string, %r{(#{start})\/}, %r{\/(#{punctuation})}, '\1<em>', '</em>\1', true)
         string=markup(string, %r{(#{start})\*\*}, %r{\*\*(#{punctuation})}, '\1<big>', '</big>\1', true)
         string=markup(string, %r{(#{start})\*}, %r{\*(#{punctuation})}, '\1<b>', '</b>\1', true)
         string=markup(string, %r{(#{start})_}, %r{_(#{punctuation})}, '\1<u>', '</u>\1', true)
-        string=markup(string, %r{(#{start})-}, %r{-(#{punctuation})}, '\1<s>', '</s>\1', true)
         string=markup(string, %r{(#{start})`}, %r{`(#{punctuation})}, '\1<tt>', '</tt>\1', true)
         #string=markup(string, %r{(#{start})((http://|ftp://|irc://|gopher://|file://).+\..{2,4}(.*))}, %r{( |$)}, '\2<a href="\3">\3</a> ', '\1', true)
         #string=markup(string, %r{(#{start})}, %r{((http://|ftp://|irc://|gopher://|file://).+\..{2,4}(.*)( |$))}, '\1<a href="\2">\2</a> ', '\1', true)
@@ -184,6 +185,11 @@ def compile(source_file_full_path, target_file_full_path)
           ([\/\S*]*) (?# /foo/bar/baz.html -- Not exactly what I wanted to use, but it works somehow)
           (?# Note that this regex doesn't discard trailing ], so be careful about [ http://example.com] becoming a link to 'example.com]')
         }x
+        result=[]
+        string.each do |line|
+          result << line.gsub(url, '\1<a href="\2\3\4">\3\4</a>')
+        end
+        string=result.to_s
         numbered_url = %r{
           (^\[| \[)
           (http://|ftp://|irc://|gopher://|file://)
@@ -191,16 +197,23 @@ def compile(source_file_full_path, target_file_full_path)
           ([\/\S*]*) (?# /foo/bar/baz.html -- Not exactly what I wanted to use, but it works somehow)
         }x
         result=[]
-        string.each do |line|
-          result << line.gsub(url, '\1<a href="\2\3\4">\3\4</a>')
-        end
-        result2=[]
         counter=1
-        result.each_index { |i|
-          result2 << result[i].to_s.gsub(numbered_url, "\1<a href=\"\2\3\4\">\[#{counter}\]</a>")
-          if $~ != nil then counter+=1 end
-        }
-        string=result2.to_s
+        string.each do |line|
+          line =~ numbered_url
+          if $~ != nil then
+            line_copy = line.dup
+            # TODO: I can probably split based on a regular expression, but I've never been able to actually do it.
+            line_copy.gsub!(numbered_url, "~~~~~numbered_url~~~~~")
+            line_copy=line_copy.split("~~~~~numbered_url~~~~~")
+            line_copy_length=(line_copy.length)-1
+            line_copy_length.times do
+              line.sub!(numbered_url, "\1<a href=\"\2\3\4\">\[#{counter}\]</a>")
+              counter+=1
+            end
+          end
+          result << line
+        end
+        string=result.to_s
 
         internal_markup_flag=false
       end
@@ -383,6 +396,7 @@ end
     contents=automatic_linking(File.dirname(source_file_full_path), contents)
 
     # Unordered lists
+    # FIXME FUCK, it's interacting with the strikethrough feature!
     contents=lists(contents, /^(-+) (.*)$/, '<ul>', '</ul>', '<li>', '</li>', '')
     # Ordered lists
     contents=lists(contents, /^(#+) (.*)$/, '<ol>', '</ol>', '<li>', '</li>', '')
