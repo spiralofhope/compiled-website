@@ -1,4 +1,3 @@
-# Happy _why day!
 # Add anything new that's appeared.  Recursive.
 # Do not do this!  I have live website content which should never go into the git repository.  Hmm, well maybe that would be a good idea.. Ok, maybe later.: TODO
 \git add .

@@ -1,4 +1,3 @@
-# Happy _why day!
 # Used in class Test_Markup < MiniTest::Unit::TestCase
 # http://bfts.rubyforge.org/minitest/
 require 'minitest/autorun'

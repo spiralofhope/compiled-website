@@ -1,4 +1,3 @@
-# Happy _why day!
 # used for FileUtils.mkdir_p
 require 'fileutils'
 
