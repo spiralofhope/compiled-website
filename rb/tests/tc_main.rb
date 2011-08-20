@@ -1,4 +1,4 @@
-# Used in class Test_Markup < MiniTest::Unit::TestCase
+# Used in  class Test_Markup < MiniTest::Unit::TestCase
 # http://bfts.rubyforge.org/minitest/
 require 'minitest/autorun'
 
@@ -14,6 +14,7 @@ def assert_equal_array( expected, result )
     )
   }
 end
+
 class Test_Markup < MiniTest::Unit::TestCase
 
   def setup()

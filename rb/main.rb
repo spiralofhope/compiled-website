@@ -33,8 +33,11 @@ remote_blog = File.join( File.dirname( __FILE__ ), '..', '..', 'live', 'b' )
 # --
 
 require File.join( File.dirname( __FILE__ ), 'header_and_footer.rb' )
+require File.join( File.dirname( __FILE__ ), 'lib', 'lib_common.rb' )
 require File.join( File.dirname( __FILE__ ), 'lib', 'lib_main.rb' )
+require File.join( File.dirname( __FILE__ ), 'tests', 'tc_common.rb' )
 require File.join( File.dirname( __FILE__ ), 'tests', 'tc_main.rb' )
+
 
 # TODO:  Sanity-checking / first-run stuff.
 # md_directory( local_wiki )
