@@ -1,36 +1,4 @@
 =begin
-1)
-Given a string, a beginning and an ending.
-
-foo(
-      string,
-      [
-        [
-          [ begin ],
-          [ end ],
-        ],
-      ]
-    )
-
-Separate the string into an alternating array of matches and non-matches.
-Output type one:
-[ ..., begin***end, ..., begin***end, ... ]
-
-2)
-Output type two:
-[ ...begin, ***, end...begin, ***, end... ]
-
-foo(
-      string,
-      type,
-      [
-        [
-          [ begin ],
-          [ end ],
-        ],
-      ]
-    )
-
 
 3)
 Allow multiple separator triggers.
@@ -86,7 +54,7 @@ end
 def line_partition(
                       string=nil,
                       match_array=nil,
-                      in_or_out=nil
+                      in_or_out=true
                     )
   # Sanity checking.
   return '' if string == nil
@@ -94,12 +62,14 @@ def line_partition(
   # Default values.
   string      ||= ''
   match_array ||= []
-  in_or_out   ||= true
+  #in_or_out   ||= true
   #
   result = [ '' ]
   close_tags = []
   match_begin = match_array[0]
   match_end   = match_array[1]
+  match_string = ''
+  #
   string.each_line{ |line|
     if close_tags == [] then
       # We're looking for a begin match.
@@ -109,11 +79,13 @@ def line_partition(
         result[-1] += line
       else
         # Match.  Found a new block.
-        # Begin a new element.
-        result << ''
-        # Append it.
-        result[-1] = line
         close_tags = [ match_end ]
+        result << ''
+        if in_or_out == true then
+          result[-1] += line
+        else
+          result[-2] += line
+        end
       end
     else
       # We're in the middle of a block.
@@ -124,12 +96,16 @@ def line_partition(
         result[-1] += line
       else
         # Match.  Found the end of a block.
-        # Append the closing tag.
-        result[-1] += line
-        # Begin a new element.
-        result << ''
         # Tidy up, and expect the next opening tag.
         close_tags = []
+        if in_or_out == true then
+          # Append the closing tag.
+          result[-1] += line
+          # Begin a new element.
+          result << ''
+        else
+          result << line
+        end
       end
     end
   }
@@ -185,6 +161,20 @@ class Test_line_partition < MiniTest::Unit::TestCase
     result = line_partition(
                               string,
                               match_array
+                            )
+    assert_equal_array( expected, result )
+    #
+    #
+    match_array = [ 'BEGIN', 'END' ]
+    expected = [
+      "This is a string\nBEGIN\n",
+      "Line two\n",
+      "END\nThree\n",
+    ]
+    result = line_partition(
+                              string,
+                              match_array,
+                              false
                             )
     assert_equal_array( expected, result )
     #
