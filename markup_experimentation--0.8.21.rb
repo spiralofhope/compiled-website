@@ -64,48 +64,47 @@ class Markup
                  replace_array #                               (a)( b )(c)(.*?)(d )( e )(f)
                                #                            .. which is [ a, b, c, d, e, f ]
                )
-    if string.match( match_rx ) == nil then
-      return [
-        [ nil    ], # match
-        [ string ], # nomatch
-      ]
-    end
+    match   = [        ]
+    nomatch = [ string ]
 
     # TODO:  Sanity-checking.
     if replace_array == false then
       replace_array = [ nil, nil, nil, nil, nil, nil ]
     end
-    nomatch   = [        ]
-    match = [ string ]
 
-    until ( nomatch[-1]                   == nil ) or
-          ( nomatch[-1].match( match_rx ) == nil )
-      # Before the match.
-      nomatch << $`
+    # Count starting from one, dammit.
+    replace_array.insert(0, nil)
+    # Pad a nil in the middle to make the replace_array number of elements the same as the $~ matches.  3 before, 1 match, 3 after ( 7 ).
+    replace_array.insert(4, nil)
+
+    firstpass = true
+    until nomatch[-1].match( match_rx ) == nil
+      # If this is my first pass, empty the array.
+      if firstpass == true then
+        firstpass = false
+        nomatch = Array.new
+      end
+    
+      nomatch << $`  # The content before the match.
       match   << nil
-      # The match.
+
+
       nomatch << nil
-      match << ""
-      # Make the replace_array "line up" with the match data.
-      # So the 6-element replace array will align with 7 match items.
-      # Starting the numbering at 1, so I add a nil at the start.
-      replace_array.insert(0, nil)
-      # And a nil in the middle.
-      replace_array.insert(4, nil)
-      replace_array.each_index do |i|
-        replace_array[i] = ( replace_array[i] or $~[i] )
-      end
-      # Remove that starting nil.
-      replace_array.delete_at(0)
-      replace_array.each do |i|
-        match[-1] << ( i or "" )
-      end
-      # After the match.
-      nomatch << $'
+      match   << "" # The match.  Additional content is appended just below:
+      
+      if replace_array[1] == nil then match[-1] += $~[1] end
+      if replace_array[2] == nil then match[-1] += $~[2] end
+      if replace_array[3] == nil then match[-1] += $~[3] end
+      if replace_array[4] == nil then match[-1] += $~[4] end
+      if replace_array[5] == nil then match[-1] += $~[5] end
+      if replace_array[6] == nil then match[-1] += $~[6] end
+      if replace_array[7] == nil then match[-1] += $~[7] end
+
+      nomatch << $'   # The content after the match.  To be re-examined on the next pass.
       match   << nil
+
     end
-    # Because I originally inserted the full string into match[], I need to remove it.
-    nomatch.delete_at(0)
+
     return nomatch, match
   end
 
@@ -181,7 +180,7 @@ class Markup
       (.*?)
       (</)(.*?)(>)
     }mx
-    # returns two arrays:  html, nonhtml
+    # returns two arrays:  nonhtml, html (nomatch, match)
     return match_new( string, html_exclusion_rx, false )
   end
 
@@ -190,7 +189,7 @@ class Markup
     left = '<u>'
     right = '</u>'
     # Separate HTML from non-HTML content.
-    html, nonhtml = html_arrays( string )
+    nonhtml, html = html_arrays( string )
     # For the nonhtml components.
     nonhtml.each_index do |i|
       next if nonhtml[i] == nil
@@ -218,29 +217,66 @@ class Test_Markup < MiniTest::Unit::TestCase
   end
 
   def test_match_new_splitting()
+  skip
     string = 'abcdefghijklmnopqrstuvwxyz'
     rx = %r{(not matching this)()()()()()()}
     match, nomatch = @o.match_new( string, rx, false )
     assert_equal(
-      [[nil],['abcdefghijklmnopqrstuvwxyz']],
+      [['abcdefghijklmnopqrstuvwxyz'], [nil]],
       [match, nomatch]
     )
   end
 
   def test_match_new_splitting_replacing()
-    string = '---AoooooA---'
-    rx = %r{()()(A)(.*?)(A)()()}
-    match, nomatch = @o.match_new( string, rx, false )
-    puts match,nomatch.inspect
+    string = '---ABCoooooABC---'
+    rx = %r{(A)(B)(C)(.*?)(A)(B)(C)}
+    nomatch, match = @o.match_new( string, rx, false )
     assert_equal(
-      [[nil],['']],
+      [[nil, 'ABCoooooABC', nil ],['---', nil, '---' ]],
       [match, nomatch]
     )
+
+    string = '---AoooooA---'
+    rx = %r{(A)()()(.*?)(A)()()}
+    nomatch, match = @o.match_new( string, rx, false )
+    assert_equal(
+      [[nil, 'AoooooA', nil ],['---', nil, '---' ]],
+      [match, nomatch]
+    )
+
+    string = 'AoooooA---'
+    rx = %r{(A)()()(.*?)(A)()()}
+    nomatch, match = @o.match_new( string, rx, false )
+    assert_equal(
+      [[nil, 'AoooooA', nil ],['', nil, '---' ]],
+      [match, nomatch]
+    )
+
+    string = '---AoooooA'
+    rx = %r{()(A)()(.*?)()(A)()}
+    nomatch, match = @o.match_new( string, rx, false )
+    assert_equal(
+      [[nil, 'AoooooA', nil ],['---', nil, '' ]],
+      [match, nomatch]
+    )
+
+    string = 'AoooooA'
+    rx = %r{()()(A)(.*?)()()(A)}
+    nomatch, match = @o.match_new( string, rx, false )
+    assert_equal(
+      [[nil, 'AoooooA', nil ],['', nil, '' ]],
+      [match, nomatch]
+    )
+
   end
 
   def test_html_arrays()
-skip
-puts "-----------------------"
+    string = '<html>text</html>'
+    nonhtml, html = @o.html_arrays( string )
+    assert_equal(
+      string,
+      html[1],
+    )
     nonhtml, html = @o.html_arrays( 'This is <html>some example html</html>.' )
     assert_equal(
       [ "This is ", nil                             , "." ],
@@ -252,8 +288,30 @@ puts "-----------------------"
     )
   end
 
+  def test_multiple_html()
+    string = '<1>2</3><4>5</6>'
+    expected_nonhtml = 
+    expected_html =    
+
+    assert_equal(
+      [ nil, '<1>2</3>', nil, nil, '<4>5</6>', nil ],
+      @o.html_arrays( string )[1], # html
+    )
+
+    assert_equal(
+      [ '' , nil , '' , '', nil, '' ],
+      @o.html_arrays( string )[0], # nonhtml
+    )
+
+# If I can get the above to work, then try this:
+    #assert_equal(
+      #string,
+      #@o.markup_underline( string ),
+    #)
+  end
+
   def test_html_arrays_replacing()
-skip
+  skip
     rx = %r{
       (<)(.*?)(>)
       (.*?)
@@ -324,17 +382,17 @@ skip
     )
   end
 
-  def test_multiple_markup_underline()
-    assert_equal(
-      '<u>1</u> <u>2</u>',
-      @o.markup_underline( '_1_ _2_' ),
-    )
-  end
-
   def test_underline_two_words()
     assert_equal(
       '<u>underlined across</u>',
       @o.markup_underline( '_underlined across_' ),
+    )
+  end
+
+  def test_multiple_markup_underline()
+    assert_equal(
+      '<u>1</u> <u>2</u>',
+      @o.markup_underline( '_1_ _2_' ),
     )
   end
 
@@ -372,47 +430,10 @@ skip
       @o.markup_underline( string ),
     )
   end
-
-  def test_complexity2()
-    string = <<-heredoc.unindent
-      This is a complex document.
-      
-      <html>Some html exists, which should be left alone.</html>
-      
-      <html>
-      and a bit more like so.
-      
-      Don't _underline_ that
-      </html>
-      
-      _underlined_ _two words_
-      
-      _underlined on
-      two lines!_
-    heredoc
-    expected = <<-heredoc.unindent
-      This is a complex document.
-      
-      <html>Some html exists, which should be left alone.</html>
-      
-      <html>
-      and a bit more like so.
-      
-      Don't _underline_ that
-      </html>
-      
-      <u>underlined</u> <u>two words</u>
-      
-      <u>underlined on
-      two lines!</u>
-    heredoc
-    #assert_equal(
-      #expected,
-      #@o.markup_underline( string ),
-    #)
-  end
   
 end
+
+
 
 class Test_Markup < MiniTest::Unit::TestCase
 
