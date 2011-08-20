@@ -18,10 +18,10 @@ class String
     lines = Array.new
     each_line { |ln| lines << ln }
 
-    first_line_ws = lines[0].match(/^\s*/)[0]
-    re = Regexp.new('^\s{0,' + first_line_ws.length.to_s + '}')
+    first_line_ws = lines[0].match( /^\s*/ )[0]
+    re = Regexp.new( '^\s{0,' + first_line_ws.length.to_s + '}' )
 
-    lines.collect {|line| line.sub(re, "") }.join
+    lines.collect { |line| line.sub(re, "") }.join
   end
 end
 
@@ -50,9 +50,9 @@ class Markup
     until rx_match[-1].match( rx ) == nil or i > 100 do
       i+=1
       rx_match.delete_at(-1)
-      rx_match << $`
-      rx_match << nil
-      rx_match << $'
+      rx_match   << $`
+      rx_match   << nil
+      rx_match   << $'
       rx_nomatch << nil
       # ( $~[3] or "" ) is specifically for section matching using false.
       if rx_include_matched_characters_bool == true then
@@ -60,38 +60,49 @@ class Markup
       else
         rx_nomatch << (         $~[2]         )
       end
-      if i > 100 then puts "## ERROR 1 - Long loop in regex usage.  Did you pass a bad rx?" end
+      if i > 100 then puts "## ERROR in match1() - Long loop in regex usage.  Did you pass a bad rx?" end
     end
     return rx_match, rx_nomatch
   end
 
-  # This is used for markup.
-  # I'd love to merge this in with the original match code, but it hurts my brain.  Maybe later.
-  def match_with_punctuation( string, rx, rx_include_matched_characters_bool )
-    rx_match = Array.new
-    rx_nomatch = Array.new
-    rx_match = [ string ]
-    i=0
-    until ( rx_match[-1].match( rx ) == nil ) or ( i > 100 ) do
-      i+=1
-      rx_match.delete_at(-1)
-      rx_match << $`
-      rx_match   << $~[1] # new to match_with_punctuation()
-      rx_nomatch << nil   # new to match_with_punctuation()
-      rx_match   << nil   # new to match_with_punctuation()
-      rx_match   << $~[5] # new to match_with_punctuation()
-      rx_match << $'
-      rx_nomatch << nil
-      if rx_include_matched_characters_bool == true then
-        rx_nomatch << ( $~[2] + $~[3] + $~[4] ) # shifted by one for match_with_punctuation()
-      else
-        rx_nomatch << (         $~[3]         ) # shifted by one for match_with_punctuation()
-      end
-      if i > 100 then puts "## ERROR 2 - Long loop in regex usage.  Did you pass a bad rx?" end
+  def match_new( string,                                  # "This has <html>some html</html> in it."
+              seven_match_rx,                             # HTML is (<)(.*?)(>)(.*?)(</)(.*?)(>)
+              include_matched_characters_outside_rx_bool, # For (<)(.*?)(>) do you want to keep <  >
+              include_matched_characters_inside_rx_bool   # For (<)(.*?)(>) do you want to keep  .*
+            )
+    if string.match( seven_match_rx ) == nil then
+      return [
+        [ nil    ], # match
+        [ string ], # nomatch
+      ]
     end
-    return rx_match, rx_nomatch
+    match   = [        ]
+    nomatch = [ string ]
+
+    until ( nomatch[-1]                         == nil ) or
+          ( nomatch[-1].match( seven_match_rx ) == nil )
+      # Before the match.
+      nomatch << $`
+      match   << nil
+      # The match.
+      nomatch << nil
+                                                         match     << ""
+      if include_matched_characters_outside_rx_bool then match[-1] << $~[1] end
+      if include_matched_characters_inside_rx_bool  then match[-1] << $~[2] end
+      if include_matched_characters_outside_rx_bool then match[-1] << $~[3] end
+                                                         match[-1] << $~[4]
+      if include_matched_characters_outside_rx_bool then match[-1] << $~[5] end
+      if include_matched_characters_inside_rx_bool  then match[-1] << $~[6] end
+      if include_matched_characters_outside_rx_bool then match[-1] << $~[7] end
+      # After the match.
+      nomatch << $'
+      match   << nil
+    end
+    # Because I originally inserted the full string into match[], I need to remove it.
+    nomatch.delete_at(0)
+    return nomatch, match
   end
-  
+
   # Taking the contents of array1, replace any nils with contents from the same position in array2.
   def recombine( array1, array2 )
     array1.each_index do |i|
@@ -102,60 +113,99 @@ class Markup
     return array1
   end
 
-  def markup( string, left_rx, right_rx, left_replace, right_replace )
-    punctuation_start=(%r{
-      ^       (?# Line start)
-      |\      (?# Space)
-    }x)
-    punctuation_start=(%r{
-       #{punctuation_start}
-      |#{punctuation_start} '
-      |#{punctuation_start} "
-      |#{punctuation_start} \(
-      |#{punctuation_start} --
-    }x)
-    punctuation_start=%r{#{punctuation_start}?}
-      
-    punctuation_end=(%r{
-      $     (?# Line end)
-      |\    (?# Space)
-    }x)
-    punctuation_end=(%r{
-            #{punctuation_end}
-      |\.   #{punctuation_end}
-      |,    #{punctuation_end}
-      |!    #{punctuation_end}
-      |:    #{punctuation_end}
-      |;    #{punctuation_end}
-      |\?   #{punctuation_end}
-      |--   #{punctuation_end}
-      |'    #{punctuation_end}
-      |"    #{punctuation_end}
-    }x)
-    punctuation_end=(%r{
-            #{punctuation_end}
-      |s    #{punctuation_end}
-      |es   #{punctuation_end}
-      |ed   #{punctuation_end}
-    }x)
-    punctuation_end=%r{#{punctuation_end}?}
+  def punctuation_rx( left_rx, right_rx )
+      if right_rx == nil
+        then right_rx = left_rx
+      end
+  
+      punctuation_start=(%r{
+        ^       (?# Line start)
+        |\      (?# Space)
+      }x)
+      punctuation_start=(%r{
+         #{punctuation_start}
+        |#{punctuation_start} '
+        |#{punctuation_start} "
+        |#{punctuation_start} \(
+        |#{punctuation_start} --
+      }x)
+      punctuation_start=%r{#{punctuation_start}?}
+        
+      punctuation_end=(%r{
+        $     (?# Line end)
+        |\    (?# Space)
+      }x)
+      punctuation_end=(%r{
+              #{punctuation_end}
+        |\.   #{punctuation_end}
+        |,    #{punctuation_end}
+        |!    #{punctuation_end}
+        |:    #{punctuation_end}
+        |;    #{punctuation_end}
+        |\?   #{punctuation_end}
+        |--   #{punctuation_end}
+        |'    #{punctuation_end}
+        |"    #{punctuation_end}
+      }x)
+      punctuation_end=(%r{
+              #{punctuation_end}
+        |s    #{punctuation_end}
+        |es   #{punctuation_end}
+        |ed   #{punctuation_end}
+      }x)
+      punctuation_end=%r{#{punctuation_end}?}
+  
+      return %r{
+        (#{punctuation_start})
+        (#{left_rx})
+        (.*?)
+        (#{right_rx})
+        (#{punctuation_end})
+      }x
+  end
+  
+  def strong_rx()
+    return punctuation_rx( %r{\*} )
+  end
 
-    rx = %r{
-      (#{punctuation_start})
-      (#{left_rx})
+  def html_arrays( string )
+    html_exclusion_rx = %r{
+      (<)(.*?)(>)
       (.*?)
-      (#{right_rx})
-      (#{punctuation_end})
-    }x
-    rx_nomatch, rx_match = match_with_punctuation( string, rx, false )
-    rx_match.each_index do |e|
-      next if rx_match[e] == nil
-      rx_match[e] = left_replace + rx_match[e] + right_replace
-    end
-    return recombine( rx_nomatch, rx_match )
+      (</)(.*?)(>)
+    }mx
+    # returns two arrays.
+    return match_new( string, html_exclusion_rx, true, true )
   end
 
 end # class Markup
+
+class Test_Markup < MiniTest::Unit::TestCase
+
+  def setup()
+    @o = Markup.new
+  end
+
+  def test_html_arrays()
+    string = <<-heredoc.unindent
+      This is <html>some example html</html>.
+    heredoc
+    expected_nonhtml = [ "This is ", nil                             , ".\n" ]
+    expected_html    = [ nil       , "<html>some example html</html>", nil   ]
+    nonhtml, html = @o.html_arrays( string )
+
+    assert_equal(
+      expected_nonhtml,
+      nonhtml,
+    )
+    assert_equal(
+      expected_html,
+      html,
+    )
+
+  end
+  
+end
 
 
 class Test_Markup < MiniTest::Unit::TestCase
@@ -433,33 +483,61 @@ class Test_Markup < MiniTest::Unit::TestCase
     )
   end
 
-  def test_markup()
-    string = "This is *strong* text."
-    assert_equal(
-      "This is <strong>strong</strong> text.",
-      @o.markup( string, %r{\*}, %r{\*}, '<strong>', '</strong>').join
-    )
-  end
-
-  def test_markup2()
-    string = "0<>1</><>2</>"
-    rx = %r{()(<.*?>)(.*?)(</.*?>)()}m
-    rx_nomatch, rx_match = @o.match_with_punctuation( string, rx, true )
-    # Matching the regular expression
-    assert_equal(
-      [ nil, nil, "<>1</>", nil, nil, "<>2</>", nil ],
-      [ rx_match[0], rx_match[1], rx_match[2], rx_match[3], rx_match[4], rx_match[5], rx_match[6] ],
-    )
-    # Not matching the regular expression
-    assert_equal(
-      [ "0", "", nil, "", "", "", nil, "" ],
-      [ rx_nomatch[0], rx_nomatch[1], rx_nomatch[2], rx_nomatch[3], rx_nomatch[4], rx_nomatch[5], rx_nomatch[6], rx_nomatch[7] ],
-    )
+  #def test_markup()
+    #string = "This is *strong* text."
     #assert_equal(
-      #string,
-      #@o.recombine(rx_match, rx_nomatch).join,
+      #"This is <strong>strong</strong> text.",
+      #@o.markup( string, false )
     #)
-  end
+  #end
+
+  #def test_markup2()
+    #string = "0<>1</><>2</>"
+    #rx = %r{()(<.*?>)(.*?)(</.*?>)()}m
+    #rx_nomatch, rx_match = @o.match( string, rx, true )
+    ## Matching the regular expression
+    #assert_equal(
+      #[ nil, nil, "<>1</>", nil, nil, "<>2</>", nil ],
+      #[ rx_match[0], rx_match[1], rx_match[2], rx_match[3], rx_match[4], rx_match[5], rx_match[6] ],
+    #)
+    ## Not matching the regular expression
+    #assert_equal(
+      #[ "0", "", nil, "", "", "", nil, "" ],
+      #[ rx_nomatch[0], rx_nomatch[1], rx_nomatch[2], rx_nomatch[3], rx_nomatch[4], rx_nomatch[5], rx_nomatch[6], rx_nomatch[7] ],
+    #)
+    ##assert_equal(
+      ##string,
+      ##@o.recombine(rx_match, rx_nomatch).join,
+    ##)
+  #end
+
+  #def test_section_and_markup()
+    ## Given a complex document, with sections to be processed and sections to be ignored.
+    #string = <<-heredoc.unindent
+      #This is a complex document.
+      
+      #<html>
+      #This should *not* be processed at all.
+      #</html>
+      
+      #This *should* be processed.
+    #heredoc
+    #expected = <<-heredoc.unindent
+      #This is a complex document.
+      
+      #<html>
+      #This should *not* be processed at all.
+      #</html>
+      
+      #This <strong>should</strong> be processed.
+    #heredoc
+    #assert_equal(
+      #expected,
+      #@o.markup( string, false )
+    #)
+  #end
+# \n</html>\n\nThis <strong>should</strong> be processed.\n",
+# \n       \n\nThis <strong>should</strong> be processed.\n".
 
 end # class Test_Markup < MiniTest::Unit::TestCase
 
