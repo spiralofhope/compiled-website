@@ -1,3 +1,19 @@
+2011-05-22  spiralofhope  <spiralofhope@lavabit.com>
+  
+  1.0.7
+  
+  * The previous version represents a massive rewrite.  However, after 
+  having gone through a couple of revisions of ideas it has become 
+  extremely messy.  Everything is good, and there are ideas in there 
+  which fix most of the issues I was having.  To get it fixed up, i'm 
+  copying it out into this version and then gutting it and redoing it 
+  with my most recent ideas.
+  
+  * Did some playing with my string matching stuff, but some earlier 
+  work is better.  I'm bumping the revision to save this work but I'm 
+  going to go back to earlier stuff which could handle nested matches 
+  like 'before <><>one</>two</> after'.
+
 2011-05-20  spiralofhope  <spiralofhope@lavabit.com>
   
   1.0.5

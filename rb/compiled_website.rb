@@ -3,7 +3,16 @@ $a = false
 
 =begin
 
+AWW FUCK..
+my 1.0.5 html_arrays2 can properly handle nesting like:  <><>foo</>bar</>
+I have to re-absorb that stuff and figure shit out properly..
+
+
+obsolete my array merging concept, I'm just passing a method to use into not_in_html and it's spitting my string back out.
+
 I cannot use multiple parameters for not_in_html().  This must be fixed so that I can properly universally use this functionality.
+
+
 
 <pre> blocks cannot work as things stand.  This is because I'm doing this:
   one <>two</> three
@@ -20,7 +29,6 @@ Therefore the paragraphing method doesn't have to do (some of?) that..
 
 to do:
 - ensure that nothing is done on html blocks.  Borrow that functionality from markup and use it on everything like lists, etc.  Remove that functionality from any other process that's using it and doesn't really need to.
--- html_arrays is bugged.  It needs to walk through and allow nested html.  So  <open1><open2>stuff</open2>no</open1> all goes in one html list, and not done badly like open1 closing with open2..
 
 - Build a test case for whole-document creation.
 - HTML Tidy?
@@ -78,7 +86,12 @@ durp, don't allow multi-line markup.
 
 require File.join( File.dirname( __FILE__ ), 'compiled_website--header_and_footer.rb' )
 # used in header_and_footer()
-require 'pathname'
+# require 'pathname'
+# Used in class Test_Markup < MiniTest::Unit::TestCase
+# http://bfts.rubyforge.org/minitest/
+require 'minitest/autorun'
+# used for FileUtils.mkdir_p
+require 'fileutils'
 
 
 # http://stackoverflow.com/questions/3772864/how-do-i-remove-leading-whitespace-chars-from-ruby-heredoc/4465640#4465640
@@ -110,98 +123,80 @@ end
 
 class Markup
 
-  # Using a regular expression, break a string into two arrays.
-  #   One matching the regular expression
-  #   , the other not matching the regular expression.
-  #   Keep the two arrays "aligned" by padding elements with nils.
-  #   Where there is content in array1[n], there is a nil in array2[n] and vice-versa.
-  #   Optionally keep the start/end of the match included in the rx.
-  def match( string, rx, rx_include_matched_characters_bool )
-    # rx expects three matches, like:  (rx1)(rx2)(rx3)
-    # TODO:  Sanity-check the rx somehow?
-    rx_match = Array.new
-    rx_nomatch = Array.new
-    rx_match = [ string ]
-    i=0
-    until rx_match[-1].match( rx ) == nil or i > 100 do
-      i+=1
-      rx_match.delete_at(-1)
-      rx_match   << $`
-      rx_match   << nil
-      rx_match   << $'
-      rx_nomatch << nil
-      # ( $~[3] or "" ) is specifically for section matching using false.
-      if rx_include_matched_characters_bool == true then
-        rx_nomatch << ( $~[1] + $~[2] + ( $~[3] or "" ) )
-      else
-        rx_nomatch << (         $~[2]         )
-      end
-      if i > 100 then puts "## ERROR in match1() - Long loop in regex usage.  Did you pass a bad rx?" end
+  def split_string( string, rx )
+    return [ string ] if rx.class != Regexp or
+                         string.match( rx ) == nil
+
+    string = [ string ]
+    string = string[-1].partition( rx )
+    until string[-1].match( rx ) == nil do
+      string = [ string[0..1], string[-1].partition( rx ) ].flatten
     end
-    return rx_match, rx_nomatch
+
+    if string[0].match( rx ) != nil then
+      string.insert( 0, '' )
+    end
+    if string[-1] == '' then
+      string.delete_at(-1)
+    end
+    return string
   end
 
-  def match_new( string,       # "This has <html>some html</html> in it."
-                 match_rx,     # Seven elements.  e.g. HTML is (<)(.*?)(>)(.*?)(</)(.*?)(>)
-                 replace_array #                               (a)( b )(c)(.*?)(d )( e )(f)
-                               #                            .. which is [ a, b, c, d, e, f ]
-              )
-    match   = [ nil    ]
-    nomatch = [ string ]
-    #
-    # TODO:  Sanity-checking.
-    if replace_array == false then
-      replace_array = [ nil, nil, nil, nil, nil, nil ]
+  #def split_string_into_an_alternating_html_and_nonhtml_array( string )
+    #return split_string_into_an_alternating_match_and_nomatch_array( string, %r{<.*?>.*?</.*?>}m )
+  #end
+
+
+  # NOTE:  Nested stuff is NOT supported.  =(
+  def xx_split_string( string, rx_array )
+    if rx_array.class != Array or rx_array.size != 3 then
+       return [ string ]
     end
-    # Count starting from one, dammit.
-    replace_array.insert(0, nil)
-    # Pad a nil in the middle to make the replace_array number of elements the same as the $~ matches.  3 before, 1 match, 3 after ( 7 ).
-    replace_array.insert(4, nil)
-    #
-    firstpass = true
-    until nomatch[-1].match( match_rx ) == nil
-      # If this is my first pass, empty the array.
-      if firstpass == true then
-        firstpass = false
-        nomatch = Array.new
-        match = Array.new
-      else
-        nomatch[-1] = ''
-      end
-      # Before the match.
-      nomatch << $`
-      match   << nil
-      # The match.
-      nomatch << nil
-      match   << ""
-      (1..7).each do |i|
-        # Added   or ''   for lists_arrays()
-        match[-1] += ( if replace_array[i] == nil then $~[i] else replace_array[i] end or '' )
-      end      
-      # After the match.  To be re-examined on the next pass.
-      nomatch << $'
-      match   << nil
+    rx = (
+      %r{
+        #{rx_array[0]}
+        #{rx_array[1]}
+        #{rx_array[2]}
+      }x
+    )
+
+    if string.match( rx ) == nil then
+      return [ string ]
     end
-    return nomatch, match
+
+    string = [ string ]
+
+    string.insert( 0, '' )
+    string.each_index { |i|
+      next if i == 0
+      result = string[i].partition( rx )
+      result.delete_if { |x| x == "" }
+      string[i] = result
+      string.flatten!
+    }
+    if string[0] = '' and string[1].match( rx ) == nil then
+      string.delete_at( 0 )
+    end
+    return string
   end
 
-  # Taking the contents of array1, replace any nils with contents from the same position in array2.
-  # Use like:
-  # @o.recombine( match, nomatch ).join
-  def recombine( array1, array2 )
-    array1.each_index do |i|
-      if array1[i] == nil then
-        if array2[i] == nil then
-          puts "ERROR - recombine"
-        end
-        array1[i] = array2[i]
-      end
-    end
-    return array1
+  # TODO:  The splat isn't working properly..
+  def not_in_html( string, *splat )
+    array = split_string_into_an_alternating_html_and_nonhtml_array( string )
+    array.each_index { |i|
+      next if i.odd?
+      array[i] = yield( array[i], splat )
+    }
+    return array
   end
+
+
+# ---
+
 
   def punctuation_rx( left_rx, right_rx )
-    # This would need to be reworked if it should match across lines.  I don't think it should!
+    # This would need to be reworked if it should match across lines.  But I don't think it should!
+    # TODO:  Match across [ and ] ?
     punctuation_start=(%r{
       ^       (?# Line start)
       |\      (?# Space)
@@ -243,7 +238,7 @@ class Markup
       (.*?)
       (#{right_rx})
       (#{punctuation_end})
-    }mx
+    }x
   end
   
   def punctuation_rx_single( rx )
@@ -290,161 +285,19 @@ class Markup
       }mx
   end
   
-  def html_arrays( string )
-    html_exclusion_rx = %r{
-      (<)(.*?)(>)
-      (.*?)
-      (</)(.*?)(>)
-    }mx
-    # returns two arrays:  nonhtml, html (nomatch, match)
-    return match_new( string, html_exclusion_rx, false )
-  end
-
-  def html_arrays2( string )
-    if string.match( %r{<.*?>.*?</.*?>} ) == nil then
-      html    = [ nil ]
-      nonhtml = [ string ]
-      return nonhtml, html
-    end
-    nonhtml = Array.new
-    html    = Array.new
-
-#puts "\n\n--v"
-
-    string_original = string
-
-    string.match( %r{(<.*?>)} )
-       html << nil
-    nonhtml << $`
-    #
-       html << $~[1]
-    nonhtml << nil
-    #
-    string  =  $'
-    nested  =  1
-
-    until string == nil do
-    
-      string.match( %r{(<.*?>|</.*?>)} )
-      if $~ == nil then
-           html << nil
-        nonhtml << string
-        break
-      end
-      if nested > 0 then
-              html << $`
-           nonhtml << nil
-      else
-           html << nil
-        nonhtml << $`
-      end
-      
-         html << $~[1]
-      nonhtml << nil
-      string = $'
-    
-      open_or_close_tag = $~[1]
-    
-      if    open_or_close_tag.match( %r{ <.*?>}x ) != nil
-        nested += 1
-      elsif open_or_close_tag.match( %r{</.*?>}x ) != nil
-        nested -= 1
-      else
-        # No closing tag was provided.  Eww.
-      end
-    
-    end
-
-html, nonhtml = merge_arrays( html, nonhtml )
-  
-#puts string_original.inspect
-##puts html.inspect
-##puts nonhtml.inspect
-
-#html.each_index { |i|
-  #printf("%-*s   %s\n", 25, html[i].inspect, nonhtml[i].inspect)
-##  printf("%*s   %s\n", 25, html[i].inspect, nonhtml[i].inspect)
-#}
-
-#puts "--^\n\n"
-    return nonhtml, html
-  end
-
-  def html_arrays3( string )
-    a = [ string ]
-    rx = %r{<.*?>.*?</.*?>}
-#puts "\n\n--v"
-    a = a[-1].partition( rx )
-    until a[-1].match( rx ) == nil do
-      a = [ a[0..1], a[-1].partition( rx ) ].flatten
-    end
-#puts "--^\n\n"
-    return a
-  end
-
-def not_in_html( string, *splat )
-  @o = Markup.new
-  array = @o.html_arrays3( string )
-  array.each_index { |i|
-    next if i.odd?
-    array[i] = yield( array[i], splat )
-  }
-  return array
-end
-
-
-  def merge_arrays( array1, array2 )
-#puts "\n\n--v"
-    result1 = [ array1[0] ]
-    result2 = [ array2[0] ]
-    array1.each_index { |i|
-      next if i == 0
-      if array1[i] == nil and result1[-1] == nil then
-        result2[-1] << array2[i]
-        next
-      end
-      if array2[i] == nil and result2[-1] == nil then
-        result1[-1] << array1[i]
-        next
-      end
-      if array1[i] != nil and result1[-1] == nil then
-        result1 << array1[i]
-        result2 << nil
-        next
-      end
-      if array2[i] != nil and result2[-1] == nil then
-        result2 << array2[i]
-        result1 << nil
-        next
-      end
-    }
-#puts "--^\n\n"
-    return result1, result2
-  end
 
   # TODO:  All of the work on 'nonhtml, html' should be pulled out of here and put into one universal thingy so it can be used by _everything_.
   def markup( string, left_rx, right_rx, left_replace, right_replace )
+    string = split_string_into_an_alternating_html_and_nonhtml_array( string )
     rx = punctuation_rx( left_rx, right_rx )
-    # Separate HTML from non-HTML content.
-    nonhtml, html = html_arrays2( string )
-    # For the nonhtml components.
-    nonhtml.each_index do |i|
-      next if nonhtml[i] == nil
-      if nonhtml[i].match( rx ) != nil then
-        nonhtml[i].sub!( rx, $~[1] + left_replace + $~[3] + right_replace + $~[5] )
-        # Now that a search-and-replace has been performed, I re-split from that element.
-        # TODO:  I should be able to do this without these intermediate variables, but how?
-        nonhtml_append, html_append = html_arrays2( nonhtml[i] )
-# if nonhtml_append.count != html_append.count then puts "markup error:  unbalanced element count" end
-# if html[i] != nil then puts "markup error:  html[i] has a non-nil in it" end
-        nonhtml[i] = nonhtml_append
-           html[i] =    html_append    # This is stomping over it, but that ought to be ok.. it's nil.
-        nonhtml.flatten!
-           html.flatten!
-      end
-    end
-    if nonhtml.count != html.count then puts "markup error:  unbalanced element count" end
-    return recombine( nonhtml, html ).join
+    string.each_index { |i|
+      next if i.odd?
+      next if string[i].match( rx ) == nil
+      string[i].sub!( rx, $~[1] + left_replace + $~[3] + right_replace + $~[5] )
+      string[i] = split_string_into_an_alternating_html_and_nonhtml_array( string[i] )
+      string.flatten!
+    }
+    return string.join
   end
 
   def markup_underline( string )
@@ -686,7 +539,7 @@ else
 end
 
       words_to_match = File.basename( files_array[i], '.asc' ).gsub( '-', ' ' ).downcase
-      nonhtml, html = html_arrays2( string )
+      nonhtml, html = html_arrays( string )
 
       nonhtml.each_index { |i|
         next if nonhtml[i] == nil
@@ -929,85 +782,117 @@ end
 end # class Markup
 
 
-# http://bfts.rubyforge.org/minitest/
-require 'minitest/autorun'
 class Test_Markup < MiniTest::Unit::TestCase
 
   def setup()
     @o = Markup.new
   end
 
-  def test_match_new_splitting()
-    string = 'abcdefghijklmnopqrstuvwxyz'
-    rx = %r{(not matching this)()()()()()()}
+  def test_split_string()
+    rx = %r{<.*?>.*?</.*?>}m
+
+    string = 'nothing'
+    result = @o.split_string( string, rx )
     assert_equal(
-      [ string ],
-      @o.match_new( string, rx, false )[0], # match
+      string,
+      result[0],
     )
     assert_equal(
-      [ nil ],
-      @o.match_new( string, rx, false )[1], # nomatch
-    )
-  end
-
-  def test_match_new_splitting_replacing()
-    string = '---ABCoooooABC---'
-    rx = %r{(A)(B)(C)(.*?)(A)(B)(C)}
-    nomatch, match = @o.match_new( string, rx, false )
-    assert_equal(
-      [[nil, 'ABCoooooABC', nil ],['---', nil, '---' ]],
-      [match, nomatch]
+      1,
+      result.size
     )
 
-    string = '---AoooooA---'
-    rx = %r{(A)()()(.*?)(A)()()}
-    nomatch, match = @o.match_new( string, rx, false )
+    string = '<>html</>'
+    result = @o.split_string( string, rx )
     assert_equal(
-      [[nil, 'AoooooA', nil ],['---', nil, '---' ]],
-      [match, nomatch]
+      '',
+      result[0],
+    )
+    assert_equal(
+      '<>html</>',
+      result[1],
+    )
+    assert_equal(
+      2,
+      result.size
     )
 
-    string = 'AoooooA---'
-    rx = %r{(A)()()(.*?)(A)()()}
-    nomatch, match = @o.match_new( string, rx, false )
+    string = 'before <>one</> <>two</> after'
+    result = @o.split_string( string, rx )
     assert_equal(
-      [[nil, 'AoooooA', nil ],['', nil, '---' ]],
-      [match, nomatch]
+      'before ',
+      result[0],
+    )
+    assert_equal(
+      '<>one</>',
+      result[1],
+    )
+    assert_equal(
+      ' ',
+      result[2],
+    )
+    assert_equal(
+      '<>two</>',
+      result[3],
+    )
+    assert_equal(
+      ' after',
+      result[4],
     )
 
-    string = '---AoooooA'
-    rx = %r{()(A)()(.*?)()(A)()}
-    nomatch, match = @o.match_new( string, rx, false )
+    string = <<-heredoc.unindent
+      before
+      <>
+      one
+      </>
+      <>
+      two
+      </>
+      after
+    heredoc
+    result = @o.split_string( string, rx )
     assert_equal(
-      [[nil, 'AoooooA', nil ],['---', nil, '' ]],
-      [match, nomatch]
-    )
-
-    string = 'AoooooA'
-    rx = %r{()()(A)(.*?)()()(A)}
-    nomatch, match = @o.match_new( string, rx, false )
-    assert_equal(
-      [[nil, 'AoooooA', nil ],['', nil, '' ]],
-      [match, nomatch]
-    )
-
-  end
-
-  def test_merge_arrays()
-    assert_equal(
-      [
-        [ nil, 'cd',  nil],
-        ['ab',  nil, 'ef'],
-      ],
-      @o.merge_arrays(
-        [nil, nil, 'c', 'd', nil, nil],
-        ['a', 'b', nil, nil, 'e', 'f'],
+      ( <<-heredoc.unindent
+        before
+      heredoc
       ),
+      result[0],
     )
+    assert_equal(
+      ( <<-heredoc.unindent
+        <>
+        one
+        </>
+      heredoc
+      ).chomp,
+      result[1],
+    )
+    assert_equal(
+      "\n",
+      result[2],
+    )
+    assert_equal(
+      ( <<-heredoc.unindent
+        <>
+        two
+        </>
+      heredoc
+      ).chomp,
+      result[3],
+    )
+    assert_equal(
+      "\nafter\n",
+      result[4],
+    )
+
+    # Not supported!
+    #string = 'this is a test <>with <>complex</> html</>'
+    #string = '<foo bar="baz > quux">no</> yes </>no</>'
+
   end
 
-  def test_not_in_html()
-    def not_in_html_method( string, *var2 )
+  def xx_test_not_in_html()
+    def not_in_html_test_method( string, *var2 )
       #if defined?(var2) then puts var2.inspect end
       #if var2 == [] then var2 = '' end
       #string = "{#{string}}" + var2[0..-1].join
@@ -1018,19 +903,19 @@ class Test_Markup < MiniTest::Unit::TestCase
 
     assert_equal(
       '{one}',
-      @o.not_in_html( 'one' ) { |i| not_in_html_method( i ) }.join,
+      @o.not_in_html( 'one' ) { |i| not_in_html_test_method( i ) }.join,
     )
     assert_equal(
       '{one }<>two</>',
-      @o.not_in_html( 'one <>two</>' ) { |i| not_in_html_method( i ) }.join,
+      @o.not_in_html( 'one <>two</>' ) { |i| not_in_html_test_method( i ) }.join,
     )
     assert_equal(
       '{one }<>two</>{ three}',
-      @o.not_in_html( 'one <>two</> three' ) { |i| not_in_html_method( i ) }.join,
+      @o.not_in_html( 'one <>two</> three' ) { |i| not_in_html_test_method( i ) }.join,
     )
 
     #result = @o.not_in_html( 'one <>two</> three <>four</> five' ) { |i| not_in_html_method( i ) }
-    result = @o.not_in_html( 'one <>two</> three <>four</> five' ) { |i| not_in_html_method( i, 'hey' ) }
+    result = @o.not_in_html( 'one <>two</> three <>four</> five' ) { |i| not_in_html_test_method( i, 'hey' ) }
     assert_equal(
       '{one }',
       result[0]
@@ -1053,213 +938,99 @@ class Test_Markup < MiniTest::Unit::TestCase
     )
   end
 
-  def test_recombine()
-    array1 = [ "1", nil, nil, "4" ]
-    array2 = [ nil, "2", "3", nil ]
-    assert_equal(
-      [ "1", "2", "3", "4" ],
-      @o.recombine( array1, array2 ),
-    )
-    array1 = [ nil, "2", "3", nil ]
-    array2 = [ "1", nil, nil, "4" ]
-    assert_equal(
-      [ "1", "2", "3", "4" ],
-      @o.recombine( array1, array2 ),
-    )
-  end
-
-  def test_html_arrays_replacing()
-    rx = %r{
-      (<)(.*?)(>)
-      (.*?)
-      (</)(.*?)(>)
-    }mx
-    string = 'This is <html>some example html</html>.'
-
-    nomatch, match = @o.match_new(
-      string,
-      rx,
-      false,
-    )
-    assert_equal(
-      'This is <html>some example html</html>.',
-      @o.recombine( nomatch, match ).join,
-    )
-
-    nomatch, match = @o.match_new(
-      string,
-      rx,
-      [ nil, nil, nil, nil, nil, nil ],
-    )
-    assert_equal(
-      'This is <html>some example html</html>.',
-      @o.recombine( nomatch, match ).join,
-    )
-  
-    nomatch, match = @o.match_new(
-      string,
-      rx,
-      [ '|', nil, nil, nil, nil, nil ],
-    )
-    assert_equal(
-      'This is |html>some example html</html>.',
-      @o.recombine( nomatch, match ).join,
-    )
-
-    nomatch, match = @o.match_new(
-      string,
-      rx,
-      [ nil, '|', nil, nil, nil, nil ],
-    )
-    assert_equal(
-      'This is <|>some example html</html>.',
-      @o.recombine( nomatch, match ).join,
-    )
-  
-    nomatch, match = @o.match_new(
-      string,
-      rx,
-      [ nil, nil, '|', nil, nil, nil ],
-    )
-    assert_equal(
-      'This is <html|some example html</html>.',
-      @o.recombine( nomatch, match ).join,
-    )
-  
-    nomatch, match = @o.match_new(
-      string,
-      rx,
-      [ nil, nil, nil, '|', nil, nil ],
-    )
-    assert_equal(
-      'This is <html>some example html|html>.',
-      @o.recombine( nomatch, match ).join,
-    )
-  
-    nomatch, match = @o.match_new(
-      string,
-      rx,
-      [ nil, nil, nil, nil, '|', nil ],
-    )
-    assert_equal(
-      'This is <html>some example html</|>.',
-      @o.recombine( nomatch, match ).join,
-    )
-  
-    nomatch, match = @o.match_new(
-      string,
-      rx,
-      [ nil, nil, nil, nil, nil, '|' ],
-    )
-    assert_equal(
-      'This is <html>some example html</html|.',
-      @o.recombine( nomatch, match ).join,
-    )
-  end
-  
-  def test_markup_underline()
+  def xx_test_markup_underline()
     assert_equal(
       '<u>underlined</u>',
       @o.markup_underline( '_underlined_' ),
     )
-  end
-
-  def test_underline_two_words()
     assert_equal(
-      '<u>underlined across</u>',
-      @o.markup_underline( '_underlined across_' ),
+      'one <u>two</u> three <u>four</u>',
+      @o.markup_underline( 'one _two_ three _four_' ),
     )
-  end
-
-  def test_multiple_markup_underline()
-    assert_equal(
-      '<u>1</u> <u>2</u>',
-      @o.markup_underline( '_1_ _2_' ),
-    )
-  end
-
-  def test_underline_across_line_breaks()
-    string = <<-heredoc.unindent
-      _underlined
-      across_
-    heredoc
-    expected = <<-heredoc.unindent
-      <u>underlined
-      across</u>
-    heredoc
-    assert_equal(
-      expected,
-      @o.markup_underline( string ),
-    )
-  end
-
-  def test_underline_within_html()
-    string = '<html>_underline_</html>'
+    string = '<> _not underlined_ </>'
     assert_equal(
       string,
       @o.markup_underline( string ),
     )
-  end
-
-  def test_underline_within_html_multiline()
-    string = <<-heredoc.unindent
-      <html>
-      _underline_
-      </html>
-    heredoc
+    string = '<>_not underlined_</>'
     assert_equal(
       string,
       @o.markup_underline( string ),
     )
-  end
-
-  def test_underline_within_html_multiline_multiples()
     string = <<-heredoc.unindent
-      <html>
-      _underline_
-      </html>
-      <html>
-      _underline_
-      </html>
-      <html>_underline_</html>
+        _not
+        underlined_
+      heredoc
+    assert_equal(
+      string,
+      @o.markup_underline( string ),
+    )
+    string = <<-heredoc.unindent
+        <>
+        _not underlined_
+        </>
+      heredoc
+    assert_equal(
+      string,
+      @o.markup_underline( string ),
+    )
+    string = '<>_not underlined_</><>_not underlined_</>'
+    assert_equal(
+      string,
+      @o.markup_underline( string ),
+    )
+    string = <<-heredoc.unindent
+      <>
+      _not underlined_
+      </>
+      <>
+      _not underlined_
+      </>
     heredoc
     assert_equal(
       string,
       @o.markup_underline( string ),
     )
+    #string = <<-heredoc.unindent
+      #<>
+      #<>
+      #_not underlined_
+      #</>
+      #_not underlined_
+      #</>
+    #heredoc
+    #assert_equal(
+      #string,
+      #@o.markup_underline( string ),
+    #)
   end
 
-  def test_markup_strong()
+
+  def xx_test_markup_strong()
     assert_equal(
       '<strong>strong</strong>',
       @o.markup_strong( '*strong*' ),
     )
   end
 
-  def test_markup_emphasis()
+  def xx_test_markup_emphasis()
     assert_equal(
       '<em>emphasis</em>',
       @o.markup_emphasis( '/emphasis/' ),
     )
-  end
 
-  def test_markup_emphasis2()
     assert_equal(
       '<html>/no</html><em>emphasis</em>',
       @o.markup_emphasis( '<html>/no</html>/emphasis/' ),
     )
-  end
 
-  def test_markup_emphasis3()
     assert_equal(
       '<em>usr/bin</em>',
       @o.markup_emphasis( '/usr/bin/' ),
     )
-  end
 
-  # Markup does not cross HTML bounderies.
-  # Because that would be insanity.
-  def test_markup_emphasis4()
+    # Markup does not cross HTML bounderies.
+    # Because that would be insanity.
     string = '<em>emp<html>/no</html>hasis</em>'
     assert_equal(
       string,
@@ -1267,14 +1038,14 @@ class Test_Markup < MiniTest::Unit::TestCase
     )
   end
 
-  def test_multiple_everything()
+  def xx_test_multiple_everything()
     assert_equal(
       '<u>underlined</u> and <strong>strong</strong>',
       @o.markup_everything( '_underlined_ and *strong*' ),
     )
   end
 
-  def test_nested_markup()
+  def xx_test_nested_markup()
     # This demonstrates how the first markup's html-result will stop any future markup from acting within that html.
     assert_equal(
       '<u>*underlined*</u> <strong>strong</strong>',
@@ -1282,7 +1053,7 @@ class Test_Markup < MiniTest::Unit::TestCase
     )
   end
 
-  def test_big()
+  def xx_test_big()
     assert_equal(
       '<big>big</big>',
       @o.markup_big( @o.markup_underline( '**big**' ) ),
@@ -1294,7 +1065,7 @@ class Test_Markup < MiniTest::Unit::TestCase
     )
   end
 
-  def test_sections_arrays_multiple()
+  def xx_test_sections_arrays_multiple()
     string = <<-heredoc.unindent
       This is an example document.
       
@@ -1317,7 +1088,7 @@ class Test_Markup < MiniTest::Unit::TestCase
     )
   end
 
-  def test_sections()
+  def xx_test_sections()
     expected = <<-heredoc.unindent
       <div class="s1"><h1>1</h1>
       </div>
@@ -1333,7 +1104,7 @@ class Test_Markup < MiniTest::Unit::TestCase
     )
   end
 
-  def test_sections_large()
+  def xx_test_sections_large()
     expected = <<-heredoc.unindent
       <div class="s1"><div class="s2"><div class="s3"><h3>3</h3>
       </div></div></div>
@@ -1349,7 +1120,7 @@ class Test_Markup < MiniTest::Unit::TestCase
     )
   end
 
-  def test_sections_multiple()
+  def xx_test_sections_multiple()
     expected = <<-heredoc.unindent
       <div class="s1"><h1>1</h1>
   
@@ -1368,7 +1139,7 @@ class Test_Markup < MiniTest::Unit::TestCase
     )
   end
 
-  def test_sections_increment()
+  def xx_test_sections_increment()
     expected = <<-heredoc.unindent
       <div class="s1"><h1>1</h1>
   
@@ -1387,7 +1158,7 @@ class Test_Markup < MiniTest::Unit::TestCase
     )
   end
 
-  def test_sections_increment_lots()
+  def xx_test_sections_increment_lots()
     expected = <<-heredoc.unindent
       <div class="s1"><h1>1</h1>
 
@@ -1406,7 +1177,7 @@ class Test_Markup < MiniTest::Unit::TestCase
     )
   end
 
-  def test_sections_increment2()
+  def xx_test_sections_increment2()
     expected = <<-heredoc.unindent
       <div class="s1"><div class="s2"><h2>2</h2>
   
@@ -1425,7 +1196,7 @@ class Test_Markup < MiniTest::Unit::TestCase
     )
   end
 
-  def test_sections_decrement()
+  def xx_test_sections_decrement()
     expected = <<-heredoc.unindent
       <div class="s1"><div class="s2"><h2>2</h2>
 
@@ -1444,7 +1215,7 @@ class Test_Markup < MiniTest::Unit::TestCase
     )
   end
 
-  def test_sections_decrement_lots()
+  def xx_test_sections_decrement_lots()
     expected = <<-heredoc.unindent
       <div class="s1"><div class="s2"><div class="s3"><h3>3</h3>
 
@@ -1463,7 +1234,7 @@ class Test_Markup < MiniTest::Unit::TestCase
     )
   end
 
-  def test_paragraphs()
+  def xx_test_paragraphs()
     assert_equal(
       "<p>foo</p>",
       @o.paragraphs( 'foo' ),
@@ -1478,7 +1249,7 @@ class Test_Markup < MiniTest::Unit::TestCase
     )
   end
 
-  def test_HTML_horizontal_rules()
+  def xx_test_HTML_horizontal_rules()
     assert_equal(
       ( <<-heredoc.unindent
         line one
@@ -1543,7 +1314,7 @@ class Test_Markup < MiniTest::Unit::TestCase
 
   end
 
-  def test_links_plain()
+  def xx_test_links_plain()
     assert_equal(
       ( <<-heredoc.unindent
         foo
@@ -1718,7 +1489,7 @@ class Test_Markup < MiniTest::Unit::TestCase
 
   end
 
-  def test_links_named()
+  def xx_test_links_named()
     assert_equal(
       ( <<-heredoc.unindent
         foo
@@ -1781,7 +1552,7 @@ class Test_Markup < MiniTest::Unit::TestCase
     )
   end
 
-  def test_links_numbered()
+  def xx_test_links_numbered()
     assert_equal(
       ( <<-heredoc.unindent
         foo
@@ -1925,7 +1696,7 @@ class Test_Markup < MiniTest::Unit::TestCase
   end
 
   # Naughty tests touch the disk.
-  def test_links_automatic()
+  def xx_test_links_automatic()
     verbose_old = $VERBOSE
     $VERBOSE = false
     create_file( '/tmp/foo.asc', '' )
@@ -2085,7 +1856,7 @@ class Test_Markup < MiniTest::Unit::TestCase
       )
     )
 
-    # FIXME:  This broke after I made the change to use html_arrays2() everywhere.
+    # FIXME:  This broke after I made the change to use html_arrays() everywhere.
     ## Prioritizing two words before single words.
     #assert_equal(
       #( <<-heredoc.unindent
@@ -2126,7 +1897,7 @@ end
   end
 
   # Naughty tests touch the disk.
-  def test_links_local_new()
+  def xx_test_links_local_new()
     verbose_old = $VERBOSE
     $VERBOSE = false
     if File.exists?( '/tmp/foo.asc' ) then
@@ -2220,7 +1991,7 @@ end
   end
 
   # Naughty tests touch the disk.
-  def test_links_mixed()
+  def xx_test_links_mixed()
     verbose_old = $VERBOSE
     $VERBOSE = false
   
@@ -2264,7 +2035,7 @@ end
     $VERBOSE = verbose_old
   end
 
-  def test_lists_arrays()
+  def xx_test_lists_arrays()
     assert_equal(
       ( <<-heredoc.unindent
         foo
@@ -2468,7 +2239,7 @@ end
 
   end
 
-  def test_lists()
+  def xx_test_lists()
 
     assert_equal(
       ( <<-heredoc.unindent
@@ -2863,7 +2634,7 @@ end
 
   end
 
-  def test_blocks_arrays()
+  def xx_test_blocks_arrays()
 
     #assert_equal(
       #( <<-heredoc
@@ -2950,7 +2721,7 @@ end
 
   end
   
-  def test_blocks()
+  def xx_test_blocks()
   
     assert_equal( 
       ( <<-heredoc.unindent
@@ -3018,8 +2789,8 @@ end
 
 end
 
-# Crap that was mostly copied from the previous generation of this codebase..
-# ------------------------------------
+# The below code was mostly copied from the previous generation of this codebase.
+# ---
 
 
 def create_file( file, file_contents )
@@ -3073,8 +2844,6 @@ def cd_directory( directory )
 #   end
 end
 
-# used for FileUtils.mkdir_p
-require 'fileutils'
 # TODO:  Automatically make parent directories if they don't exist, like `md --parents`.
 def md_directory( directory )
   directory=File.expand_path(directory)
@@ -3206,7 +2975,7 @@ def test_file_read()
 end
 
 
-# ------------------------------------------
+# ---
 
 def timestamp_sync( source_file, target_file, &block )
   # TODO:  Sanity-checking.
