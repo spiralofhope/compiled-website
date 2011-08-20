@@ -184,7 +184,8 @@ class Markup
     return match_new( string, rx, false )
   end
 
-  def markup( string, rx, left_replace, right_replace )
+  def markup( string, left_rx, right_rx, left_replace, right_replace )
+    rx = punctuation_rx( left_rx, right_rx )
     # Separate HTML from non-HTML content.
     nonhtml, html = html_arrays( string )
     # For the nonhtml components.
@@ -203,17 +204,26 @@ class Markup
   end
 
   def markup_underline( string )
-    rx = punctuation_rx( %r{_}, %r{_} )
-    left_replace = '<u>'
-    right_replace = '</u>'
-    return markup( string, rx, left_replace, right_replace )
+    return markup( string, %r{_}, %r{_}, '<u>', '</u>' )
   end
 
   def markup_strong( string )
-    rx = punctuation_rx( %r{\*}, %r{\*} )
-    left_replace = '<strong>'
-    right_replace = '</strong>'
-    return markup( string, rx, left_replace, right_replace )
+    return markup( string, %r{\*}, %r{\*}, '<strong>', '</strong>' )
+  end
+
+  def markup_emphasis( string )
+    return markup( string, %r{\/}, %r{\/}, '<em>', '</em>' )
+  end
+
+  # TODO:  Is there an elegant way for me to just iterate through all methods of a certain name?  markup_* ?
+  def markup_everything( string )
+    return (
+      markup_underline(
+      markup_emphasis(
+      markup_strong (
+        string
+      )))
+    )
   end
 
   def sections( string )
@@ -522,14 +532,49 @@ class Test_Markup < MiniTest::Unit::TestCase
     )
   end
 
-  def test_multiple_markup()
-    string = '_underlined_ and *strong*'
-    expected = '<u>underlined</u> and <strong>strong</strong>'
-    result = @o.markup_underline( string )
-    result = @o.markup_strong( string )
+  def test_markup_emphasis()
     assert_equal(
-      expected,
-      result,
+      '<em>emphasis</em>',
+      @o.markup_emphasis( '/emphasis/' ),
+    )
+  end
+
+  def test_markup_emphasis2()
+    assert_equal(
+      '<html>/no</html><em>emphasis</em>',
+      @o.markup_emphasis( '<html>/no</html>/emphasis/' ),
+    )
+  end
+
+  # This demonstrates an issue with markup iterating through multiple times and not honouring the not-in-html process.
+  def test_markup_emphasis3()
+    assert_equal(
+      '<em>usr/bin</em>',
+      @o.markup_emphasis( '/usr/bin/' ),
+    )
+  end
+
+  def test_markup_emphasis4()
+# When the above is fixed, try this.
+skip
+    assert_equal(
+      '<em>emp<html>/no</html>hasis</em>',
+      @o.markup_emphasis( '/emp<html>/no</html>hasis/' ),
+    )
+  end
+
+  def test_multiple_everything()
+    assert_equal(
+      '<u>underlined</u> and <strong>strong</strong>',
+      @o.markup_everything( '_underlined_ and *strong*' ),
+    )
+  end
+
+  def test_nested_markup()
+    # This demonstrates how the first markup's html-result will stop any future markup from acting within that html.
+    assert_equal(
+      '<u>*underlined*</u> <strong>strong</strong>',
+      @o.markup_strong( @o.markup_underline( '_*underlined*_ *strong*' ) ),
     )
   end
 
@@ -546,290 +591,15 @@ class Test_Markup < MiniTest::Unit::TestCase
       Text in section two.
     heredoc
     nomatch, match = @o.section_arrays( string )
-    # Why is nomatch[2] = ''   ?
     assert_equal(
       [ "This is an example document.\n\n", nil, '', "\n\nText in section one.\n\n", nil, "\n\nText in section two.\n" ],
       nomatch,
     )
-    # Why is match[3] = nil    ?
     assert_equal(
       [ nil, '= Title One =', nil, nil, '= Title Two =', nil],
       match,
     )
   end
-
-end
-
-
-__END__
-
-
-  def markup( string )
-    # I'm initially given a string with multiple lines.
-    # Determine what parts of that line are processable.  All the already-htmlized parts need to be ignored.
-    # TODO:  This 'processable' stuff needs to be relocated to the markup_replacing code.
-    # I need to, on-the-fly, avoid processing htmlized parts.
-    process_should     = Array.new
-    process_should_not = Array.new
-    process_should, process_should_not = processable( %r{<.*?>}, %r{</.*?>}, string )
-    process_should.each_index do |i|
-      next if process_should[i] == nil
-
-      # HACK:  By re-using markup characters and doubling them up, I introduce wacky errors.
-      #        So --del-- is in conflict with -em-.  So --foo-- becomes <em>-foo-</em>
-      #        FIXME:  Find some better workaround for this.  Markup shouldn't be order-dependent.
-      # strikethrough
-      process_should[i] = markup_replacing( process_should[i], %r{--}, 'del' )
-      # subscript
-      process_should[i] = markup_replacing( process_should[i], %r{__}, 'sub' )
-      # big
-      process_should[i] = markup_replacing( process_should[i], %r{\*\*}, 'big' )
-      # bold emphasis
-      # emphasis bold
-      # -*string*- and *-string-*
-      # process_should[i] = markup_replacing_asymmetrical( process_should[i], %r{\*\*}, 'big' )
-      # should I bother with big+bold, or big+emphasis, or big+bold+emphasis?
-
-      # underline
-      process_should[i] = markup_replacing( process_should[i], %r{_}, 'u' )
-      # string / bold
-      process_should[i] = markup_replacing( process_should[i], %r{\*}, 'strong' )
-      # emphasis
-      process_should[i] = markup_replacing( process_should[i], %r{-}, 'em' )
-      process_should[i] = markup_replacing( process_should[i], %r{\/}, 'em' )
-      # superscript
-      process_should[i] = markup_replacing( process_should[i], %r{\^}, 'sup' )
-      # truetype
-      process_should[i] = markup_replacing( process_should[i], %r{`}, 'tt' )
-    end
-    return combine_arrays( process_should, process_should_not ).join
-  end
-
-end
-
-class Test_Markup < MiniTest::Unit::TestCase
-  def setup()
-    @o = Markup.new
-    #(
-    #@document = <<-heredoc.unindent
-        #ex.
-        #_underlined_
-        #<nowiki>
-        #_underlined_
-        #</nowiki>
-        #_underlined_
-    #heredoc
-    #)
-  end
-  
-  def test_strong()
-      assert_equal(
-        ( <<-heredoc.unindent
-          <strong>strong</strong>
-        heredoc
-        ),
-        @o.markup( <<-heredoc.unindent
-          *strong*
-        heredoc
-        ),
-      )
-  end
-  
-  def test_big()
-      assert_equal(
-        ( <<-heredoc.unindent
-          <big>big</big>
-        heredoc
-        ),
-        @o.markup( <<-heredoc.unindent
-          **big**
-        heredoc
-        ),
-      )
-  end
-  
-  def test_em()
-      assert_equal(
-        ( <<-heredoc.unindent
-          <em>emphasis</em>
-          <em>emphasis</em>
-        heredoc
-        ),
-        @o.markup( <<-heredoc.unindent
-          /emphasis/
-          -emphasis-
-        heredoc
-        ),
-      )
-  end
-  
-  def test_del()
-      assert_equal(
-        ( <<-heredoc.unindent
-          <del>del</del>
-        heredoc
-        ),
-        @o.markup( <<-heredoc.unindent
-          --del--
-        heredoc
-        ),
-      )
-  end
-  
-  def test_sup()
-      assert_equal(
-        ( <<-heredoc.unindent
-          <sup>superscript</sup>
-        heredoc
-        ),
-        @o.markup( <<-heredoc.unindent
-          ^superscript^
-        heredoc
-        ),
-      )
-  end
-  
-  def test_sub()
-      assert_equal(
-        ( <<-heredoc.unindent
-          <sub>subscript</sub>
-        heredoc
-        ),
-        @o.markup( <<-heredoc.unindent
-          __subscript__
-        heredoc
-        ),
-      )
-  end
-  
-  def test_tt()
-      assert_equal(
-        ( <<-heredoc.unindent
-          <tt>truetype</tt>
-        heredoc
-        ),
-        @o.markup( <<-heredoc.unindent
-          `truetype`
-        heredoc
-        ),
-      )
-  end
-
-  def test_u()
-    assert_equal(
-      ( <<-heredoc.unindent
-        <u>underlined</u>
-      heredoc
-      ),
-      @o.markup( <<-heredoc.unindent
-        _underlined_
-      heredoc
-      ),
-    )
-  end
-
-  def test_html_block()
-    assert_equal(
-      ( <<-heredoc.unindent
-        <u>a</u><>_b_</>
-      heredoc
-      ),
-      @o.markup( <<-heredoc.unindent
-        _a_<>_b_</>
-      heredoc
-      ),
-    )
-  end
-
-  def test_u2()
-    assert_equal(
-      ( <<-heredoc.unindent
-        <>_underlined_</>  
-          <u>underlined</u>  
-      heredoc
-      ),
-      @o.markup( <<-heredoc.unindent
-        <>_underlined_</>  
-          _underlined_  
-      heredoc
-      ),
-    )
-  end
-
-  def test_u_wrapped1()
-    assert_equal(
-      ( <<-heredoc.unindent
-        <u>underlined
-        wraparound</u>
-      heredoc
-      ),
-      @o.markup( <<-heredoc.unindent
-        _underlined
-        wraparound_
-      heredoc
-      ),
-    )
-  end
-
-  def test_u_wrapped2()
-    assert_equal(
-      ( <<-heredoc.unindent
-        <u>underlined
-        also
-        wraparound</u>
-      heredoc
-      ),
-      @o.markup( <<-heredoc.unindent
-        _underlined
-        also
-        wraparound_
-      heredoc
-      ),
-    )
-  end
-
-=begin
-  def test_double_syntax()
-    assert_equal(
-      ( <<-heredoc.unindent
-        <em><strong>bold emphasis</strong></em>
-      heredoc
-      ),
-      @o.markup( <<-heredoc.unindent
-        -*bold emphasis*-
-      heredoc
-      ),
-    )
-  end
-=end
-
-  def test_multiple_markup()
-    assert_equal(
-      ( <<-heredoc.unindent
-        <u>a</u> <u>b</u>
-      heredoc
-      ),
-      @o.markup( <<-heredoc.unindent
-        _a_ _b_
-      heredoc
-      )
-    )
-  end
-
-  #def test_multiple_markup2()
-    ## This demonstrates an issue where
-    ##   if I have two markups, the two </close> html tags are then picked up by the emphasis markup code.
-    #assert_equal(
-      #( <<-heredoc.unindent
-        #<strong>a</strong> <u>b</u>
-      #heredoc
-      #),
-      #@o.markup( <<-heredoc.unindent
-        #*a* _b_
-      #heredoc
-      #)
-    #)
-  #end
 
 end
 
