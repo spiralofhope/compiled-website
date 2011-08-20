@@ -299,8 +299,10 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
     return string
   end
   def HTML_paragraphs(string)
-    # This is a hackish way to do paragraphs.
-    string.gsub!(/(\n\n)/, "\n</p>\1<p>\n")
+    # This is a hackish way to do paragraphs:
+    string.gsub!(/(\n\n)/, "\n</p><p>\n")
+    # Allow multiple spaces to bleed through into the HTML:
+    string.gsub!(/\n\n/, "<br>")
     return string
   end
   # Plain links, like:  http://example.com (HTML link to its source)
@@ -507,18 +509,6 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
 if $toc == [] then $toc = ''
 else
 $toc=<<-"HEREDOC"
-<script language="javascript">
-  function toggle(targetId) {
-    target = document.getElementById(targetId);
-    if (target.style.display == ""){
-      target.style.display="inline";
-    } else if (target.style.display == "none"){
-      target.style.display="inline";
-    } else {
-      target.style.display="none";
-    }
-  }
-</script>
 <small><a accesskey="t" href="javascript:toggle('toc')">Table of Contents</a></small>
 <div class="toc" id="toc" style="display: none">
   #{$toc}
@@ -533,27 +523,58 @@ end
     header_replace=<<-"HEREDOC"
       <link rel="icon" href="#{path}/images/favicon.ico" type="image/x-icon">
       <link rel="shortcut icon" href="#{path}/images/favicon.ico" type="image/x-icon">
-      <link rel="stylesheet" type="text/css" href="#{path}/css/main.css" />
+      <link type="text/css" href="#{path}/css/persistent.css" rel="stylesheet" />
+      <link type="text/css" href="#{path}/css/default.css"    rel="stylesheet"           title="Default" />
+      <link type="text/css" href="#{path}/css/dark.css"       rel="alternate stylesheet" title="Dark" />
+      <link type="text/css" href="#{path}/css/no-style.css"   rel="alternate stylesheet" title="No Style" />
       <title>#{File.basename(source_file_full_path, '.asc')}</title>
+      <script type="text/javascript" src="#{path}/js/styleswitcher.js"></script>
+      <script language="javascript">
+        function toggle(targetId) {
+          target = document.getElementById(targetId);
+          if (target.style.display == ""){
+            target.style.display="inline";
+          } else if (target.style.display == "none"){
+            target.style.display="inline";
+          } else {
+            target.style.display="none";
+          }
+        }
+      </script>
     </head>
     <body>
-      <a name id="top">
-      <div class="nav">
+      <div class="header">
         <div class="float-left">
-          <a accesskey="z" href="#{path}/index.html">
-            <img align="left" src="#{path}/images/spiralofhope-96.png">
-          </a>
-          <br>
-          <font style="font-size:1.5em;"><font color="steelblue">S</font>piral of Hope</font>
-          <br>
-          <font style="font-size: 0.5em;">Better software is possible.</font>
+            <div class="top-t0">
+              <a accesskey="z" href="#{path}/index.html">
+                <img src="#{path}/images/spiralofhope-96.png">
+              </a>
+              <br>
+              <div class="top-t1">S</div> <div class="top-t2">piral of Hope</div>
+              <div class="top-t3">Better software is possible.</div>
+            </div>
         </div>
         <div class="float-right">
           <form action="http://www.google.com/search">
-            <input class="edit-line" name="q" size="25" accesskey="f" value="Search" class="texta" />
+            <input name="q" size="25" accesskey="f" value="Search" class="texta" />
             <input type="hidden" name="sitesearch" value="spiralofhope.com" />
           </form>
+<small>
+  <a href="javascript:toggle('styles')">Styles</a>
+  <div id="styles" style="display: none">
+    <br>
+    <a href="#" accesskey="1" onclick="setActiveStyleSheet('Default');  return false;">Default</a>
+    |
+    <a href="#" accesskey="2" onclick="setActiveStyleSheet('Dark');     return false;">Dark</a>
+    |
+    <a href="#" accesskey="3" onclick="setActiveStyleSheet('No Style'); return false;">No Style</a>
+  </div>
+</small>
+<br>
           #{$toc}
+      <noscript>
+<br>TODO: JavaScript is diabled
+      </noscript>
         </div>
       </div>
       <a name="body">
