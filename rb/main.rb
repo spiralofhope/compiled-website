@@ -14,7 +14,7 @@ Implement an exception list for not_in_html() / split_string_html(), so that thi
 # USER CONFIGURATION
 # --
 
-# For header and footer customization, hack on header_and_footer.rb
+# For header and footer customization, hack on /rb/header_and_footer.rb
 
 # Uncomment to give more feedback at the console.
 $VERBOSE = true
