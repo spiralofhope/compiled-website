@@ -96,7 +96,7 @@ class Markup
       # Starting the numbering at 1, so I add a nil at the start.
       replace_array.insert(0, nil)
       # And a nil in the middle.
-      replace_array.insert(3, nil)
+      replace_array.insert(4, nil)
       replace_array.each_index do |i|
         replace_array[i] = ( replace_array[i] or $~[i] )
       end
@@ -227,23 +227,80 @@ class Test_Markup < MiniTest::Unit::TestCase
     @o = Markup.new
   end
 
-  def test_html_arrays()
-    string = <<-heredoc.unindent
-      This is <html>some example html</html>.
-    heredoc
-    expected_nonhtml = [ "This is ", nil                             , ".\n" ]
-    expected_html    = [ nil       , "<html>some example html</html>", nil   ]
-    nonhtml, html = @o.html_arrays( string )
-
+  def test_html_arrays_replacing()
+    rx = %r{
+      (<)(.*?)(>)
+      (.*?)
+      (</)(.*?)(>)
+    }mx
+  
+    replace_array = false
+    nomatch, match = @o.match_new( 'This is <html>some example html</html>.', rx, replace_array )
     assert_equal(
-      expected_nonhtml,
+      'This is <html>some example html</html>.',
+      @o.recombine( nomatch, match ).join,
+    )
+
+    replace_array = [ nil, nil, nil, nil, nil, nil ]
+    nomatch, match = @o.match_new( 'This is <html>some example html</html>.', rx, replace_array )
+    assert_equal(
+      'This is <html>some example html</html>.',
+      @o.recombine( nomatch, match ).join,
+    )
+  
+    replace_array = [ '|', nil, nil, nil, nil, nil ]
+    nomatch, match = @o.match_new( 'This is <html>some example html</html>.', rx, replace_array )
+    assert_equal(
+      'This is |html>some example html</html>.',
+      @o.recombine( nomatch, match ).join,
+    )
+
+    replace_array = [ nil, '|', nil, nil, nil, nil ]
+    nomatch, match = @o.match_new( 'This is <html>some example html</html>.', rx, replace_array )
+    assert_equal(
+      'This is <|>some example html</html>.',
+      @o.recombine( nomatch, match ).join,
+    )
+  
+    replace_array = [ nil, nil, '|', nil, nil, nil ]
+    nomatch, match = @o.match_new( 'This is <html>some example html</html>.', rx, replace_array )
+    assert_equal(
+      'This is <html|some example html</html>.',
+      @o.recombine( nomatch, match ).join,
+    )
+  
+    replace_array = [ nil, nil, nil, '|', nil, nil ]
+    nomatch, match = @o.match_new( 'This is <html>some example html|html>.', rx, replace_array )
+    assert_equal(
+      'This is <html>some example html|html>.',
+      @o.recombine( nomatch, match ).join,
+    )
+  
+    replace_array = [ nil, nil, nil, nil, '|', nil ]
+    nomatch, match = @o.match_new( 'This is <html>some example html</html>.', rx, replace_array )
+    assert_equal(
+      'This is <html>some example html</|>.',
+      @o.recombine( nomatch, match ).join,
+    )
+  
+    replace_array = [ nil, nil, nil, nil, nil, '|' ]
+    nomatch, match = @o.match_new( 'This is <html>some example html</html>.', rx, replace_array )
+    assert_equal(
+      'This is <html>some example html</html|.',
+      @o.recombine( nomatch, match ).join,
+    )
+  end
+
+  def test_html_arrays()
+    nonhtml, html = @o.html_arrays( 'This is <html>some example html</html>.' )
+    assert_equal(
+      [ "This is ", nil                             , "." ],
       nonhtml,
     )
     assert_equal(
-      expected_html,
+      [ nil       , "<html>some example html</html>", nil   ],
       html,
     )
-
   end
   
   def test_markup_underline()
@@ -253,12 +310,12 @@ class Test_Markup < MiniTest::Unit::TestCase
     )
   end
 
-  def test_multiple_markup_underline()
-    assert_equal(
-      '<u>1</u> <u>2</u>',
-      @o.markup_underline( '_1_ _2_' ),
-    )
-  end
+  #def test_multiple_markup_underline()
+    #assert_equal(
+      #'<u>1</u> <u>2</u>',
+      #@o.markup_underline( '_1_ _2_' ),
+    #)
+  #end
   
 end
 
@@ -266,86 +323,6 @@ class Test_Markup < MiniTest::Unit::TestCase
 
   def setup()
     @o = Markup.new
-  end
-  
-  def test_match_keep_rx()
-    string = "0<>1</><>2</>"
-    rx = %r{(<.*?>)(.*?)(</.*?>)}m
-    rx_nomatch, rx_match = @o.match( string, rx, true )
-    # Matching the regular expression
-    assert_equal(
-      nil,
-      rx_match[0],
-    )
-    assert_equal(
-      "<>1</>",
-      rx_match[1],
-    )
-    assert_equal(
-      nil,
-      rx_match[2],
-    )
-    assert_equal(
-      "<>2</>",
-      rx_match[3],
-    )
-    # Not matching the regular expression
-    assert_equal(
-      "0",
-      rx_nomatch[0],
-    )
-    assert_equal(
-      nil,
-      rx_nomatch[1],
-    )
-    assert_equal(
-      "",
-      rx_nomatch[2],
-    )
-    assert_equal(
-      nil,
-      rx_nomatch[3],
-    )
-  end
-
-  def test_match_nokeep_rx()
-    string = "0<>1</><>2</>"
-    rx = %r{(<.*?>)(.*?)(</.*?>)}m
-    rx_nomatch, rx_match = @o.match( string, rx, false )
-    # Matching the regular expression
-    assert_equal(
-      nil,
-      rx_match[0],
-    )
-    assert_equal(
-      "1",
-      rx_match[1],
-    )
-    assert_equal(
-      nil,
-      rx_match[2],
-    )
-    assert_equal(
-      "2",
-      rx_match[3],
-    )
-    # Not matching the regular expression
-    assert_equal(
-      "0",
-      rx_nomatch[0],
-    )
-    assert_equal(
-      nil,
-      rx_nomatch[1],
-    )
-    assert_equal(
-      "",
-      rx_nomatch[2],
-    )
-    assert_equal(
-      nil,
-      rx_nomatch[3],
-    )
   end
 
   def test_sections()
@@ -536,62 +513,6 @@ class Test_Markup < MiniTest::Unit::TestCase
       @o.recombine( array1, array2 ),
     )
   end
-
-  #def test_markup()
-    #string = "This is *strong* text."
-    #assert_equal(
-      #"This is <strong>strong</strong> text.",
-      #@o.markup( string, false )
-    #)
-  #end
-
-  #def test_markup2()
-    #string = "0<>1</><>2</>"
-    #rx = %r{()(<.*?>)(.*?)(</.*?>)()}m
-    #rx_nomatch, rx_match = @o.match( string, rx, true )
-    ## Matching the regular expression
-    #assert_equal(
-      #[ nil, nil, "<>1</>", nil, nil, "<>2</>", nil ],
-      #[ rx_match[0], rx_match[1], rx_match[2], rx_match[3], rx_match[4], rx_match[5], rx_match[6] ],
-    #)
-    ## Not matching the regular expression
-    #assert_equal(
-      #[ "0", "", nil, "", "", "", nil, "" ],
-      #[ rx_nomatch[0], rx_nomatch[1], rx_nomatch[2], rx_nomatch[3], rx_nomatch[4], rx_nomatch[5], rx_nomatch[6], rx_nomatch[7] ],
-    #)
-    ##assert_equal(
-      ##string,
-      ##@o.recombine(rx_match, rx_nomatch).join,
-    ##)
-  #end
-
-  #def test_section_and_markup()
-    ## Given a complex document, with sections to be processed and sections to be ignored.
-    #string = <<-heredoc.unindent
-      #This is a complex document.
-      
-      #<html>
-      #This should *not* be processed at all.
-      #</html>
-      
-      #This *should* be processed.
-    #heredoc
-    #expected = <<-heredoc.unindent
-      #This is a complex document.
-      
-      #<html>
-      #This should *not* be processed at all.
-      #</html>
-      
-      #This <strong>should</strong> be processed.
-    #heredoc
-    #assert_equal(
-      #expected,
-      #@o.markup( string, false )
-    #)
-  #end
-# \n</html>\n\nThis <strong>should</strong> be processed.\n",
-# \n       \n\nThis <strong>should</strong> be processed.\n".
 
 end # class Test_Markup < MiniTest::Unit::TestCase
 
