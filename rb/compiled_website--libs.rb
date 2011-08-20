@@ -37,7 +37,33 @@ class String
     # Odd are the non-matches
     # Even are the matches
     # Always returns an odd number of elements
+    #p 'uneven size!' if a.size.even?
     return a
+  end
+
+  # Like gpartition, except instead of a non-match returning [ (string), '', '' ] it returns [ (string) ]
+  def gpartition2( rx )
+    verboseold = $VERBOSE ; $VERBOSE=nil
+    def gpartition2_remove_consecutive_empty_strings( array )
+      if array[-1] == '' and array[-2] == '' then
+        array.pop(2)
+      else
+        array.flatten!
+      end
+      return array
+    end
+    #
+    a = gpartition2_remove_consecutive_empty_strings( self.partition( rx ) )
+    until a[-1].match( rx ) == nil do
+      a[-1] = gpartition2_remove_consecutive_empty_strings( a[-1].partition( rx ) )
+    end
+    #
+    $VERBOSE=nil ; verboseold = $VERBOSE
+    return a
+    #return   a   if a.class == array
+    #p '------------ what the hell?'
+    #return [ a ] if a.class == string
+    #p a, a.class
   end
 end
 

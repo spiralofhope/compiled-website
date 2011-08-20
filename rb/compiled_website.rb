@@ -1,4 +1,11 @@
 =begin
+Implement an exception list for not_in_html() / split_string_html(), so that things like automatic linking will work within <em>
+
+- manual html tables end up with a <pre> line above them..  =/
+- Oh!  I could have #!/bin/foo also be detected by my scripting, to use the correct syntax highlighting!
+- change the sh syntax highlighting to colour words which are the first on the line and start with \ (maybe pink, like internals?)
+- make an accesskey to switch from the live website to the local one.
+- Create a "summary" concept, so that one page can refer to another page and get that other page's summary.
 =end
 
 # --
@@ -10,8 +17,7 @@
 # Uncomment to give more feedback at the console.
 $VERBOSE = true
 # TODO:  I have an issue I still need to work out, where the code is outrageously slow because of a complex regex.  Setting this to false will use a simple variation.
-$slow = false
-#$slow = true
+#$slow = true..
 
 # TODO:  Check for an environment variable like $TEMP in ENV and use that instead!
 #        I don't actually have anything set in my shell.  Strange.  FIXME.
@@ -38,15 +44,15 @@ require File.join( File.dirname( __FILE__ ), 'compiled_website--test_cases.rb' )
 
 class Markup
 
-  def split_string_html( string )
+  def rx_html()
     # Regex thanks to
     #   http://www.regular-expressions.info/brackets.html
     #   Originally:  <([A-Z][A-Z0-9]*)\b[^>]*>.*?</\1>
-    rx = %r{
+    return %r{
       <                       (?# <html> )
       ([A-Za-z][a-zA-Z0-9]*)  (?# Valid html begins with a letter, then can a combination of letters and numbers. )
       \b                      (?# Word boundary, to support <foo bar="quux"> -type syntax. )
-      [^>]*                   (?# This doesn't feel quite right. Technically the > character is legal within tags.  I think it works as expected/desired though. )
+      [^>]*                   (?# This doesn't feel quite right. Technically the > character is legal within tags.  I think it works as expected/desired though. TODO:  Test case. )
       >
       .*?                     (?# Anything:  .*  can be between the <html> and </html>, but don't be greedy:  ?  )
       <                       (?# </html> where 'html' must match the earlier <html>. )
@@ -54,20 +60,51 @@ class Markup
         \1
       >
     }mx
-
-    return string.gpartition( rx )
   end
 
-  def not_in_html( string, *splat )
-    array = split_string_html( string )
-    array.each_index { |i|
+  def split_string_html( string )
+    # Like gpartition, except instead of a non-match returning [ (string), '', '' ] it returns [ (string) ]
+    # The code or test code needs to be altered to use that instead.. ugh.
+    #return string.gpartition2( rx_html() )
+    return string.gpartition( rx_html() )
+  end
+
+  #def not_in_html( string, *splat )
+    #array = split_string_html( string )
+    #array.each_index { |i|
+      #next if i.odd?
+      ## I append a '' to ensure an odd length array.
+      ## No need to process that.
+      #break if i+1 == array.length and array[i] == ''
+      #array[i] = yield( array[i], splat )
+    #}
+    #return array
+  #end
+
+  def not_in_html( string, iterations=1, *splat )
+    string = split_string_html( string )
+    string = string.each_index { |i|
       next if i.odd?
-      # I append a '' to ensure an odd length array.
+      # I append a '' to ensure an odd length string.
       # No need to process that.
-      break if i+1 == array.length and array[i] == ''
-      array[i] = yield( array[i], splat )
+      if i+1 >= string.length and string[i] == '' then
+        return string.join
+        #p string, string.class
+        #return string.join if string.class == array
+        #return string      if string.class == string
+      end
+
+      previous = string[i]
+      string[i] = yield( string[i], splat )
+      u = 1
+      until string[i] == previous or u >= iterations
+        previous = string[i]
+        string[i] = yield( string[i], splat )
+        u += 1
+      end
     }
-    return array
+    #p string if string == nil
+    return string.join
   end
 
   def punctuation_rx( rx_left, rx_right )
@@ -84,7 +121,7 @@ class Markup
       |#{ left } \(
       |#{ left } --
     }x)
-      
+    
     right=(%r{
       $     (?# Line right)
       |\    (?# Space)
@@ -119,48 +156,96 @@ class Markup
     }x
   end
 
+  def punctuation_rx_nospaces( rx_left, rx_right )
+    # This would need to be reworked if it should match across lines.  But I don't think it should!
+    # TODO:  Match across [ and ] ?
+    left=(%r{
+      ^       (?# Line left)
+      |\      (?# Space)
+    }x)
+    left=(%r{
+       #{ left }
+      |#{ left } '
+      |#{ left } "
+      |#{ left } \(
+      |#{ left } --
+    }x)
+    
+    right=(%r{
+      $     (?# Line right)
+      |\    (?# Space)
+    }x)
+    right=(%r{
+            #{ right }
+      |'    #{ right }
+      |"    #{ right }
+      |\)   #{ right }
+      |--   #{ right }
+      (?# Additional things can be found on the right )
+      |\.   #{ right }
+      |,    #{ right }
+      |!    #{ right }
+      |:    #{ right }
+      |;    #{ right }
+      |\?   #{ right }
+    }x)
+    right=(%r{
+            #{ right }
+      |s    #{ right }
+      |es   #{ right }
+      |ed   #{ right }
+    }x)
+
+    return %r{
+      (#{ left })
+      (#{ rx_left })
+      ([^ ].*?[^ ])
+      (#{ rx_right })
+      (#{ right})
+    }x
+  end
+
   # This is a part of the $slow issue I've been having.  This needs to be investigated.
   def punctuation_rx_single( rx )
-
-      punctuation_start=(%r{
+      left=(%r{
         ^       (?# Line start)
         |\      (?# Space)
       }x)
-      punctuation_start=(%r{
-         #{ punctuation_start }
-        |#{ punctuation_start } '
-        |#{ punctuation_start } "
-        |#{ punctuation_start } \(
-        |#{ punctuation_start } --
+      left=(%r{
+         #{ left }
+        |#{ left } '
+        |#{ left } "
+        |#{ left } \(
+        |#{ left } --
       }x)
         
-      punctuation_end=(%r{
+      right=(%r{
         $     (?# Line end)
         |\    (?# Space)
       }x)
-      punctuation_end=(%r{
-              #{ punctuation_end }
-        |\.   #{ punctuation_end }
-        |,    #{ punctuation_end }
-        |!    #{ punctuation_end }
-        |:    #{ punctuation_end }
-        |;    #{ punctuation_end }
-        |\?   #{ punctuation_end }
-        |--   #{ punctuation_end }
-        |'    #{ punctuation_end }
-        |"    #{ punctuation_end }
+      right=(%r{
+              #{ right }
+        |\.   #{ right }
+        |,    #{ right }
+        |!    #{ right }
+        |:    #{ right }
+        |;    #{ right }
+        |\?   #{ right }
+        |--   #{ right }
+        |'    #{ right }
+        |"    #{ right }
       }x)
-      punctuation_end=(%r{
-              #{ punctuation_end }
-        |s    #{ punctuation_end }
-        |es   #{ punctuation_end }
-        |ed   #{ punctuation_end }
+      right=(%r{
+              #{ right }
+        |s    #{ right }
+        |es   #{ right }
+        |ed   #{ right }
       }x)
 
       return %r{
-        (#{ punctuation_start })
+        (#{ left })
         (#{ rx })
-        (#{ punctuation_end })
+        (#{ right })
       }mx
   end
   
@@ -208,11 +293,15 @@ class Markup
   def markup_everything( string )
     return (
       # Items lower down are performed first.
-      # This is important for things like **big** being matched before *strong* .
+      # `truetype`
       markup_truetype(
+      # _underline_
       markup_underline(
+      # /emphasis/
       markup_emphasis(
+      # *strong*
       markup_strong(
+      # **big** - lower down, so it's matched before *strong*
       markup_big(
         string
       )))))
@@ -295,12 +384,13 @@ class Markup
       rx = %r{ (\n+{2}) }x
       string.match( rx )
       if $~ != nil then
-        br = "<br />\n" * ( $~[1].length - 2 )
+        length = $~[1].length
+        br = "<br />\n" * ( length - 2 )
         string.gsub!( $~[0], "</p>\n#{ br }<p>" )
       end
       string
     }
-    return '<p>' + string.join + '</p>'
+    return '<p>' + string + '</p>'
   end
 
   def horizontal_rules( string )
@@ -338,10 +428,9 @@ class Markup
   def links_plain( string )
     rx = punctuation_rx( links_rx, %r{} )
     until string.match( rx ) == nil do
+      string.sub!( rx, '\1<a href="\3\4\5\6">\3\4\5\6</a>\7\8' )
       # Without http://
-      string.sub!( rx, '\1<a href="\3\4\5\6">\4\5\6</a>\7\8' )
-      # If you want to show the http:// part as well:
-      #string.sub!( rx, '\1<a href="\3\4\5\6">\3\4\5\6</a>\7\8' )
+      #string.sub!( rx, '\1<a href="\3\4\5\6">\4\5\6</a>\7\8' )
     end
     return string
   end
@@ -386,72 +475,59 @@ class Markup
     return string, counter
   end
 
-  def links_automatic( string, source_file_full_path )
-    oldverbose = $VERBOSE
-    $VERBOSE = nil
-
-    def files_array( source_file_full_path )
-      files_array = Dir[ File.dirname( source_file_full_path ) + '/*.asc' ]
-      files_array.delete_if { |x|
-        (
-          # The current source file is not a valid link target.
-          x == source_file_full_path \
-        or
-          # Only process files.
-          # TODO:  I should write a test case for this.
-          File.file?( x ) != true
-        )
-      }
-      return files_array
-    end
-
-    def rx( file )
-      # '/foo/bar/one-two-three.asc' => [ 'one', 'two', 'three' ]
-      basename = File.basename( file, '.asc' ).split( %r{-} )
-      # [ 'one', 'two', 'three' ] => %r{ one[-| ]two[-| ]three }
-      # This allows matching things like 'compiled website' or 'compiled-website'.
-      rx = %r{ #{ basename[0] } }ix
-      basename.each_index { |i|
-        next if i == 0
-        rx = %r{ #{ rx }[-|\ ]#{ basename[i] } }ix
-      }
-      basename = nil
-      # TODO
-      if $slow == true then
-        rx = punctuation_rx_single( rx )
-      else
-        rx = %r{ ()(#{ rx })() }ix
-      end
-      return rx
-    end
-
-    files_array( source_file_full_path ).each{ |file|
-      string_array = split_string_html( string )
-      string = nil
-      string_array.each_index { |e|
-        next if e.odd?
-        string_array[e] = string_array[e].sub(
-          rx( file ),
-          '\1<a href="' + File.basename( file, '.asc' ) + '.html">\2</a>\3',
-        )
-        # If I've found a match for this file, don't bother looking through other strings.  Break out and continue to the next file.
-        break if $~ != nil
-      }
-      string = string_array.join
-      string_array = nil
+  def links_automatic_files_array( source_file_full_path )
+    files_array = Dir[ File.dirname( source_file_full_path ) + '/*.asc' ]
+    files_array.delete_if { |x|
+      (
+        # The current source file is not a valid link target.
+        x == source_file_full_path \
+      or
+        # Only process files.
+        # TODO:  Write a test case for this.
+        File.file?( x ) != true
+      )
     }
-    $VERBOSE = oldverbose
-    return string
+    return files_array.sort
+  end
+
+  def links_automatic_file_rx( file )
+    # '/foo/bar/one-two-three.asc' => [ 'one', 'two', 'three' ]
+    basename = File.basename( file, '.asc' ).split( %r{-} )
+    #
+    # [ 'one', 'two', 'three' ] => %r{ one[-| ]two[-| ]three }
+    # This allows matching things like 'compiled website' or 'compiled-website'.
+    rx = %r{ #{ basename[0] } }ix
+    basename.each_index { |i|
+      next if i == 0
+      rx = %r{ #{ rx }[-|\ ]#{ basename[i] } }ix
+    }
+    #
+    # Now I need to have a beginning and end to my regular expression, so I don't match inside of other words.
+    rx = punctuation_rx( rx, %r{} )
+    #
+    return rx
+  end
+
+  def links_automatic( string, source_file_full_path )
+
+    files_array = links_automatic_files_array( source_file_full_path )
+
+    return not_in_html( string ) { |string|
+      files_array.each{ |file|
+        file = File.basename( file, '.asc' )
+        string.sub!(
+          links_automatic_file_rx( file ),
+          '\1<a href="' + file + '.html">\2</a>\3\4\5',
+        )
+      }
+      string
+    }
+
   end
 
   # Local links to new pages, like:  [[link name]] => 'link-name.asc'
   def links_local_new( string, source_file_full_path )
-    rx = %r{
-      \[{2}
-      ([^\[{2}].*?[^\]{2}])
-      \]{2}
-    }x
-    rx = punctuation_rx( rx, %r{} )
+    rx = punctuation_rx_nospaces( %r{\[{2}}, %r{\]{2}} )
     until string.match( rx ) == nil do
       # Is this good on Windows?
       new_source_file_full_path = File.join(
@@ -463,11 +539,11 @@ class Markup
       if File.exist?( new_source_file_full_path ) and File.size( new_source_file_full_path ) > 0 then
         # [[file]] is not actually new - it refers to an already-existing file, with content.
         # Remove the [[ and ]] from my current working string, and then links_automatic() will process this appropriately.
-        string.sub!( rx, '\1\3\4\5\6' )
+        string.sub!( rx, '\1\3\5\6' )
       else
         # [[file]] is legitimately new.
         # Turn this into a link to create the file.
-        string.sub!( rx, '\1' + '<a class="new" href="file://' + new_source_file_full_path + '">\3</a>' + '\4\5\6' )
+        string.sub!( rx, '\1' + '<a class="new" href="file://' + new_source_file_full_path + '">\3</a>' + '\5\6' )
         # Make a blank file so that I can link to an actually-existing file to summon my editor.
         if not File.exists?( new_source_file_full_path ) then
           create_file( new_source_file_full_path )
@@ -478,47 +554,254 @@ class Markup
   end
 
   # TODO:  Add another flag which will not merge multiple matched lines together into one array-element.
-# FIXME?  Is this not returning an odd number of elements?
-# FIXME:  Is this stripping content?
-# FIXME:  Rename 'spaces' to something more descriptive.
-  def split_string_by_line( string, rx, spaces, lstrip=true )
+# FIXME:  This isn't returning an odd number of elements!
+=begin
+  def split_string_by_line(
+      string,
+      rx,
+      # one\n\ntwo becomes one\ntwo
+      merge_items_separated_by_single_spaces=true,
+      lstrip=true
+    )
     if not string.match( rx ) then
       return [ string ]
     end
 
     result = [ '' ]
-    matched = false
+    previous_line_matched = false
     matchedtwice = false
     string.each_line{ |line|
+# TODO:  Build the html skipping in right here.
       if line.match( rx ) then
-        result << '' if matched == false
-        if lstrip == true then
-          result[-1] += line.lstrip
-        else
-          result[-1] += line
-        end
-        matched = true
+        result << '' if previous_line_matched == false
+        line.lstrip! if lstrip == true
+        result[-1] += line
+        previous_line_matched = true
       else # this line doesn't match.
-        # If the previous line was a match, and the current line is \n, then omit this line..
-        if matched == true and line == "\n" and matchedtwice == false and spaces == true then
-          # do nothing
-          # but allow a consecutive match to append.
-          matched = true
-          # however, don't do this for every single \n, just one.
+        if merge_items_separated_by_single_spaces == true  and
+                                             line == "\n"  and
+                                          previous_line_matched == true  and  # the previous line was a match
+                                     matchedtwice == false then # the previous line was not a "match" with \n
+          # not adding \n
+          result[-1] += ''
+          # allow a consecutive match to append.
+          previous_line_matched = true
+          # don't do this for every consecutive \n, just one.
           matchedtwice = true
         else
-          result << '' if matched == true
-          result[-1] += "\n" if matchedtwice == true and spaces == true
+          result << '' if previous_line_matched == true
+          if merge_items_separated_by_single_spaces == true and
+                                       matchedtwice == true then
+            result[-1] += "\n"
+            matchedtwice = false
+          end
           result[-1] += line
-          matched = false
+          previous_line_matched = false
+          matchedtwice = false
         end
       end
     }
     return result
   end
+=end
+
+
+
+
+
+
+=begin
+  def split_string_by_line(
+      # Given a string.
+      string,
+      # Given a regular expression.
+      rx
+    )
+    if not string.match( rx ) then
+      return [ string ]
+    end
+    result = [ '' ]
+
+    # Per-line.
+    # TODO:  Re-add all the removed \n
+    array = string.split( "\n", -1 )
+    matched_previously = false
+    array.each_index{ |i|
+      # Even numbered elements do not match.
+      # Odd numbered elements match.
+      # The element boundery is the change from match to not match, e.g.:  [ 'nomatch1', (match), 'nomatch2', (match2) ]
+      if array[i].match( rx ) == nil then
+        if matched_previously == false then
+          result[-1] += array[i] += "\n"
+        else
+          result << array[i] += "\n"
+        end
+        matched_previously = false
+      else # matched
+        if matched_previously == true then
+          result[-1] += array[i] += "\n"
+        else
+          result << array[i] += "\n"
+        end
+        matched_previously = true
+      end
+    }
+    # Return an array.
+    # The array will have odd-numbered elements.
+    p 'eek!' if result.size.even?
+    result[-1].chomp!
+
+# Now we need to go through matches
+# And make sure that HTML blocks aren't within them.
+result.each_index{ |i|
+  next if i.even?
+  result[i] = split_string_html( result[i] )
+}
+result.flatten!
+# remove consecutive blank spaces
+result_element_killer = Array.new
+result.each_index{ |i|
+  if result[i] == ''
+    if result[i-1] == ''
+      result_element_killer << i
+      result_element_killer << i-1
+    end
+  end
+}
+result_element_killer.each{ |i|
+  result.delete_at(i)
+}
+
+    return result
+  end
+=end
+
+# TODO:  Additional functionality existed in the previous incarnations, they need to be re-added?  What about tests?  (the last two parameters)
+  def split_string_by_line(
+      # Given a string.
+      string,
+      # Given a regular expression.
+      rx,
+      # one\n\ntwo becomes one\ntwo
+      merge_items_separated_by_single_spaces=true,
+      # (to describe)
+      lstrip=true
+    )
+    if not string.match( rx ) then
+      return [ string ]
+    end
+
+    result = [ '' ]
+    # Per-line.
+    # TODO:  Re-add all the removed \n
+    array = string.split( "\n", -1 )
+    matched_previously = false
+    array.each_index{ |i|
+      # Even numbered elements do not match.
+      # Odd numbered elements match.
+      # The element boundery is the change from match to not match, e.g.:  [ 'nomatch1', (match), 'nomatch2', (match2) ]
+      if array[i].match( rx ) == nil then
+        if matched_previously == false then
+          result[-1] += array[i] += "\n"
+        else
+          result << array[i] += "\n"
+        end
+        matched_previously = false
+      else # matched
+        if matched_previously == true then
+          result[-1] += array[i] += "\n"
+        else
+          result << array[i] += "\n"
+        end
+        matched_previously = true
+      end
+    }
+    # Return an array.
+    # The array will have odd-numbered elements.
+    if result.size.even? then
+      p "I'm getting an even-sized array!"
+      puts "\n\n---"
+      p result
+      puts "---\n\n"
+      result << ""
+    end
+    result[-1].chomp!
+    return result
+  end
+
+  def split_string_by_line_and_html( string, rx )
+    array = split_string_by_line( string, rx )
+    array.each_index{ |i|
+      next if i.even?
+      #array[i] = array[i].( rx_html() )
+    }
+    return array.flatten
+  end
+
+
+      # Optionally strip leading spaces.
+#      lstrip=true
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Modifications:
+# (match1)\n(match2)   becomes [ '', (match1)(match2) ]
+# (match1)\n\n(match2) becomes [ '', (match1), "\n", (match2) ]
+# A flag to break apart consecutive matches. (match1)(match2) becomes [ '', (match1), '', (match2) ]
+=begin
+Skip blocks of html, when html begins at the start of the line.
+This should be a separate method.  It's very complex..
+
+- Be sure to properly match html:
+<html>
+one
+</html>     <- this "html" needs to match the earlier "html"
+
+- Deal with nested html of different sorts.
+<html>
+<foo>
+one
+</foo>
+two         <- this is included in the full "html" block.
+</html>
+
+- Deal with nested HTML of the same sort.  Somehow.
+<html>
+<html>
+one
+</html>     <- don't allow this to prematurely close the html block.
+two         <- this is included in the full "html" block.
+</html>
+
+=end
 
   def lists_arrays( string )
     return split_string_by_line( string, %r{^\ *[-|\#]+\ +.+?$}, true )
+  end
+
+  def xx_paragraphs( string )
+    string = not_in_html( string ) { |string|
+      # rx = Two or more consecutive \n
+      rx = %r{ (\n+{2}) }x
+      string.match( rx )
+      if $~ != nil then
+        length = $~[1].length
+        br = "<br />\n" * ( length - 2 )
+        string.gsub!( $~[0], "</p>\n#{ br }<p>" )
+      end
+      string
+    }
+    return '<p>' + string.join + '</p>'
   end
 
   def split_string_sections( string )
@@ -535,6 +818,7 @@ class Markup
     end
     if two.length == 1 then
       open = "<#{ c }l>\n<li>"
+      # </ul> or </ol>
       close_tally << "\n</#{ c }l>"
     else
       open = ( "<#{ c }l>\n<li>\n" * two.length ).chomp
@@ -594,7 +878,7 @@ class Markup
 
         # If I'm at the end of the list.
         if current_list[ j + 1 ] == nil then
-          current_list[-1] += '</li>' 
+          current_list[-1] += '</li>'
           close_tally.each { |e|
             current_list[-1] = current_list[-1] + e
           }
@@ -610,15 +894,50 @@ class Markup
     return split_string_by_line( string, %r{^\ .*$}, true, lstrip=false )
   end
 
+  def delete_first_line( string )
+    return string.split("\n")[1..-1].join("\n")
+  end
+  # TODO:  Make universal.. grab any number or ranges of lines.
+  def get_line( string, line )
+    # This starts counting from one.  Because that's how humans count.
+    return string.split("\n")[line-1]
+  end
   def blocks( string )
-    return not_in_html( string ) { |string|
-      string = blocks_array( string )
-      string.each_index{ |i|
-        next if i.even?
-        string[i] = "<pre>#{string[i].unindent}</pre>"
-      }
-      #string
-    }.flatten.join
+    string = blocks_array( string )
+    string.each_index{ |i|
+      next if i.even?
+      # TODO:  Determine the type of code, and set up the syntax highlighting brush appropriately.
+      #        I can peek in and see if I have some kind of custom string starting it off.  Neato!
+      string[i] = string[i].unindent
+      if string[i][0..3] == '<pre' then
+        before = ''
+      # FIXME:  This is ugly and not reusable.
+      # I should be using some regex magic.
+      # FIXME:  Combine rb\n and rb;
+      elsif string[i][0..2] == "rb\n" then
+        before = "<pre class='brush: #{ get_line( string[i], 1 ) }'>"
+        string[i] = delete_first_line( string[i] )
+      elsif string[i][0..2] == "rb;" then
+        before = "<pre class='brush: #{ get_line( string[i], 1 ) }'>"
+        string[i] = delete_first_line( string[i] )
+      elsif string[i][0..2] == "sh\n" then
+        before = "<pre class='brush: #{ get_line( string[i], 1 ) }'>"
+        string[i] = delete_first_line( string[i] )
+      elsif string[i][0..3] == "lua\n" then
+        before = "<pre class='brush: #{ get_line( string[i], 1 ) }'>"
+        string[i] = delete_first_line( string[i] )
+      else
+        before = '<pre>'
+      end
+      if string[i][-6..-1] == '</pre>' then
+        after = ''
+      else
+        after = '</pre>'
+      end
+      string[i] = before + string[i] + after
+      if string[i+1] != nil and string[i+1][0] != "\n" then string[i] += "\n" end
+    }
+    return string.join
   end
 
   def compile_main( string, source_file_full_path, type='wiki' )
@@ -651,7 +970,12 @@ class Markup
       string[i]          = links_automatic(   string[i], source_file_full_path )
     
       string[i]          = markup_everything( string[i] )
+
+# TODO:  This desperately needs to play nice with html.
+# I'm sick of having lists appearing in pre blocks.
       string[i]          = lists(             string[i] )
+      #string[i] = not_in_html( string[i]                        ) { |i| lists(i)           }.join
+
       # Changed to properly work with HTML.
       string[i]          = paragraphs(        string[i] )
       #string[i] = not_in_html( string[i] ) { |i| lists(i) }.join
@@ -701,7 +1025,8 @@ class Main
       # This was '**/*.asc' but I'm not going to look into subdirectories any more.
       Dir[ '*.asc' ].each do |asc_file|
         target_file_full_path = File.expand_path( File.join( remote_dir, asc_file.chomp( '.asc' ) + '.html' ) )
-        source_file_full_path = File.expand_path(asc_file)
+        # FIXME:  This is being naughty and expanding symbolic links.  So I can't make a nice symlink to /c and have alt-e open file:///c/src/w/foo.asc
+        source_file_full_path = File.expand_path( asc_file )
         # Skip empty files.
         next if not File.size?( source_file_full_path )
         if not File.exists?( target_file_full_path )  then
@@ -756,6 +1081,3 @@ class Main
 end
 
 Main.new.main( local_wiki, local_blog, remote_wiki, remote_blog, pid_file )
-
-
-__END__

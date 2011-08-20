@@ -1,3 +1,26 @@
+2011-08-13  spiralofhope  <spiralofhope@lavabit.com>
+
+  1.2.3
+  Shit, I forgot to maintain this changelog.. again.
+  
+  * Very rough rework of not_in_html() with more functionality and 
+  intelligence, and hopefully speed.  This might be the key to solving 
+  speed issues with links_automatic()
+  
+  * Added syntax highlighting:
+  http://alexgorbatchev.com/SyntaxHighlighter/
+  
+  * Implemented some hacky functionality to use the full functionality 
+  of the syntax highlighting.
+  
+  * The user can now create their own custom <pre foo="bar"> blocks.  
+  Just indent that opening pre.  The ending </pre> is optional.
+  
+  * hacked js/sh/scripts/shBrushBash.js
+    Brush.aliases	= ['bash', 'shell'];
+    =>
+    Brush.aliases	= ['bash', 'shell', 'sh', 'zsh'];
+
 2011-05-16  spiralofhope  <spiralofhope@lavabit.com>
   
   1.2.2

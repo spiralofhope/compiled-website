@@ -343,96 +343,83 @@ class Test_Markup < MiniTest::Unit::TestCase
       string = "{#{ string }}#{append}"
       return string
     end
+
+    #
     string = 'one'
     expected = '{one}'
-    result = @o.not_in_html( string ) { |i| not_in_html_test_method( i ) }.join
+    result = @o.not_in_html( string ) { |i| not_in_html_test_method( i ) }
+    #p result, result.class
     assert_equal(
       expected,
       result,
     )
+
     # Remember that <> and </> are not proper HTML.
     string = 'one <>two</>'
     expected = '{one <>two</>}'
-    result = @o.not_in_html( string ) { |i| not_in_html_test_method( i ) }.join
+    result = @o.not_in_html( string ) { |i| not_in_html_test_method( i ) }
     assert_equal(
       expected,
       result,
     )
+
+    #
     string = 'one <em>two</em>'
     expected = '{one }<em>two</em>'
-    result = @o.not_in_html( string ) { |i| not_in_html_test_method( i ) }.join
+    result = @o.not_in_html( string ) { |i| not_in_html_test_method( i ) }
     assert_equal(
       expected,
       result,
     )
+
+    #
     string = 'one <em>two</em> three'
     expected = '{one }<em>two</em>{ three}'
-    result = @o.not_in_html( string ) { |i| not_in_html_test_method( i ) }.join
+    result = @o.not_in_html( string ) { |i| not_in_html_test_method( i ) }
     assert_equal(
       expected,
       result,
     )
+
+    #
     string = 'one <em>two</em> three <em>four</em> five'
-    expected = [
-      '{one }',
-      '<em>two</em>',
-      '{ three }',
-      '<em>four</em>',
-      '{ five}',
-      '',
-    ]
+    expected = '{one }<em>two</em>{ three }<em>four</em>{ five}'
     result  = @o.not_in_html( string ) { |i| not_in_html_test_method(  i        ) }
-    result.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
+    assert_equal(
+      expected,
+      result,
+    )
+
+    #
     string = 'one <em>two</em> three <em>four</em> five'
-    expected = [
-      '{one } hey more',
-      '<em>two</em>',
-      '{ three } hey more',
-      '<em>four</em>',
-      '{ five} hey more',
-      '',
-    ]
+    expected = '{one } hey more<em>two</em>{ three } hey more<em>four</em>{ five} hey more'
     result = @o.not_in_html( string ) { |i| not_in_html_test_method( i, 'hey', 'more' ) }
-    result.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
+    assert_equal(
+      expected,
+      result,
+    )
+
+    #
     string = <<-heredoc.unindent
       <em>
         html
       </em>
       regular text
     heredoc
-    expected = [
-      "{}",                  # 0
-      ( <<-heredoc.unindent  # 1
-        <em>
-          html
-        </em>
-      heredoc
-      ).chomp,
-      ( <<-heredoc.unindent  # 3
-        {
-        regular text
-        }
-      heredoc
-      ).chomp,
-      '',                    # 4
-    ]
+    # Remove that starting \n
+    expected = <<-heredoc.unindent
+      {}<em>
+        html
+      </em>{
+      regular text
+      }
+    heredoc
+    expected.chomp!
     result = @o.not_in_html( string ) { |i| not_in_html_test_method( i ) }
-    result.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
+    assert_equal(
+      expected,
+      result,
+    )
   end
 
   def test_markup_underline()
@@ -567,8 +554,194 @@ class Test_Markup < MiniTest::Unit::TestCase
     )
   end
 
+  def test_split_string_by_line()
 
+    # String doesn't match.
+    string = <<-heredoc.unindent
+      An example string
+    heredoc
+    rx = %r{does not match}
+    expected = [
+      string,
+    ]
+    result = @o.split_string_by_line( string, rx )
+    assert_equal(
+      expected.size.to_s,
+      result.size.to_s,
+    )
+    result.each_index{ |i|
+      assert_equal(
+        expected[i],
+        result[i],
+      )
+    }
+
+    # A line matches.
+    string = <<-heredoc.unindent
+      one
+      two
+      three
+      four
+    heredoc
+    rx = %r{two}
+    expected = [
+      "one\n",
+      "two\n",
+      "three\nfour\n",
+    ]
+    result = @o.split_string_by_line( string, rx )
+    assert_equal(
+      expected.size.to_s,
+      result.size.to_s,
+    )
+    result.each_index{ |i|
+      assert_equal(
+        expected[i],
+        result[i],
+      )
+    }
+
+    # gpartition2
+    string = <<-heredoc.unindent
+      This is a test
+    heredoc
+    expected = [ string ]
+    rx = %r{Not matching}
+    result = string.gpartition2( rx )
+    assert_equal(
+      expected.size.to_s,
+      result.size.to_s,
+    )
+    result.each_index{ |i|
+      assert_equal(
+        expected[i],
+        result[i],
+      )
+    }
+
+    ##
+    #string = <<-heredoc.unindent
+      #aaabbbcccddd
+    #heredoc
+    #expected = [ string ]
+    #rx = %r{bbb}
+    #result = string.gpartition2( rx )
+    #assert_equal(
+      #expected.size.to_s,
+      #result.size.to_s,
+    #)
+    #result.each_index{ |i|
+      #assert_equal(
+        #expected[i],
+        #result[i],
+      #)
+    #}
+
+
+
+    ## Using HTML.
+    ## Lines which match, but are inside HTML, are not considered matches.
+    #string = <<-heredoc.unindent
+      #one
+      #<html>
+      #two
+      #</html>
+      #two
+      #two
+      #two
+      #three
+      #four
+    #heredoc
+    #rx = %r{two}
+    #expected = [
+      #string
+    #]
+    #result = @o.split_string_by_line_and_html( string, rx )
+#p result
+    #assert_equal(
+      #expected.size.to_s,
+      #result.size.to_s,
+    #)
+    #result.each_index{ |i|
+      #assert_equal(
+        #expected[i],
+        #result[i],
+      #)
+    #}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    ## String doesn't match.  Strip leading spaces. (omitted .unindent)
+    #string = <<-heredoc
+      #one
+      #two
+    #heredoc
+    #rx = %r{does not match}
+    #expected = [
+      #"one\ntwo\n",
+    #]
+    #result = @o.split_string_by_line( string, rx, lstrip=true )
+    #assert_equal(
+      #expected.size.to_s,
+      #result.size.to_s,
+    #)
+    #result.each_index{ |i|
+      #assert_equal(
+        #expected[i],
+        #result[i],
+      #)
+    #}
+
+  end
+
+=begin
   def test_sections()
+
+skip
 
     #
     string = <<-heredoc.unindent
@@ -789,6 +962,7 @@ class Test_Markup < MiniTest::Unit::TestCase
       ( result ),
     )
   end
+=end
 
   def test_paragraphs()
 
@@ -967,7 +1141,7 @@ class Test_Markup < MiniTest::Unit::TestCase
 
     assert_equal(
       ( <<-heredoc.unindent
-        <a href="http://example.com">example.com</a>
+        <a href="http://example.com">http://example.com</a>
       heredoc
       ),
       @o.links_plain( <<-heredoc.unindent
@@ -978,7 +1152,7 @@ class Test_Markup < MiniTest::Unit::TestCase
 
     assert_equal(
       ( <<-heredoc.unindent
-        before <a href="http://example.com">example.com</a> after
+        before <a href="http://example.com">http://example.com</a> after
       heredoc
       ),
       @o.links_plain( <<-heredoc.unindent
@@ -989,7 +1163,7 @@ class Test_Markup < MiniTest::Unit::TestCase
 
     assert_equal(
       ( <<-heredoc.unindent
-        <a href="http://example.com/">example.com/</a>
+        <a href="http://example.com/">http://example.com/</a>
       heredoc
       ),
       @o.links_plain( <<-heredoc.unindent
@@ -1000,7 +1174,7 @@ class Test_Markup < MiniTest::Unit::TestCase
 
     assert_equal(
       ( <<-heredoc.unindent
-        <a href="http://example.com/foo">example.com/foo</a>
+        <a href="http://example.com/foo">http://example.com/foo</a>
       heredoc
       ),
       @o.links_plain( <<-heredoc.unindent
@@ -1011,7 +1185,7 @@ class Test_Markup < MiniTest::Unit::TestCase
 
     assert_equal(
       ( <<-heredoc.unindent
-        <a href="http://example.com/foo/">example.com/foo/</a>
+        <a href="http://example.com/foo/">http://example.com/foo/</a>
       heredoc
       ),
       @o.links_plain( <<-heredoc.unindent
@@ -1022,7 +1196,7 @@ class Test_Markup < MiniTest::Unit::TestCase
 
     assert_equal(
       ( <<-heredoc.unindent
-        <a href="http://127.0.0.1">127.0.0.1</a>
+        <a href="http://127.0.0.1">http://127.0.0.1</a>
       heredoc
       ),
       @o.links_plain( <<-heredoc.unindent
@@ -1033,7 +1207,7 @@ class Test_Markup < MiniTest::Unit::TestCase
 
     assert_equal(
       ( <<-heredoc.unindent
-        <a href="http://127.0.0.1/">127.0.0.1/</a>
+        <a href="http://127.0.0.1/">http://127.0.0.1/</a>
       heredoc
       ),
       @o.links_plain( <<-heredoc.unindent
@@ -1044,7 +1218,7 @@ class Test_Markup < MiniTest::Unit::TestCase
 
     assert_equal(
       ( <<-heredoc.unindent
-        <a href="http://127.0.0.1/foo">127.0.0.1/foo</a>
+        <a href="http://127.0.0.1/foo">http://127.0.0.1/foo</a>
       heredoc
       ),
       @o.links_plain( <<-heredoc.unindent
@@ -1055,7 +1229,7 @@ class Test_Markup < MiniTest::Unit::TestCase
 
     assert_equal(
       ( <<-heredoc.unindent
-        <a href="http://127.0.0.1/foo/">127.0.0.1/foo/</a>
+        <a href="http://127.0.0.1/foo/">http://127.0.0.1/foo/</a>
       heredoc
       ),
       @o.links_plain( <<-heredoc.unindent
@@ -1066,7 +1240,7 @@ class Test_Markup < MiniTest::Unit::TestCase
 
     assert_equal(
       ( <<-heredoc.unindent
-        <a href="http://example.com:1234">example.com:1234</a>
+        <a href="http://example.com:1234">http://example.com:1234</a>
       heredoc
       ),
       @o.links_plain( <<-heredoc.unindent
@@ -1077,7 +1251,7 @@ class Test_Markup < MiniTest::Unit::TestCase
 
     assert_equal(
       ( <<-heredoc.unindent
-        <a href="http://example.com:1234/">example.com:1234/</a>
+        <a href="http://example.com:1234/">http://example.com:1234/</a>
       heredoc
       ),
       @o.links_plain( <<-heredoc.unindent
@@ -1088,7 +1262,7 @@ class Test_Markup < MiniTest::Unit::TestCase
 
     assert_equal(
       ( <<-heredoc.unindent
-        <a href="http://example.com:1234/foo">example.com:1234/foo</a>
+        <a href="http://example.com:1234/foo">http://example.com:1234/foo</a>
       heredoc
       ),
       @o.links_plain( <<-heredoc.unindent
@@ -1099,7 +1273,7 @@ class Test_Markup < MiniTest::Unit::TestCase
 
     assert_equal(
       ( <<-heredoc.unindent
-        <a href="http://example.com:1234/foo/">example.com:1234/foo/</a>
+        <a href="http://example.com:1234/foo/">http://example.com:1234/foo/</a>
       heredoc
       ),
       @o.links_plain( <<-heredoc.unindent
@@ -1111,9 +1285,9 @@ class Test_Markup < MiniTest::Unit::TestCase
     assert_equal(
       ( <<-heredoc.unindent
         line one
-        <a href="http://example.com/foo/index.php?bar|baz#quux">example.com/foo/index.php?bar|baz#quux</a>
+        <a href="http://example.com/foo/index.php?bar|baz#quux">http://example.com/foo/index.php?bar|baz#quux</a>
         line two
-        <a href="http://example.com:1234/foo/">example.com:1234/foo/</a>
+        <a href="http://example.com:1234/foo/">http://example.com:1234/foo/</a>
       heredoc
       ),
       @o.links_plain( <<-heredoc.unindent
@@ -1341,6 +1515,7 @@ class Test_Markup < MiniTest::Unit::TestCase
     create_file( '/tmp/foo.asc' )
     create_file( '/tmp/bar.asc' )
     create_file( '/tmp/foo-bar.asc' )
+    create_file( '/tmp/bar-foo-bar.asc' )
     create_file( '/tmp/compiled-website-test-file.asc' )
 
     # Simple match
@@ -1384,6 +1559,8 @@ class Test_Markup < MiniTest::Unit::TestCase
       expected,
       result,
     )
+
+skip "ungh, my philosophy is wrong for not_in_html(), I need another wrapper to only intelligently do that *per-line* or some sort of block_not_in_html()"
 
     # Only link the first word.
     string = <<-heredoc.unindent
@@ -1541,23 +1718,19 @@ class Test_Markup < MiniTest::Unit::TestCase
       result,
     )
 
-    # FIXME:  There's a serious speed issue here.  =(  This may be impossible to fix, or it could be a regex thing.
-    # Do not allow matching within words.
     # Maybe I can still have improved matching without being too slow.  I don't want to match the 'pre' in 'preview' and so I could still require at least a small subset of punctuation can't i?  Investigate.
-    if $slow == true then
-      string = <<-heredoc.unindent
-        abcfoodef
-      heredoc
-      expected = <<-heredoc.unindent
-        abcfoodef
-      heredoc
-      source_file_full_path = '/tmp/something.asc'
-      result = @o.links_automatic( string, source_file_full_path )
-      assert_equal(
-        expected,
-        result,
-      )
-    end
+    string = <<-heredoc.unindent
+      abcfoodef
+    heredoc
+    expected = <<-heredoc.unindent
+      abcfoodef
+    heredoc
+    source_file_full_path = '/tmp/something.asc'
+    result = @o.links_automatic( string, source_file_full_path )
+    assert_equal(
+      expected,
+      result,
+    )
 
     string = '<a></a>DISPLAY<b></b> foo'
     expected = '<a></a>DISPLAY<b></b> <a href="foo.html">foo</a>'
@@ -1571,6 +1744,7 @@ class Test_Markup < MiniTest::Unit::TestCase
     File.delete( '/tmp/foo.asc' )
     File.delete( '/tmp/bar.asc' )
     File.delete( '/tmp/foo-bar.asc' )
+    File.delete( '/tmp/bar-foo-bar.asc' )
     File.delete( '/tmp/compiled-website-test-file.asc' )
 
     $VERBOSE = verbose_old
@@ -1613,7 +1787,43 @@ class Test_Markup < MiniTest::Unit::TestCase
     )
     File.delete( '/tmp/foo.asc' )
     File.delete( '/tmp/bar.asc' )
-    
+
+    # Standard usage.  [[ bar]] should not become a link!
+    create_file( '/tmp/foo.asc', '[[ bar]]' )
+    # Standard usage.  Create a new empty file and link to it.
+    assert_equal(
+      '[[ bar]]',
+      @o.links_local_new( 
+        file_read( '/tmp/foo.asc' ),
+        '/tmp/foo.asc',
+      ),
+    )
+    File.delete( '/tmp/foo.asc' )
+
+    # Standard usage.  [[bar ]] should not become a link!
+    create_file( '/tmp/foo.asc', '[[bar ]]' )
+    # Standard usage.  Create a new empty file and link to it.
+    assert_equal(
+      '[[bar ]]',
+      @o.links_local_new( 
+        file_read( '/tmp/foo.asc' ),
+        '/tmp/foo.asc',
+      ),
+    )
+    File.delete( '/tmp/foo.asc' )
+
+    # Standard usage.  [[ bar ]] should not become a link!
+    create_file( '/tmp/foo.asc', '[[ bar ]]' )
+    # Standard usage.  Create a new empty file and link to it.
+    assert_equal(
+      '[[ bar ]]',
+      @o.links_local_new( 
+        file_read( '/tmp/foo.asc' ),
+        '/tmp/foo.asc',
+      ),
+    )
+    File.delete( '/tmp/foo.asc' )
+
     # Second usage.  Remove [[ ]] for non-empty and already-existing files, to allow links_automatic() to operate.
     create_file( '/tmp/foo.asc', '[[bar]]' )
     # An empty file is referenced.  Therefore keep [[ ]]
@@ -1714,7 +1924,10 @@ class Test_Markup < MiniTest::Unit::TestCase
     $VERBOSE = verbose_old
   end
 
+=begin
   def test_lists_arrays()
+
+skip
 
     #
     string = <<-heredoc.unindent
@@ -1873,6 +2086,7 @@ class Test_Markup < MiniTest::Unit::TestCase
       "- one\n- two\n- three\n",
     ]
     result = @o.lists_arrays( string )
+p result
     assert_equal(
       expected.size.to_s,
       result.size.to_s,
@@ -1937,9 +2151,60 @@ class Test_Markup < MiniTest::Unit::TestCase
       )
     }
 
+    # I once had an issue where any paragraphs that followed were getting double spaced.
+    string = <<-heredoc.unindent
+      - list
+      
+      one
+      
+      two
+    heredoc
+    result = @o.lists_arrays( string )
+    expected = [
+      '',
+      "- list\n",
+      "\none\n\ntwo\n",
+    ]
+    assert_equal(
+      expected.size.to_s,
+      result.size.to_s,
+    )
+    result.each_index{ |i|
+      assert_equal(
+        expected[i],
+        result[i],
+      )
+    }
+
+# To solve this, maybe I need another kind of not_in_html(), where it goes line-by-line.
+
+    string = <<-heredoc.unindent
+      <a>
+      # one
+      </a>
+    heredoc
+    expected = [ string ]
+    #result = @o.lists_arrays( string )
+    result = @o.split_string_by_line( string, %r{^\ *[-|\#]+\ +.+?$}, true )
+p result
+    #assert_equal(
+      #expected.size.to_s,
+      #result.size.to_s,
+    #)
+    #result.each_index{ |i|
+      #assert_equal(
+        #expected[i],
+        #result[i],
+      #)
+    # }
+
   end
+=end
 
   def test_lists()
+
+=begin
+skip
 
     #
     string = <<-heredoc.unindent
@@ -2279,6 +2544,9 @@ class Test_Markup < MiniTest::Unit::TestCase
       #expected,
       #result,
     #)
+=end
+
+# -----------------------------------
 
 =begin
     # TODO:  Mixed lists
@@ -2358,8 +2626,12 @@ class Test_Markup < MiniTest::Unit::TestCase
 =end
   end
 
+
+=begin
 # TODO:  Go over this and redo as necessary..
   def test_blocks_array()
+
+skip
 
     # No match, no whitespace leading any lines ( I'm using heredoc.unindent )
     string = <<-heredoc.unindent
@@ -2458,8 +2730,12 @@ class Test_Markup < MiniTest::Unit::TestCase
     }
 
   end
-  
+=end
+
+=begin
   def test_blocks()
+
+skip
 
     #
     string = <<-heredoc.unindent
@@ -2500,7 +2776,8 @@ class Test_Markup < MiniTest::Unit::TestCase
     expected = <<-heredoc.unindent
       before
       <pre>some text
-      </pre>after
+      </pre>
+      after
     heredoc
     #expected.chomp!
     result = @o.blocks( string )
@@ -2520,7 +2797,8 @@ class Test_Markup < MiniTest::Unit::TestCase
       before
       <pre>some text
         indented text
-      </pre>after
+      </pre>
+      after
     heredoc
     #expected.chomp!
     result = @o.blocks( string )
@@ -2552,6 +2830,16 @@ class Test_Markup < MiniTest::Unit::TestCase
       )
     }
 
+  # Make sure that any html code isn't being forced out of the pre block.  The pre block should include everything as long as it shares that same left column of spaces.
+  string = '  before <html>should be on the same line</html> after'
+  expected = '<pre>before <html>should be on the same line</html> after</pre>'
+  result = @o.blocks( string )
+  assert_equal(
+    expected,
+    result,
+  )
+
   end
+=end
 
 end # class Test_Markup < MiniTest::Unit::TestCase

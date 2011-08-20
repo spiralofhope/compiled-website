@@ -23,6 +23,9 @@ class Markup
       <link rel="shortcut icon" href="i/favicon.ico" type="image/x-icon">
       <link type="text/css" href="css/common.css"     rel="stylesheet">
       <link type="text/css" href="css/default.css"    rel="stylesheet"           title="Default">
+<!--
+      <link type="text/css" href="css/default.css"    rel="stylesheet"           title="Default">
+-->
       <link type="text/css" href="css/dark.css"       rel="alternate stylesheet" title="Dark">
       <link type="text/css" href="css/no-style.css"   rel="alternate stylesheet" title="No Style">
       <link type="text/css" href="css/test.css"       rel="alternate stylesheet" title="Test">
@@ -41,6 +44,8 @@ class Markup
           }
         }
       //--></script>
+<script type="text/javascript" src="js/sh/scripts/shCore.js"></script>
+<script type="text/javascript" src="js/sh/scripts/shAutoloader.js"></script>
       </head>
       
       <body>
@@ -93,7 +98,7 @@ class Markup
             <a accesskey="t" href="javascript.html#s0" onClick="javascript:toggle('toc');return false">Table of Contents</a>
           </small>
           <div class="toc" id="toc" style="display: none">
-            #{'TABLE OF CONTENTS TODO'}
+            #{'TODO'}
           </div>
         </div>
       </div>
@@ -104,23 +109,105 @@ class Markup
     footer = <<-heredoc.unindent
       </div> <!-- main -->
         <div class="footer">
-          &copy; <a href="contact.html#s0">Spiral of Hope</a> - all rights reserved (until I figure licensing out)
-          <br>
-          <!-- TODO -->
-          Hosting provided by (FIXME), <a href="thanks.html#s0">thanks!</a>
+<a href="about-me.html">About Me</a> | <a href="contact-me.html">Contact Me</a>
+<center>
+<table width="80%">
+<tr>
+<td width="50%">
+  <small>
+  &copy; <a href="contact.html#s0">spiralofhope.com</a>, all rights reserved.
+  <br>
+  Individual pages or files may have their own copyright / licensing.
+  </small>
+</td>
+<td width="50%">
+<small>
+  <a href="http://www.dreamhost.com/r.cgi?1159806/green.cgi?spiralofhope.com|SPIRALOFHOPE">
+    <img border="0" alt="Green Web Hosting!" src="i/dreamhost--green1.gif" height="32" width="100" />
+  </a>
+  <a href="http://www.dreamhost.com/donate.cgi?id=14842">
+    <img border="0" alt="If you've found this website useful, donate towards my web hosting bill." src="i/dreamhost--donate1.gif" />
+  </a>
+  <br>
+  <a href="http://www.dreamhost.com/r.cgi?1159806/signup">
+    <u>DreamHost - Unlimited space and bandwidth.</u>
+  </a>
+  <br>
+  As low as $8.95/mo.
+  <br>
+  $40 discount with the promo code SPIRALOFHOPE
+</small>
+</td>
+</tr>
+</table>
+</center>
+
+<!-- TODO
           <br>
           <em><small>(<a href="#{sitemap_path}/sitemap.html">sitemap</a>)</small></em>
           <br>
-            <a style="display: none;" accesskey="e" href="file://#{source_file_full_path}">&nbsp;</a>
+-->
+          <a style="display: none;" accesskey="e" href="file://#{source_file_full_path}">&nbsp;</a>
           </div> <!-- footer -->
-          <div id="statcounter_image"
-          style="display:inline;"><a title="web stats"
-          class="statcounter"
-          href="http://www.statcounter.com/free_web_stats.html"><img
-          src="i/statcounter.com-button2.gif"
-          alt="web stats"
-          style="border:none;"/></a></div>
+
+<!-- Start of StatCounter Code for Default Guide -->
+<script type="text/javascript">
+var sc_project=4910069; 
+var sc_invisible=0; 
+var sc_security="1ce5ea53"; 
+</script>
+<script type="text/javascript"
+src="http://www.statcounter.com/counter/counter.js"></script>
+<noscript><div class="statcounter"><a title="tumblr
+statistics" href="http://statcounter.com/tumblr/"
+target="_blank"><img class="statcounter"
+src="http://c.statcounter.com/4910069/0/1ce5ea53/0/"
+alt="tumblr statistics"></a></div></noscript>
+<!-- End of StatCounter Code for Default Guide -->
+
         </body>
+
+<script type="text/javascript">
+function path()
+{
+  var args = arguments,
+      result = []
+      ;
+       
+  for(var i = 0; i < args.length; i++)
+      result.push(args[i].replace('@', 'js/sh/scripts/'));
+       
+  return result
+};
+ SyntaxHighlighter.autoloader.apply(null, path(
+  'applescript            @shBrushAppleScript.js',
+  'actionscript3 as3      @shBrushAS3.js',
+  'bash shell sh zsh      @shBrushBash.js',
+  'coldfusion cf          @shBrushColdFusion.js',
+  'cpp c                  @shBrushCpp.js',
+  'c# c-sharp csharp      @shBrushCSharp.js',
+  'css                    @shBrushCss.js',
+  'delphi pascal          @shBrushDelphi.js',
+  'diff patch pas         @shBrushDiff.js',
+  'erl erlang             @shBrushErlang.js',
+  'groovy                 @shBrushGroovy.js',
+  'java                   @shBrushJava.js',
+  'jfx javafx             @shBrushJavaFX.js',
+  'js jscript javascript  @shBrushJScript.js',
+  'perl pl                @shBrushPerl.js',
+  'php                    @shBrushPhp.js',
+  'text plain             @shBrushPlain.js',
+  'py python              @shBrushPython.js',
+  'ruby rails ror rb      @shBrushRuby.js',
+  'sass scss              @shBrushSass.js',
+  'scala                  @shBrushScala.js',
+  'sql                    @shBrushSql.js',
+  'vb vbnet               @shBrushVb.js',
+  'xml xhtml xslt html    @shBrushXml.js',
+  'lua                    @shBrushLua.js'
+)); 
+SyntaxHighlighter.all();
+</script>
       </html>
     heredoc
 
