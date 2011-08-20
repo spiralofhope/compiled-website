@@ -26,6 +26,9 @@ def line_partition(
                     # Elements can be of class String or Regex.
                     match_array=[],
                     # 'in', 'out', 'omit'
+                    # in = include within the block.  xx<yy>zz => [ xx, <yy>, zz ]
+                    # out = outside the block.        xx<yy>zz => [ xx<, yy, >zz ]
+                    # omit = omit entirely.           xx<yy>zz => [ xx, yy, zz ]
                     begin_in_or_out='in',
                     end_in_or_out='in'
                   )
@@ -78,15 +81,17 @@ def line_partition(
     if active_close_tags == [] then
       # We're looking for a begin match.
       match_array.each_index{ |i|
-        match_array[i][0].each{ |j|
-          if match_found( line, j ) == true then
+        match_array[i][0].each{ |e|
+          if match_found( line, e ) == true then
             matched = true
             active_close_tags = match_array[i][1]
             result << ''
             if begin_in_or_out == 'in' then
               result[-1] += line
-            else
+            elsif begin_in_or_out == 'out' then
               result[-2] += line
+            else
+              # omit
             end
             break
           end
@@ -104,14 +109,13 @@ def line_partition(
         if match_found( line, e ) == true then
           matched = true
           active_close_tags = []
-          # Match.  Found the end of a block.
+          result << ''
           if end_in_or_out == 'in' then
-            # Append the closing tag.
+            result[-2] += line
+          elsif end_in_or_out == 'out' then
             result[-1] += line
-            # Begin a new element.
-            result << ''
           else
-            result << line
+            # omit
           end
           break
         end
@@ -201,7 +205,28 @@ class Test_line_partition < MiniTest::Unit::TestCase
                               match_array
                             )
     assert_equal_array( expected, result )
-
+    #
+    #
+    string = <<-heredoc.unindent
+      This is a string
+      BEGIN
+      Line two
+      END
+      Three
+    heredoc
+    match_array=[ %r{^BEGIN$}, %r{^END$} ]
+    expected = [
+      "This is a string\n",
+      "Line two\n",
+      "Three\n",
+    ]
+    result = line_partition(
+                              string,
+                              match_array,
+                              'omit',
+                              'omit'
+                            )
+    assert_equal_array( expected, result )
   end
 
   def test_line_partition_2()
