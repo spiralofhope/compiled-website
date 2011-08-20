@@ -65,35 +65,46 @@ class Markup
     return rx_match, rx_nomatch
   end
 
-  def match_new( string,                                  # "This has <html>some html</html> in it."
-              seven_match_rx,                             # HTML is (<)(.*?)(>)(.*?)(</)(.*?)(>)
-              include_matched_characters_outside_rx_bool, # For (<)(.*?)(>) do you want to keep <  >
-              include_matched_characters_inside_rx_bool   # For (<)(.*?)(>) do you want to keep  .*
-            )
-    if string.match( seven_match_rx ) == nil then
+  def match_new( string,       # "This has <html>some html</html> in it."
+                 match_rx,     # Seven elements.  e.g. HTML is (<)(.*?)(>)(.*?)(</)(.*?)(>)
+                 replace_array #                               (a)( b )(c)(.*?)(d )( e )(f)
+                               #                            .. which is [ a, b, c, d, e, f ]
+               )
+    if string.match( match_rx ) == nil then
       return [
         [ nil    ], # match
         [ string ], # nomatch
       ]
     end
+    # TODO:  Sanity-checking.
+    if replace_array == false then
+      replace_array = [ nil, nil, nil, nil, nil, nil ]
+    end
     match   = [        ]
     nomatch = [ string ]
 
-    until ( nomatch[-1]                         == nil ) or
-          ( nomatch[-1].match( seven_match_rx ) == nil )
+    until ( nomatch[-1]                   == nil ) or
+          ( nomatch[-1].match( match_rx ) == nil )
       # Before the match.
       nomatch << $`
       match   << nil
       # The match.
       nomatch << nil
-                                                         match     << ""
-      if include_matched_characters_outside_rx_bool then match[-1] << $~[1] end
-      if include_matched_characters_inside_rx_bool  then match[-1] << $~[2] end
-      if include_matched_characters_outside_rx_bool then match[-1] << $~[3] end
-                                                         match[-1] << $~[4]
-      if include_matched_characters_outside_rx_bool then match[-1] << $~[5] end
-      if include_matched_characters_inside_rx_bool  then match[-1] << $~[6] end
-      if include_matched_characters_outside_rx_bool then match[-1] << $~[7] end
+      match << ""
+      # Make the replace_array "line up" with the match data.
+      # So the 6-element replace array will align with 7 match items.
+      # Starting the numbering at 1, so I add a nil at the start.
+      replace_array.insert(0, nil)
+      # And a nil in the middle.
+      replace_array.insert(3, nil)
+      replace_array.each_index do |i|
+        replace_array[i] = ( replace_array[i] or $~[i] )
+      end
+      # Remove that starting nil.
+      replace_array.delete_at(0)
+      replace_array.each do |i|
+        match[-1] << ( i or "" )
+      end
       # After the match.
       nomatch << $'
       match   << nil
@@ -107,7 +118,10 @@ class Markup
   def recombine( array1, array2 )
     array1.each_index do |i|
       if array1[i] == nil then
-         array1[i] =  array2[i]
+        if array2[i] == nil then
+          puts "ERROR - recombine"
+        end
+        array1[i] =  array2[i]
       end
     end
     return array1
@@ -164,18 +178,45 @@ class Markup
       }x
   end
   
-  def strong_rx()
-    return punctuation_rx( %r{\*} )
-  end
-
   def html_arrays( string )
     html_exclusion_rx = %r{
       (<)(.*?)(>)
       (.*?)
       (</)(.*?)(>)
     }mx
-    # returns two arrays.
-    return match_new( string, html_exclusion_rx, true, true )
+    # returns two arrays:  nonhtml, html
+    return match_new( string, html_exclusion_rx, false )
+  end
+
+  def markup_underline( string )
+# FIXME FIXME
+    rx = punctuation_rx( %r{_}, %r{_} )
+    rx = %r{
+      (_)
+      ()
+      ()
+      (.*?)
+      ()
+      ()
+      (_)
+    }mx
+    replace_array = [ '<u>', nil, nil, nil, nil, '</u>' ]
+    # Separate HTML from non-HTML content.
+    html, nonhtml = html_arrays( string )
+
+#if nonhtml.size == 0 then return
+#recombine( html, nonhtml ).join
+#end
+
+    # For the nonhtml components.
+    nonhtml.each_index do |i|
+      next if nonhtml[i] == nil
+      # Perform markup.
+      a, b = match_new( nonhtml[i], rx, replace_array )
+      nonhtml[i] = recombine( a, b ).join
+    end
+
+    return recombine( nonhtml, html ).join
   end
 
 end # class Markup
@@ -205,8 +246,21 @@ class Test_Markup < MiniTest::Unit::TestCase
 
   end
   
-end
+  def test_markup_underline()
+    assert_equal(
+      '<u>underlined</u>',
+      @o.markup_underline( '_underlined_' ),
+    )
+  end
 
+  def test_multiple_markup_underline()
+    assert_equal(
+      '<u>1</u> <u>2</u>',
+      @o.markup_underline( '_1_ _2_' ),
+    )
+  end
+  
+end
 
 class Test_Markup < MiniTest::Unit::TestCase
 
