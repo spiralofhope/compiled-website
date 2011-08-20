@@ -213,7 +213,6 @@ def compile(source_file_full_path, target_file_full_path)
             line_copy_length.times do
               line =~ numbered_url
               match=$~.dup
-              puts match.inspect
               line.sub!(numbered_url, "<a href=\"#{match[2]}#{match[3]}\">\[#{counter}\]</a>")
               counter+=1
             end
@@ -396,13 +395,23 @@ end
     <font style="font-size: 0.5em;">Better software is possible.</font>
   </div>
   <div class="float-right">
-<!-- navigation goes here -->
+    <form action="http://www.google.com/search">
+      <input class="edit-line" name="q" size="25" accesskey="f" value="Search" class="texta" />
+      <input type="hidden" name="sitesearch" value="spiralofhope.com" />
+    </form>
   </div>
 </div>
 <a name="body">
 <div class="main">
     HEREDOC
 
+=begin
+I simplified it, here's the original:
+<form method="get" action="http://www.google.com/search">
+<input type="text" name="q" size="25" maxlength="255" accesskey="f" value="Search" />
+<input type="submit" value="Search" />
+<input type="hidden" name="sitesearch" value="spiralofhope.com" />
+=end
     # '~~~~FOOTER~~~~' is a totally hackish thing for me to do, but oh well.
     # Could I search for the EOF or something cool?  Or just.. directly append this to do the bottom perhaps.
     footer_search=Regexp.new('~~~~FOOTER~~~~')
