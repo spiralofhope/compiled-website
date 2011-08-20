@@ -1,34 +1,25 @@
 =begin
-Usage:
-- You can combine multiple markup by starting it all with spaces between them.
-- wiki-style linking is done automatically, just type as usual and the engine will figure out the links.  Note that multiple words are given priority over single words.
-
 Requirements:
 - Ruby 1.8.7 and its standard libraries.
 -- Presumably this would work with the 1.9 series of Ruby too, but I don't know.
 - My standard libraries.
 - HTML Tidy (the executable, not the Ruby library)
   http://tidy.sourceforge.net/
-
-  # Tested and works on Unity Linux 64bit rc1 as of 2010-04-25:
-  cvs -d:pserver:anonymous@tidy.cvs.sourceforge.net:/cvsroot/tidy login
-  # press enter
-  cvs -z3 -d:pserver:anonymous@tidy.cvs.sourceforge.net:/cvsroot/tidy co -P tidy
-  cd tidy/build/gmake
-  make
-  su
-  smart install libxslt-proc
-  make install
 =end
 
-# No trailing slashes
+# --
+# Configuration
+# --
+
+# Note: To customize the browser that's used, edit view_html() directly.
+# TODO: A variable for the web browser?  Seems non-obvious.
+
 # The directory with the original .asc files
+#   No trailing slashes
 source_directory='source'
-# The directory with the cached hybrid asc-html files:  asc-markup => html-markup
+
 # The directory with the completed html files
 compiled_directory='compiled'
-# TODO: A variable for the web browser?  Seems non-obvious..
-# To customize the browser that's used, hack view_html()
 
 source_directory=File.expand_path(File.join(File.dirname(__FILE__), '..', source_directory))
 compiled_directory=File.expand_path(File.join(File.dirname(__FILE__), '..', compiled_directory))
@@ -43,7 +34,7 @@ require 'lib_strings.rb'
 # [:punct:] and [:blank:] don't work..
 $punctuation_start=%r{
   ^
-  |\ 
+  |\
   |^'
   |\ '
   |^"
@@ -55,30 +46,30 @@ $punctuation_start=%r{
 #   A simple '|\.' can be added to relax this restriction.
 $punctuation_end=%r{
   $
-  |\ 
-  |\.\ 
+  |\
+  |\.\
   |\.$
-  |,\ 
-  |!\ 
+  |,\
+  |!\
   |'$
-  |'\ 
+  |'\
   |',
   |,'
   |"$
-  |"\ 
+  |"\
   |",
   |,"
-  |\)\ 
+  |\)\
   |\)$
-  |:\ 
+  |:\
   |:$
-  |;\ 
+  |;\
 }x
 
 def sanity_check(source_directory, compiled_directory)
   # TODO: Confirm that tidy exists and can be run.
-  # Check for source_directory
-  #The graceful way would be to leverage lib_directories//cd_directory and trap the RunTimeError that can be raised.
+  # TODO: Check for source_directory
+  #   The graceful way would be to leverage lib_directories//cd_directory and trap the RunTimeError that can be raised.
   if not File.directory?(source_directory) then
     # not a directory (doesn't exist, or it's a file)
     if not File.exists?(source_directory) then
@@ -111,14 +102,19 @@ sanity_check(source_directory, compiled_directory)
 # TODO:  Implement a wmctrl thingy to raise the firefox window.  But apparently it's not possible!!
 # http://localhost/wiki/Wmctrl_examples#Firefox_is_not_visible_in_the_list_of_managed_windows
 def view_html(file_full_path)
+  # I no longer want to view the page every time I make a change..
+  return 0
+
   if File.exists?(file_full_path) then
     # Note: For a browser to work as expected, I'd have to already have it running before this script summons it.
     # Otherwise, this script would summon it wait for it to exit!
-    #system('firefox', '-new-tab', file_full_path)
+    #system('firefox', '-P', '-default', '-new-tab', file_full_path)
     system('firefox', '-P', '-default', file_full_path)
+
     # Does not respect accesskeys, it thinks that .asc is a PGP file.  Bah.
     # It also saves the .asc files to /tmp.. sigh.
     #system('midori', file_full_path)
+    # This will open the initial links window open.  Then somehow the script hangs and waits for links to be exited.
     #system('links', '-g', file_full_path)
   else
     raise "\n * File does not exist, aborting:\n" + file_full_path.inspect
@@ -129,28 +125,28 @@ def tidy_html(source_file_full_path)
   # For additional options, check out `tidy -help-config`
   system(
     'tidy',
-    '-clean', 
-    '-quiet', 
-    '-omit', 
-    '-asxhtml', 
-    '-access', 
-    '-modify', 
-    '--drop-empty-paras', 'true', 
-    '--indent', 'true', 
-    '--indent-spaces', '2', 
-    '--keep-time', 'true', 
-    '--wrap', '0', 
-    '--force-output', 'true', 
-    '--show-errors', '0', 
-    '--show-warnings', 'false', 
-    '--break-before-br', 'true', 
-    '--tidy-mark', 'false', 
-    '--output-encoding', 'utf8', 
-    '--escape-cdata', 'false', 
-    '--indent-cdata', 'true', 
-    '--hide-comments', 'true', 
-    '--join-classes', 'true', 
-    '--join-styles', 'true', 
+    '-clean',
+    '-quiet',
+    '-omit',
+    '-asxhtml',
+    '-access',
+    '-modify',
+    '--drop-empty-paras', 'true',
+    '--indent', 'true',
+    '--indent-spaces', '2',
+    '--keep-time', 'true',
+    '--wrap', '0',
+    '--force-output', 'true',
+    '--show-errors', '0',
+    '--show-warnings', 'false',
+    '--break-before-br', 'true',
+    '--tidy-mark', 'false',
+    '--output-encoding', 'utf8',
+    '--escape-cdata', 'false',
+    '--indent-cdata', 'true',
+    '--hide-comments', 'true',
+    '--join-classes', 'true',
+    '--join-styles', 'true',
     source_file_full_path
   )
 end
@@ -259,7 +255,7 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
     $paragraph = ''
     regex=%r{
       ^([=]+)
-      \ 
+      \
       ([^\ ].*?[^\=])
       (
          \ [=]+$
@@ -348,11 +344,13 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
       )
       (?# whatever.info  )
       (?# Also includes IPs, though I'm not sure how.  )
+      (?# FIXME:  Uh, this is matching http://foo.nothingness )
       (
          \S{2,}\.\S{2,4}
         | localhost
       )
       (?# This also handles ports, but it does no error correction.  )
+      (?# Doesn't properly match http://example.com:1234 )
       ( (?# /foo/bar.html  )
          \/\S+[^\]]
         |[^\]]
@@ -439,7 +437,7 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
         result << line
         next
       end
-      until line.scan(regex).size == 0 do      
+      until line.scan(regex).size == 0 do
         normalized_file=$~[2].gsub(' ', '-').downcase
         new_source_file_full_path = File.join(directory, normalized_file + '.asc')
         # Match [[file]] with /full/path/to/file.asc
@@ -574,13 +572,15 @@ if $toc == [] then $toc = '' end
     a=Pathname.new(source_directory)
     b=Pathname.new(File.dirname(source_file_full_path))
     path=a.relative_path_from(b)
+    # FIXME: ungh
+    #path="../compiled"
     header_search = Regexp.new('')
     # HTML5 will change the text/html charset definition thusly:
     #<meta charset="UTF-8">
     header_replace=<<-"HEREDOC"
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 <html>
-<head>  
+<head>
 <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
 <link rel="icon" href="#{path}/i/favicon.ico" type="image/x-icon">
 <link rel="shortcut icon" href="#{path}/i/favicon.ico" type="image/x-icon">
@@ -618,13 +618,13 @@ if $toc == [] then $toc = '' end
     </div>
   </div>
   <div class="float-right">
-    <form action="http://www.google.com/search">
-      <div>
-        <input name="q" size="25" accesskey="f" value="Search" class="texta">
-        <input type="hidden" name="sitesearch" value="spiralofhope.com">
-      </div>
-    </form>
-<!-- 
+
+<FORM METHOD=POST ACTION="http://www.scroogle.org/cgi-bin/nbbw.cgi">
+<INPUT type=text name="Gw" SIZE="25" MAXLENGTH="225" accesskey="f" value="Search">
+<INPUT type=hidden name="n" value="2">
+<INPUT type=hidden name="d" value="spiralofhope.com" CHECKED>
+</FORM></center>
+<!--
 TODO: RSS
 rss-feed-icon-16px-svg.png
 -->
@@ -722,7 +722,7 @@ HEREDOC
     string=multiline_replace(footer_search, string, footer_replace)
     return string
   end
-  
+
   def compile(source_directory, source_file_full_path, target_file_full_path)
     contents=file_read(source_file_full_path)
 
@@ -779,7 +779,7 @@ end
 def test_compile()
   contents=<<-HEREDOC
 If this appears with lots of square boxes through it, or lines are being merged together oddly, then TidyHTML was probably not installed.
-  
+
 *bold*, **big**. _underline_ /italics/ -strikethrough- `truetype`
 
 Yes, this is legal in my code.  I'll just clean it up with HTML Tidy.:
@@ -943,10 +943,10 @@ In order to solve this, I cannot do my 'until line.match(regex).size == 0' trick
 =end
 
 $punctuation_start=%r{
-  \ 
+  \
 }x
 $punctuation_end=%r{
-  \ 
+  \
 }x
 ["a line of foo text", "another foo - bar example"].each do |line|
   ["foo - bar", "foo"].each do |item|
