@@ -18,20 +18,6 @@ HTML Tidy (the executable, not the Ruby library)
   make install
 =end
 
-=begin
-TODO list:
-- local-links are not properly linking if they're used with common formatting.  So 'index,' does not link.  Hrmph.
-- Create an alternate stylesheet, and have a dropdown box at the top-right.  Can that be saved website-wide somehow? (cookies?)
-- A better 'listings' feature.  Just have it output the right CSS and let the user figure out how it ought to be displayed.  I'm tired of ;list: item
-- what does 'abort' do?  Is it some routine I have in a library somewhere?
-
-TODO: I'd love to use Ruby/HTML Tidy, but I don't know how to make it go.
-  http://tidy.rubyforge.org/
-  http://rubyforge.org/projects/tidy
-  http://tidy.rubyforge.org/classes/Tidy.html
-  gem install tidy
-=end
-
 # No trailing slashes
 # The directory with the original .asc files
 source_directory='local/source'
@@ -44,15 +30,42 @@ source_directory=File.expand_path(File.join(File.dirname(__FILE__), '..', source
 compiled_directory=File.expand_path(File.join(File.dirname(__FILE__), '..', compiled_directory))
 
 # Local website, like file:///tmp/mydir/website .. with no trailing slash
-$WEBSITE='file://' + compiled_directory
+#$WEBSITE='file://' + compiled_directory
+$WEBSITE=compiled_directory
 # Full URL, like http://example.com .. with no trailing slash
 # $WEBSITE="http://spiralofhope.com"
 
+require 'pathname'
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), 'lib'))
 require 'lib_misc.rb'
 require 'lib_directories.rb'
 require 'lib_files.rb'
 require 'lib_strings.rb'
+
+# [:punct:] and [:blank:] don't work..
+$punctuation_start=%r{
+  ^
+  |^'
+  |\ '
+  |^"
+  |\ "
+  |\ 
+}x
+$punctuation_end=%r{
+  \.\ 
+  |,\ 
+  |!\ 
+  |'$
+  |'\ 
+  |',
+  |,'
+  |"$
+  |"\ 
+  |",
+  |,"
+  |\ 
+  |$
+}x
 
 def sanity_check(source_directory, compiled_directory)
   # Check for source_directory
@@ -65,7 +78,7 @@ def sanity_check(source_directory, compiled_directory)
       # TODO: make an example file...
     else
       # a file!
-      raise RuntimeError, "There's a file where I'm expecting your source_directory:  " + source_directory.inspect
+      raise "\n * There's a file where I'm expecting your source_directory:\n" + source_directory.inspect
       abort
     end
   end
@@ -79,7 +92,7 @@ def sanity_check(source_directory, compiled_directory)
       md_directory(compiled_directory)
     else
       # a file!
-      raise RuntimeError, "There's a file where I'm expecting your compiled_directory:  " + compiled_directory.inspect
+      raise "\n * There's a file where I'm expecting your compiled_directory:\n" + compiled_directory.inspect
       abort
     end
   end
@@ -93,12 +106,13 @@ def view_html(file_full_path)
     # Note: For a browser to work as expected, I'd have to already have it running before this script summons it.
     # Otherwise, this script would summon it wait for it to exit!
     #system('firefox', '-new-tab', file_full_path)
-    #system('firefox', file_full_path)
+    system('firefox', file_full_path)
     # Does not respect accesskeys, it thinks that .asc is a PGP file.  Bah.
-    system('midori', file_full_path)
+    # It also saves the .asc files to /tmp.. sigh.
+    #system('midori', file_full_path)
     #system('links', '-g', file_full_path)
   else
-    raise RuntimeErrror, "(view_html) file does not exist, aborting:  " + file_full_path.inspect
+    raise "\n * File does not exist, aborting:\n" + file_full_path.inspect
     abort
   end
 end
@@ -106,17 +120,24 @@ def tidy_html(source_file_full_path)
   system('tidy', '--drop-empty-paras', 'true', '--indent', 'true', '--keep-time', 'true', '--wrap', '0', '-clean', '-quiet', '-omit', '-asxhtml', '-access', '-modify', '--force-output', 'true', '--show-errors', '0', '--show-warnings', 'false', '--break-before-br', 'true', '--tidy-mark', 'false', source_file_full_path)
 end
 
-def compile(source_file_full_path, target_file_full_path)
+def compile(source_directory, source_file_full_path, target_file_full_path)
   # TODO:  Only allow one document-link within each file?  I'd have to maintain a working array of all the already-created links, and know if I'm creating a duplicate.  Not too tough to do
   # TODO:  Allow additional document-links, but only one document-link for each header-section.  Somewhat more complex than the above, but really really worth it.
 
   def sanity_check(source_file_full_path, target_file_full_path)
+    target_file_directory=File.dirname(target_file_full_path)
     if not File.exists?(source_file_full_path) then
-      raise RuntimeError, "source_file_full_path does not exist, aborting:  " + source_file_full_path.inspect
+      raise "\n * source_file_full_path does not exist, aborting:\n" + source_file_full_path.inspect
       abort
     elsif File.directory?(source_file_full_path) then
-      raise RuntimeError, "source_file_full_path is actually a directory:  " + source_file_full_path.inspect
+      raise "\n * source_file_full_path is a directory.  Expecting a file:\n" + source_file_full_path.inspect
       abort
+    elsif File.directory?(target_file_full_path) then
+      raise "\n * target_file_full_path is a directory.  Expecting a file:\n" + target_file_full_path.inspect
+      abort
+    elsif not File.directory?(target_file_directory) then
+      puts "Target file's base directory does not exist.  Creating:  " + target_file_directory
+      md_directory(target_file_directory)
     end
     # Future TODO:  If I ever do nested linking, I should make sure that the parent director(y|ies) exist.
   end
@@ -140,11 +161,6 @@ def compile(source_file_full_path, target_file_full_path)
     def marked_no(string, internal_markup_flag)
       if string == nil then return '' end
       if internal_markup_flag != true then
-        # [:punct:] and [:blank:] don't work..
-        start=/(^| )/
-        # just testing this out, it ought to be better than the below example..
-        punctuation=/(\. |, |! | |$)/
-        #punctuation=/(\.|,|!| |$)/
 
     # TODO: This is the far cooler version which I should implement.
     #   It cannot work as-is because \1 doesn't carry through.
@@ -157,8 +173,8 @@ def compile(source_file_full_path, target_file_full_path)
       #i[0]=Regexp.quote(i[0])
       #string=markup(
         #string,
-        #%r{(#{start})#{i[0]}},
-        #%r{#{i[0]}(#{punctuation})},
+        #%r{(#{$punctuation_start})#{i[0]}},
+        #%r{#{i[0]}(#{$punctuation_end})},
         #"\1#{i[1]}",
         #"#{i[2]}\1",
         #true
@@ -167,18 +183,18 @@ def compile(source_file_full_path, target_file_full_path)
 
         # TODO: Strikethrough was removed because it interferes with lists, and I didn't feel like recoding everything to get this very rarely-used markup to work.
         #   But I will, eventually..
-        #string=markup(string, %r{(#{start})-}, %r{-(#{punctuation})}, '\1<s>', '</s>\1', true)
-        string=markup(string, %r{(#{start})\/}, %r{\/(#{punctuation})}, '\1<em>', '</em>\1', true)
-        string=markup(string, %r{(#{start})\*\*}, %r{\*\*(#{punctuation})}, '\1<big>', '</big>\1', true)
-        string=markup(string, %r{(#{start})\*}, %r{\*(#{punctuation})}, '\1<b>', '</b>\1', true)
-        string=markup(string, %r{(#{start})_}, %r{_(#{punctuation})}, '\1<u>', '</u>\1', true)
-        string=markup(string, %r{(#{start})`}, %r{`(#{punctuation})}, '\1<tt>', '</tt>\1', true)
+        #string=markup(string, %r{(#{$punctuation_start})-}, %r{-(#{$punctuation_end})}, '\1<s>', '</s>\1', true)
+        string=markup(string, %r{(#{$punctuation_start})\/}, %r{\/(#{$punctuation_end})}, '\1<em>', '</em>\1', true)
+        string=markup(string, %r{(#{$punctuation_start})\*\*}, %r{\*\*(#{$punctuation_end})}, '\1<big>', '</big>\1', true)
+        string=markup(string, %r{(#{$punctuation_start})\*}, %r{\*(#{$punctuation_end})}, '\1<b>', '</b>\1', true)
+        string=markup(string, %r{(#{$punctuation_start})_}, %r{_(#{$punctuation_end})}, '\1<u>', '</u>\1', true)
+        string=markup(string, %r{(#{$punctuation_start})`}, %r{`(#{$punctuation_end})}, '\1<tt>', '</tt>\1', true)
 
         # Plain URLs like:  http://example.com (becomes an HTML links)
         # Note that this also handles IP:Port, but it does no error correction.
         result=[]
         url = %r{
-          (^|\ )
+          (#{$punctuation_start})
           (http://|ftp://|irc://|gopher://|file://)
           (\S+\.[^\s\/]{2,4}) (?# whatever.info)
           ([\/\S*]*) (?# /foo/bar/baz.html -- Not exactly what I wanted to use, but it works somehow)
@@ -217,13 +233,13 @@ def compile(source_file_full_path, target_file_full_path)
           result << line
         end
         string=result.to_s
-        # Local links to new pages, like:  [[link name]] => 'link-name.asc'
+        # WORKING: Local links to new pages, like:  [[link name]] => 'link-name.asc'
         local_url = %r{
-          (^| )
+          (#{$punctuation_start})
           (\[\[)
           (\S+)
           (\]\])
-          ( |$)
+          (#{$punctuation_end})
         }x
         result=[]
         string.each do |line|
@@ -239,7 +255,7 @@ def compile(source_file_full_path, target_file_full_path)
 # check for the file
 ## if exists, remove the [[ and ]] (from both this string and the source file) and then automatic_linking will catch it.
 ## if it does not exist, then make some sort of self-known local link to that file, so that clicking on it in a browser will open up an editor with that filename ready (displaying an empty file)
-              line.sub!(local_url, "-> #{match[1]}#{match[3]}#{match[5]} <-")
+              line.sub!(local_url, " -> #{match[1]}#{match[3]}#{match[5]} <- ")
 #puts source_file_full_path.inspect
 #puts target_file_full_path.inspect
             end
@@ -314,7 +330,7 @@ end
         file='./' + file + '.html'
         # Note: case-insensitivity is defined by the /i .. I don't think I'd ever want case-sensitivity.
         # I'm being pretty cheap here.  Instead of being smart about auto-linking URLs, and intentionally avoiding odd broken-assed web+local links, I'm limiting what things can be auto-linked as local links.
-        line=markup(line, /(^| )(#{file_string})($| )/i, //, '\1<a href="' + file + '">\2</a>\3', '', true)
+        line=markup(line, %r{(#{$punctuation_start})(#{file_string})(#{$punctuation_end})}i, //, '\1<a href="' + file + '">\2</a>\3', '', true)
       end
       file_working << line
     end
@@ -372,19 +388,23 @@ end
     return result.to_s
   end
 
-  def header_and_footer(string, source_file_full_path)
+  def header_and_footer(string, source_directory, source_file_full_path)
+    a=Pathname.new(source_directory)
+    b=Pathname.new(File.dirname(source_file_full_path))
+    path=a.relative_path_from(b)
+
     header_search = Regexp.new('')
     header_replace=<<-"HEREDOC"
-<link rel="icon" href="#{$WEBSITE}/images/favicon.ico" type="image/x-icon">
-<link rel="shortcut icon" href="#{$WEBSITE}/images/favicon.ico" type="image/x-icon">
-<link rel="stylesheet" type="text/css" href="#{$WEBSITE}/css/main.css" />
+<link rel="icon" href="#{path}/images/favicon.ico" type="image/x-icon">
+<link rel="shortcut icon" href="#{path}/images/favicon.ico" type="image/x-icon">
+<link rel="stylesheet" type="text/css" href="#{path}/css/main.css" />
 </head>
 <body>
 <a name id="top">
 <div class="nav">
   <div class="float-left">
-    <a class="without_u" accesskey="z" href="#{$WEBSITE}/index.html">
-      <img align="left" src="#{$WEBSITE}/images/spiralofhope-96.png">
+    <a class="without_u" accesskey="z" href="#{path}/index.html">
+      <img align="left" src="#{path}/images/spiralofhope-96.png">
     </a>
     <br>
     <font style="font-size:1.5em;"><font color="steelblue">S</font>piral of Hope</font>
@@ -416,12 +436,12 @@ I simplified it, here's the original:
     footer_replace=<<-"HEREDOC"
           </div> <!-- main -->
           <div class="footer">
-            <img border="0" src="#{$WEBSITE}/images/spiralofhope-16.png"> Spiral of Hope / <a href="mailto:@gmail.com">spiralofhope</a><a href="mailto:@gmail.com">@gmail.com</a>
+            &copy; <a href="#{path}/contact.html">Spiral of Hope</a> - all rights reserved (until I figure licensing out)
             <br>
             <!-- TODO -->
-            <img border="0" src="#{$WEBSITE}/images/FIXME.png">Hosting provided by (FIXME), <a href="#{$WEBSITE}/thanks.html#FIXME">thanks!</a>
+            <img border="0" src="#{path}/images/FIXME.png">Hosting provided by (FIXME), <a href="#{path}/thanks.html#FIXME">thanks!</a>
             <br>
-            <em><small>(<a href="#{$WEBSITE}/sitemap.html">sitemap</a>)</small></em>
+            <em><small>(<a href="#{path}/sitemap.html">sitemap</a>)</small></em>
             <br>
             <a class="without_u" accesskey="e" href="file://#{source_file_full_path}">&nbsp;</a>
           </div> <!-- footer -->
@@ -434,31 +454,38 @@ I simplified it, here's the original:
     return string
   end
 
-  def compile(source_file_full_path, target_file_full_path)
+  def compile(source_directory, source_file_full_path, target_file_full_path)
     contents=file_read(source_file_full_path)
     contents=markup(contents, /<.+>/, /<.+>/, nil, nil, false)
     contents=automatic_linking(contents, File.dirname(source_file_full_path))
 
     # Unordered lists
-    # FIXME FUCK, it's interacting with the strikethrough feature!
-    contents=lists(contents, /^(-+) (.*)$/, '<ul>', '</ul>', '<li>', '</li>', '')
+    #   FIXME:  FUCK, it's interacting with the strikethrough feature!
+    contents=lists(contents, %r{^(-+) (.*)$}, '<ul>', '</ul>'+"\n", '<li>', '</li>', '')
     # Ordered lists
-    contents=lists(contents, /^(#+) (.*)$/, '<ol>', '</ol>', '<li>', '</li>', '')
-    # Code blocks
-    contents=lists(contents, /^( )(.+)$/, '<pre>', '</pre>', '', '', '<br>')
+    contents=lists(contents, %r{^(#+) (.*)$}, '<ol>', '</ol>'+"\n", '<li>', '</li>', '')
     # Indentation
-    contents=lists(contents, /^(:+) (.+)$/, '<dl>', '</dl>', '<dd>', '</dd>', '')
+    #   FIXME:  Doesn't allow nested indented items.  So two colons doesn't double-indent.
+    contents=lists(contents, %r{^(:+) (.+)$}, '<dl>', '</dl>'+"\n", '<dd>', '</dd>', '')
+    # Code blocks
+    contents=lists(contents, %r{^( )(.*)$}, '<pre>', '</pre>'+"\n", '', '', '<br>')
 
     # '~~~~FOOTER~~~~' is a totally hackish thing for me to do, but oh well.
     # I should just redo this to make it a simple header + contents + footer.. eesh.
-    contents=header_and_footer(contents + '~~~~FOOTER~~~~', source_file_full_path)
+    contents=header_and_footer(contents + '~~~~FOOTER~~~~', source_directory, source_file_full_path)
 
     # Headers
-    contents.gsub!(/^= (.*) =$/, '<h1>\1</h1>')
-    contents.gsub!(/^== (.*) ==$/, '<h2>\1</h2>')
-    contents.gsub!(/^=== (.*) ===$/, '<h3>\1</h3>')
-    contents.gsub!(/^==== (.*) ====$/, '<h4>\1</h4>')
-    contents.gsub!(/^===== (.*) =====$/, '<h5>\1</h5>')
+    contents.gsub!(/^= (.*) =$/, '<h1>\1</h1>' + "\n")
+    contents.gsub!(/^== (.*) ==$/, '<h2>\1</h2>' + "\n")
+    contents.gsub!(/^=== (.*) ===$/, '<h3>\1</h3>' + "\n")
+    contents.gsub!(/^==== (.*) ====$/, '<h4>\1</h4>' + "\n")
+    contents.gsub!(/^===== (.*) =====$/, '<h5>\1</h5>' + "\n")
+
+    # Horizontal rules
+    #   With an empty space above and below.
+    contents.gsub!(/\n\n\-\-\-+\n\n/m, '<hr>')
+    #   With content either above or below.
+    contents.gsub!(/^\-\-\-+$/, '<hr width="25%" align="left">')
 
     # A hackish way to do paragraphs.
     # This is here and not earlier because it'll interfere with the listing functionality.
@@ -469,7 +496,7 @@ I simplified it, here's the original:
     timestamp_sync(source_file_full_path, target_file_full_path)
 
   end
-  compile(source_file_full_path, target_file_full_path)
+  compile(source_directory, source_file_full_path, target_file_full_path)
 end
 def test_compile()
   contents=<<-HEREDOC
@@ -532,7 +559,7 @@ FIXME http://example.com
   source_file=File.join(working_directory, 'source.asc')
   create_file(source_file, contents)
 
-  compile(source_file, working_directory)
+  compile(source_directory, source_file, working_directory)
 
   target_file_full_path=File.join(working_directory, File.basename(source_file.chomp(File.extname(source_file))) + '.html')
   puts file_read(target_file_full_path)
@@ -562,11 +589,11 @@ end
 #generate_sitemap(compiled_directory)
 
 def main(source_directory, compiled_directory)
-  def process(source_file_full_path, target_file_full_path)
-    compile(source_file_full_path, target_file_full_path)
+  def process(source_directory, source_file_full_path, target_file_full_path)
+    compile(source_directory, source_file_full_path, target_file_full_path)
     timestamp_sync(source_file_full_path, target_file_full_path)
     view_html(target_file_full_path)
-    # TODO: Re-compile all files in that same source directory, to ensure that automatic linking is re-applied to include this new file
+    # TODO/FIXME: Re-compile all files in that same source directory, to ensure that automatic linking is re-applied to include this new file
   end
   pid_file=File.join('', 'tmp', 'compile_child_pid')
   fork_killer(pid_file)
@@ -579,8 +606,7 @@ def main(source_directory, compiled_directory)
       if not File.exists?(target_file_full_path) then
         vputs 'Building missing file:  ' + source_file_full_path.inspect
         vputs ' ...             into:  ' + target_file_full_path.inspect
-        process(source_file_full_path, target_file_full_path)
-        # TODO: Re-generate the sitemap, so that this new item will be created.
+        process(source_directory, source_file_full_path, target_file_full_path)
         generate_sitemap(File.dirname(target_file_full_path))
         next
       end
@@ -590,7 +616,7 @@ def main(source_directory, compiled_directory)
         target_path=File.join(compiled_directory, File.dirname(asc_file))
         vputs 'Building unsynced timestamps:  ' + source_file_full_path.inspect
         vputs ' ...                    with:  ' + target_file_full_path.inspect
-        process(source_file_full_path, target_file_full_path)
+        process(source_directory, source_file_full_path, target_file_full_path)
         next
       end
     end # Dir['**/*.asc'].each
@@ -604,5 +630,3 @@ main(source_directory, compiled_directory)
 # viewer(File.join(target_directory_path, 'index.html'))
 # sleep 3
 # fork_killer(File.join('', 'tmp', 'compile_child_pid'))
-
-
