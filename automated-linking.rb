@@ -1,5 +1,11 @@
 =begin
-- TODO: Implement - for unordered lists, and # for ordered lists
+TODO:
+be able to summon this and pass it a variable.
+
+
+
+TODO list:
+- Implement a hyphon - for unordered lists, and # for ordered lists
 - Consider manual lists.. I count the lines and paint the numbers myself.  This will let me have broken lists like this:
 
 # one
@@ -10,13 +16,14 @@ something
 # three
 # four
 
-- TODO: Have [http://example.com] type links, which become [1] etc, auto-numbered.
-- TODO: A better 'listings' feature.  Just have it output the right CSS and let the user figure out how it ought to be displayed.  I'm tired of ;list: item
-- TODO: colon (:) for indentation
-- TODO: Manually-indent blocks between headers, like the original coWiki did.  I wonder what the HTML for that was.  Consider looking into my old archives, like my old RPG archives I sent to Angus.
-- TODO: implement "new page" creation concepts.  I would make a link like [[link]] and then the system would point me to the appropriate source .asc file.  This would summon my editor as usual, and I can make the page very easily.
-- TODO: tables, somehow..
-- TODO: Create a for-print version that changes inline links into anchor links to a nice list of endnotes.  I could even tinyurl all those links automatically..
+- Have [http://example.com] type links, which become [1] etc, auto-numbered.
+- A better 'listings' feature.  Just have it output the right CSS and let the user figure out how it ought to be displayed.  I'm tired of ;list: item
+- colon (:) for indentation
+- Manually-indent blocks between headers, like the original coWiki did.  I wonder what the HTML for that was.  Consider looking into my old archives, like my old RPG archives I sent to Angus.
+- implement "new page" creation concepts.  I would make a link like [[link]] and then the system would point me to the appropriate source .asc file.  This would summon my editor as usual, and I can make the page very easily.
+- tables, somehow..
+- Create a for-print version that changes inline links into anchor links to a nice list of endnotes.  I could even tinyurl all those links automatically..
+- Templating {{replacement file}}  {{subst:replacement file}}
 =end
 
 
@@ -72,12 +79,13 @@ def marked_no(string, internal_markup_flag)
   if internal_markup_flag != true then
     # TODO: If every regex has the same start and end block, I should somehow be able to remove that duplication.. but I'd have to research regexes more and maybe other stuff.  I'm not sure what to do.
     # TODO: Allow more punctuation on the right side of the search.
-    string=chew(string, /(^| )\//, /\/(\.|$)/, '\1<em>', '</em>\1', true)
-    string=chew(string, /(^| )\*\*/, /\*\*(\.|$)/, '\1<big>', '</big>\1', true)
-    string=chew(string, /(^| )\*/, /\*(\.|$)/, '\1<b>', '</b>\1', true)
-    string=chew(string, /(^| )_/, /_(\.|$)/, '\1<u>', '</u>\1', true)
-    string=chew(string, /(^| )-/, /-(\.|$)/, '\1<s>', '</s>\1', true)
-    string=chew(string, /(^| )`/, /`(\.|$)/, '\1<tt>', '</tt>\1', true)
+    # [:punct:] and [:blank:] don't work..
+    string=chew(string, /(^| )\//, /\/(\.|,| |$)/, '\1<em>', '</em>\1', true)
+    string=chew(string, /(^| )\*\*/, /\*\*(\.|,| |$)/, '\1<big>', '</big>\1', true)
+    string=chew(string, /(^| )\*/, /\*(\.|,| |$)/, '\1<b>', '</b>\1', true)
+    string=chew(string, /(^| )_/, /_(\.|,| |$)/, '\1<u>', '</u>\1', true)
+    string=chew(string, /(^| )-/, /-(\.|,| |$)/, '\1<s>', '</s>\1', true)
+    string=chew(string, /(^| )`/, /`(\.|,| |$)/, '\1<tt>', '</tt>\1', true)
     string=chew(string, /(^| )((http\:\/\/|ftp:\/\/|irc:\/\/|gopher:\/\/)(.*)(\....?))( |$)/, /( |$)/, '\1<a href="\2">\2</a> ', '\1', true)
     internal_markup_flag=false
   end
@@ -132,14 +140,16 @@ def automatic_linking(files, document)
 end
 
 document=<<-HEREDOC
-example code:
 *bold* **big** _underline_ /italics/ -strikethrough-
 Yes, this is legal in my code.  I'll just clean it up with HTML Tidy.:
   *two _words* test_
+some `code` here
+`something`
+* _bold underline_ * _ *underline bold* _ _ * / underlined bold emphasis / * _
+** * - _ / big bold strikethrough underlined emphasis / _ - * **
+*punctuation*. /works/, yay
 < test <> *no markup here* </>
 left <a href="http://example.com">no *markup* here</a> right
-* _bold underline_ * _ *underline bold* _ _ * / underlined bold emphasis / * _
-** * - _ /big bold strikethrough underlined emphasis/_-***
 <nowiki>*test*</nowiki>  <anything>_yep_</> <>don't</>
 left http://example.com right
 http://invalid http://invalid.c
@@ -151,23 +161,17 @@ this is some example text
 this is some text
 this is someexample text
 this issome example text
-some `code` here ## FIXME
-`something`
 HEREDOC
 
 document=automatic_linking(get_files(), document)
 
-# Yes it outputs them with spaces between them, but that's ok for HTML. TODO: Check if tidy will clean that up.  Notice the right side doesn't need spaces, and you can even mash *** together.
-document=chew(document, /<.*?>/, /<.*?>/, nil, nil, false)
+# Yes it outputs code with spaces between them, but that's ok for HTML. TODO: Check if tidy will clean that up.  Notice the right side doesn't need spaces, and you can even mash *** together.
+document=chew(document, /<.+>/, /<.+>/, nil, nil, false)
 
-# TODO: this works on files only, not variables..
+# FIXME: this works on files only, not variables..
 # system('tidy -indent -upper -clean -quiet -omit -asxhtml -access -output file', document)
 
 puts document
-
-
-
-
 
 
 __END__
