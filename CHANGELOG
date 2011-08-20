@@ -1,3 +1,11 @@
+2011-03-02  spiralofhope  <spiralofhope@lavabit.com>
+  
+  0.8.19_internal
+  
+  * Pre-CHANGELOG
+  
+  * rb/header-and-footer.rb:  First appearance.
+
 2010-11-20  spiralofhope  <spiralofhope@lavabit.com>
   
   0.8.17_internal
