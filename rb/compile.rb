@@ -4,7 +4,10 @@ Usage:
 - wiki-style linking is done automatically, just type as usual and the engine will figure out the links.  Note that multiple words are given priority over single words.
 
 Requirements:
-HTML Tidy (the executable, not the Ruby library)
+Ruby 1.8.7 and its standard libraries
+My standard libraries
+
+HTML Tidy (the executable, not the Ruby library - I can't figure out how to use it, and it looks dated and unloved.)
   http://tidy.sourceforge.net/
 
   # Tested and works on Unity Linux 64bit as of 2010-04-12:
@@ -25,15 +28,10 @@ source_directory='source'
 # The directory with the completed html files
 compiled_directory='compiled'
 # TODO: A variable for the web browser?  Seems non-obvious..
+# To customize the browser that's used, hack view_html()
 
 source_directory=File.expand_path(File.join(File.dirname(__FILE__), '..', source_directory))
 compiled_directory=File.expand_path(File.join(File.dirname(__FILE__), '..', compiled_directory))
-
-# Local website, like file:///tmp/mydir/website .. with no trailing slash
-#$WEBSITE='file://' + compiled_directory
-$WEBSITE=compiled_directory
-# Full URL, like http://example.com .. with no trailing slash
-# $WEBSITE="http://spiralofhope.com"
 
 require 'pathname'
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), 'lib'))
@@ -53,7 +51,8 @@ $punctuation_start=%r{
   |\ \(
   |^\(
 }x
-# Note that something like 'oldschool-linux.asc' won't get linked, because I require an ending like '. ' .. a simple '|\.' can be added to relax this restriction.
+# Note that something like 'oldschool-linux.asc' won't get linked, because this regular expression requires an ending like '. '
+#   A simple '|\.' can be added to relax this restriction.
 $punctuation_end=%r{
   $
   |\.\ 
@@ -73,6 +72,7 @@ $punctuation_end=%r{
 }x
 
 def sanity_check(source_directory, compiled_directory)
+  # TODO: Confirm that tidy exists and can be run.
   # Check for source_directory
   #The graceful way would be to leverage lib_directories//cd_directory and trap the RunTimeError that can be raised.
   if not File.directory?(source_directory) then
@@ -170,6 +170,7 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
     # TODO: This is the far cooler version which I should implement.
     #   It cannot work as-is because \1 doesn't carry through.
     #   So what I'd need to do is to completely tear out this markup() concept and redo things from a much simpler perspective.
+    # Oh oh!  I could use whatever.dup and then use match[1] like I've done before.
     #[
       #['/', '<em>', '</em>'],
       #['*', '<b>', '</b>'],
@@ -194,81 +195,6 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
         string=markup(string, %r{(#{$punctuation_start})\*}, %r{\*(#{$punctuation_end})}, '\1<b>', '</b>\1', true)
         string=markup(string, %r{(#{$punctuation_start})_}, %r{_(#{$punctuation_end})}, '\1<u>', '</u>\1', true)
         string=markup(string, %r{(#{$punctuation_start})`}, %r{`(#{$punctuation_end})}, '\1<tt>', '</tt>\1', true)
-
-        # Plain URLs like:  http://example.com (becomes an HTML links)
-        # Note that this also handles IP:Port, but it does no error correction.
-        result=[]
-        url = %r{
-          (#{$punctuation_start})
-          (http://|ftp://|irc://|gopher://|file://)
-          (\S+\.[^\s\/]{2,4}) (?# whatever.info)
-          ([\/\S*]*) (?# /foo/bar/baz.html -- Not exactly what I wanted to use, but it works somehow)
-          (?# Note that this regex doesn't discard trailing ], so be careful about [ http://example.com] becoming a link to 'example.com]')
-        }x
-        result=[]
-        string.each do |line|
-          result << line.gsub(url, '\1<a href="\2\3\4">\3\4</a>')
-        end
-        string=result.to_s
-
-        # Numbered links, like:  [http://example.com] => [1] (HTML link to its source, and incrementally-counted)
-        numbered_url = %r{
-          (^\[| \[)
-          (http://|ftp://|irc://|gopher://|file://)
-          (\S+\.[^\]\s\/]{2,4}) (?# whatever.info)
-          ([\/\S*]*) (?# /foo/bar/baz.html -- Not exactly what I wanted to use, but it works somehow)
-        }x
-        result=[]
-        counter=1
-        string.each do |line|
-          line =~ numbered_url
-          if $~ != nil then
-            line_copy = line.dup
-            # TODO: I can probably split based on a regular expression, but I've never been able to actually do it.
-            line_copy.gsub!(numbered_url, '~~~~~numbered_url~~~~~')
-            line_copy=line_copy.split('~~~~~numbered_url~~~~~')
-            line_copy_length=(line_copy.length)-1
-            line_copy_length.times do
-              line =~ numbered_url
-              match=$~.dup
-              line.sub!(numbered_url, "<a href=\"#{match[2]}#{match[3]}\">\[#{counter}\]</a>")
-              counter+=1
-            end
-          end
-          result << line
-        end
-        string=result.to_s
-        # WORKING: Local links to new pages, like:  [[link name]] => 'link-name.asc'
-        local_url = %r{
-          (#{$punctuation_start})
-          (\[\[)
-          (\S+)
-          (\]\])
-          (#{$punctuation_end})
-        }x
-        result=[]
-        string.each do |line|
-          line =~ local_url
-          if $~ != nil then
-            line_copy = line.dup
-            line_copy.gsub!(local_url, '~~~~~local_url~~~~~')
-            line_copy=line_copy.split('~~~~~local_url~~~~~')
-            line_copy_length=(line_copy.length)-1
-            line_copy_length.times do
-              line =~ local_url
-              match=$~.dup
-# check for the file
-## if exists, remove the [[ and ]] (from both this string and the source file) and then automatic_linking will catch it.
-## if it does not exist, then make some sort of self-known local link to that file, so that clicking on it in a browser will open up an editor with that filename ready (displaying an empty file)
-              line.sub!(local_url, " -> #{match[1]}#{match[3]}#{match[5]} <- ")
-#puts source_file_full_path.inspect
-#puts target_file_full_path.inspect
-            end
-          end
-          result << line
-        end
-        string=result.to_s
-
         internal_markup_flag=false
       end
       return string
@@ -296,7 +222,167 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
     end
     return processed
   end
-  def automatic_linking(source_file_full_path, string, directory)
+  # TODO: Should I replace these simple numbered anchors with the name of the header?  Then I'd have to clean up the header text to make it valid HTML.  Eww.
+  def HTML_headers(string)
+    regex=%r{
+      ^([=]+)
+      \ 
+      ([^\ ].*?[^\=])
+      (\ [=]+$|$)
+    }x
+    result=[]
+    total=0
+    $toc=[]
+    string.each do |line|
+      line =~ regex
+      if $~ != nil then
+        # count the number of = at the start of the header.
+        n=($~[1].length).to_s
+        total += 1
+        prepend=if total > 1 then '</div>' else '' end
+        line.sub!(regex, prepend + '<h' + n + ' id="a' + total.to_s + '">\2</h' + n + '><div class="indent' + n + '">' + "\n")
+        indent=''
+        #($~[1].length).times do
+          #indent=indent + '&nbsp;'
+        #end
+        indent='#' * ($~[1].length) + ' '
+        $toc << "\n" + indent + '<a href="#a' + total.to_s + '">' + $~[2] + '</a>'
+      end
+      result << line
+    end
+    string=result.to_s
+    # Note that I am *not* inserting $toc anywhere here.  That's the template/header's job.
+    # Obsolete:  If there is a header, then remove the first </div> so that it won't close <div class="main">
+    #string.sub!(/<\/div><h(\d)>/, '<h\1>')
+    return string
+  end
+  def HTML_horizontal_rules(string)
+    #   With an empty space above and below.
+    string.gsub!(/\n\n\-\-\-+\n\n/m, '<hr>')
+    #   With content either above or below.
+    string.gsub!(/^\-\-\-+$/, '<hr class="small">')
+    return string
+  end
+  def HTML_paragraphs(string)
+    # This is a hackish way to do paragraphs.
+    string.gsub!(/(\n\n)/, "\n</p>\1<p>\n")
+    return string
+  end
+  # Plain links, like:  http://example.com (HTML link to its source)
+  def links_rx()
+    return %r{
+      ( (?# http://)
+         http:\/\/
+        |ftp:\/\/
+        |irc:\/\/
+        |gopher:\/\/
+        |file:\/\/
+      )
+      ( (?# whatever.info)
+        \S{2,}\.\S{2,4}
+      )
+      ( (?# /foo/bar.html)
+         \/\S+[^\]]
+        |[^\]]
+      )
+    }x
+  end
+  def links_plain(string)
+    # Note that this also handles IP:Port, but it does no error correction.
+    result=[]
+    url = %r{
+      (#{$punctuation_start})
+      #{links_rx()}
+      (#{$punctuation_end})
+    }x
+    result=[]
+    string.each do |line|
+      # Yes this is a bit odd, but because of the way regex works I cannot keep my punctuation start/end restrictions while matching two consecutive items which are separated by punctuation.  So ' one two ' ends up only matching ' one '
+      until line.scan(url).size == 0 do
+        # Without http://
+        line.sub!(url, '\1<a href="\2\3\4">\3\4</a>\5')
+        # If you want to show the http:// part as well:
+        #line.sub!(url, '\1<a href="\2\3\4">\2\3\4</a>\5')
+      end
+      result << line
+    end
+    return result.to_s
+  end
+  # Named links, like:  [http://example.com name] => name (HTML link to its source)
+  def links_named(string)
+    # Note that this also handles IP:Port, but it does no error correction.
+    url = %r{
+      (#{$punctuation_start})
+      \[
+      #{links_rx()}
+      \                (?# A space)
+      (.+?[^\]])
+      \]
+      (#{$punctuation_end})
+    }x
+
+    result=[]
+    string.each do |line|
+      # Yes this is a bit odd, but because of the way regex works I cannot keep my punctuation start/end restrictions while matching two consecutive items which are separated by punctuation.  So ' one two ' ends up only matching ' one '
+      until line.scan(url).size == 0 do
+        line.sub!(url, '\1<a href="\2\3\4">\5</a>\6')
+      end
+      result << line
+    end
+    return result.to_s
+  end
+  # Numbered links, like:  [http://example.com] => [1] (HTML link to its source, and incrementally-counted)
+  def links_numbered(string)
+    # Note that this also handles IP:Port, but it does no error correction.
+    url = %r{
+      (#{$punctuation_start})
+      \[
+      #{links_rx()}
+      \]
+      (#{$punctuation_end})
+    }x
+    result=[]
+    counter=0
+    string.each do |line|
+      until line.scan(url).size == 0 do
+        counter += 1
+        line.sub!(url, '\1<a href="\2\3\4">' + counter.to_s + '</a>\5')
+      end
+      result << line
+    end
+    return result.to_s
+  end
+  # TODO: Local links to new pages, like:  [[link name]] => 'link-name.asc'
+  def TODO_links_local_new(string)
+    url = %r{
+      (#{$punctuation_start})
+      (\[\[)
+      (\S+)
+      (\]\])
+      (#{$punctuation_end})
+    }x
+    result=[]
+    string.each do |line|
+      line =~ url
+      if $~ != nil then
+        line_copy = line.dup
+        line_copy.gsub!(url, '~~~~~url~~~~~')
+        line_copy=line_copy.split('~~~~~url~~~~~')
+        line_copy_length=(line_copy.length)-1
+        line_copy_length.times do
+          line =~ url
+          match=$~.dup
+# check for the file
+## if exists, remove the [[ and ]] (from both this string and the source file) and then links_automatic() will catch it.
+## if it does not exist, then make some sort of self-known local link to that file, so that clicking on it in a browser will open up an editor with that filename ready (displaying an empty file)
+          line.sub!(url, " -> #{match[1]}#{match[3]}#{match[5]} <- ")
+        end
+      end
+      result << line
+    end
+    return result.to_s
+  end
+  def links_automatic(source_file_full_path, string, directory)
     source_name=File.basename(source_file_full_path, '.asc')
     # Get the files in the present directory:
     array_files=[]
@@ -326,7 +412,7 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
     return file_working.to_s
   end
   # TODO: This does not allow lists of mixed types (e.g. ordered within unordered)
-  #       I don't know that I care to fix this..
+  # TODO: Fucking totally overhaul this piece of shit..  I'm chopping off \n and it's screwing with stuff..
   def lists(string, regex, opening, closing, line_start, line_end, line_continuation)
     # working with lists!
     result=[]
@@ -376,40 +462,64 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
     end
     return result.to_s
   end
-
   def header_and_footer(string, source_directory, source_file_full_path)
+
+if $toc == [] then $toc = ''
+else
+$toc=<<-"HEREDOC"
+<script language="javascript">
+  function toggle(targetId) {
+    target = document.getElementById(targetId);
+    if (target.style.display == ""){
+      target.style.display="inline";
+    } else if (target.style.display == "none"){
+      target.style.display="inline";
+    } else {
+      target.style.display="none";
+    }
+  }
+</script>
+<div id="toc-main">
+  <small><a accesskey="t" href="javascript:toggle('toc')">Table of Contents</a></small>
+  <div id="toc" style="display: none">
+    #{$toc}
+  </div>
+</div>
+HEREDOC
+end
+
     a=Pathname.new(source_directory)
     b=Pathname.new(File.dirname(source_file_full_path))
     path=a.relative_path_from(b)
-
     header_search = Regexp.new('')
     header_replace=<<-"HEREDOC"
-<link rel="icon" href="#{path}/images/favicon.ico" type="image/x-icon">
-<link rel="shortcut icon" href="#{path}/images/favicon.ico" type="image/x-icon">
-<link rel="stylesheet" type="text/css" href="#{path}/css/main.css" />
-<title>#{File.basename(source_file_full_path, '.asc')}</title>
-</head>
-<body>
-<a name id="top">
-<div class="nav">
-  <div class="float-left">
-    <a class="without_u" accesskey="z" href="#{path}/index.html">
-      <img align="left" src="#{path}/images/spiralofhope-96.png">
-    </a>
-    <br>
-    <font style="font-size:1.5em;"><font color="steelblue">S</font>piral of Hope</font>
-    <br>
-    <font style="font-size: 0.5em;">Better software is possible.</font>
-  </div>
-  <div class="float-right">
-    <form action="http://www.google.com/search">
-      <input class="edit-line" name="q" size="25" accesskey="f" value="Search" class="texta" />
-      <input type="hidden" name="sitesearch" value="spiralofhope.com" />
-    </form>
-  </div>
-</div>
-<a name="body">
-<div class="main">
+      <link rel="icon" href="#{path}/images/favicon.ico" type="image/x-icon">
+      <link rel="shortcut icon" href="#{path}/images/favicon.ico" type="image/x-icon">
+      <link rel="stylesheet" type="text/css" href="#{path}/css/main.css" />
+      <title>#{File.basename(source_file_full_path, '.asc')}</title>
+    </head>
+    <body>
+      <a name id="top">
+      <div class="nav">
+        <div class="float-left">
+          <a class="without_u" accesskey="z" href="#{path}/index.html">
+            <img align="left" src="#{path}/images/spiralofhope-96.png">
+          </a>
+          <br>
+          <font style="font-size:1.5em;"><font color="steelblue">S</font>piral of Hope</font>
+          <br>
+          <font style="font-size: 0.5em;">Better software is possible.</font>
+        </div>
+        <div class="float-right">
+          <form action="http://www.google.com/search">
+            <input class="edit-line" name="q" size="25" accesskey="f" value="Search" class="texta" />
+            <input type="hidden" name="sitesearch" value="spiralofhope.com" />
+          </form>
+          #{$toc}
+        </div>
+      </div>
+      <a name="body">
+      <div class="main">
     HEREDOC
 
 =begin
@@ -423,63 +533,78 @@ I simplified it, here's the original:
     # Could I search for the EOF or something cool?  Or just.. directly append this to do the bottom perhaps.
     footer_search=Regexp.new('~~~~FOOTER~~~~')
     puts footer_search
-    footer_replace=<<-"HEREDOC"
-          </div> <!-- main -->
-          <div class="footer">
-            &copy; <a href="#{path}/contact.html">Spiral of Hope</a> - all rights reserved (until I figure licensing out)
-            <br>
-            <!-- TODO -->
-            <img border="0" src="#{path}/images/FIXME.png">Hosting provided by (FIXME), <a href="#{path}/thanks.html#FIXME">thanks!</a>
-            <br>
-            <em><small>(<a href="#{path}/sitemap.html">sitemap</a>)</small></em>
-            <br>
-            <a class="without_u" accesskey="e" href="file://#{source_file_full_path}">&nbsp;</a>
-          </div> <!-- footer -->
-        </body>
-      </html>
-    HEREDOC
+    # The top </div> will close any remaining <h1 class="indent1"> type references.  HTML Tidy will clean things up if there are no headers on that page.
+    # Close the div created by the last header, if there was one.
+    if $toc != '' then
+      footer_replace = '</div>'
+    else
+      footer_replace = ''
+    end
+    footer_replace+=<<-"HEREDOC"
+  </div> <!-- main -->
+  <div class="footer">
+    &copy; <a href="#{path}/contact.html">Spiral of Hope</a> - all rights reserved (until I figure licensing out)
+    <br>
+    <!-- TODO -->
+    <img border="0" src="#{path}/images/FIXME.png">Hosting provided by (FIXME), <a href="#{path}/thanks.html#FIXME">thanks!</a>
+    <br>
+    <em><small>(<a href="#{path}/sitemap.html">sitemap</a>)</small></em>
+    <br>
+    <a class="without_u" accesskey="e" href="file://#{source_file_full_path}">&nbsp;</a>
+  </div> <!-- footer -->
+  </body>
+</html>
+HEREDOC
 
     string=multiline_replace(header_search, string, header_replace)
     string=multiline_replace(footer_search, string, footer_replace)
     return string
   end
-
+  
   def compile(source_directory, source_file_full_path, target_file_full_path)
     contents=file_read(source_file_full_path)
+
+    # Note that the order of this stuff *is* important.
+
     contents=markup(contents, /<.+>/, /<.+>/, nil, nil, false)
-    contents=automatic_linking(source_file_full_path, contents, File.dirname(source_file_full_path))
-
-    # Unordered lists
-    #   FIXME:  FUCK, it's interacting with the strikethrough feature!
-    contents=lists(contents, %r{^(-+) (.*)$}, '<ul>', '</ul>'+"\n", '<li>', '</li>', '')
-    # Ordered lists
-    contents=lists(contents, %r{^(#+) (.*)$}, '<ol>', '</ol>'+"\n", '<li>', '</li>', '')
-    # Indentation
-    #   FIXME:  Doesn't allow nested indented items.  So two colons doesn't double-indent.
-    contents=lists(contents, %r{^(:+) (.+)$}, '<dl>', '</dl>'+"\n", '<dd>', '</dd>', '')
-    # Code blocks
-    contents=lists(contents, %r{^( )(.*)$}, '<pre>', '</pre>'+"\n", '', '', '<br>')
-
-    # '~~~~FOOTER~~~~' is a totally hackish thing for me to do, but oh well.
-    # I should just redo this to make it a simple header + contents + footer.. eesh.
-    contents=header_and_footer(contents + '~~~~FOOTER~~~~', source_directory, source_file_full_path)
-
-    # Headers
-    contents.gsub!(/^= (.*) =$/, '<h1>\1</h1>' + "\n")
-    contents.gsub!(/^== (.*) ==$/, '<h2>\1</h2>' + "\n")
-    contents.gsub!(/^=== (.*) ===$/, '<h3>\1</h3>' + "\n")
-    contents.gsub!(/^==== (.*) ====$/, '<h4>\1</h4>' + "\n")
-    contents.gsub!(/^===== (.*) =====$/, '<h5>\1</h5>' + "\n")
 
     # Horizontal rules
-    #   With an empty space above and below.
-    contents.gsub!(/\n\n\-\-\-+\n\n/m, '<hr>')
-    #   With content either above or below.
-    contents.gsub!(/^\-\-\-+$/, '<hr width="25%" align="left">')
+    contents=HTML_horizontal_rules(contents)
 
-    # A hackish way to do paragraphs.
-    # This is here and not earlier because it'll interfere with the listing functionality.
-    contents.gsub!(/(\n\n)/, '</p>\1<p>')
+    # Paragraphs
+    contents=HTML_paragraphs(contents)
+
+    # Unordered lists
+    # FIXME: This is really fragile stuff, and doesn't like being moved around within compile()
+    #   FIXME:  FUCK, it's interacting with the strikethrough feature!
+    contents=lists(contents, %r{^(-+) (.*)$}, '<ul>', "</ul>\n", '<li> ', '</li>', '')
+    # Ordered lists
+    contents=lists(contents, %r{^(#+) (.*)$}, '<ol>', "</ol>\n", '<li> ', '</li>', '')
+    # Indentation
+    #   FIXME:  Doesn't allow nested indented items.  So two colons doesn't double-indent.
+    contents=lists(contents, %r{^(:+) (.+)$}, '<dl>', "</dl>\n", '<dd> ', '</dd>', '')
+    # Code blocks
+    contents=lists(contents, %r{^( )(.*)$}, '<pre>', "</pre>\n", '', '', '<br>')
+
+    # Links
+    contents=links_plain(contents)
+    contents=links_named(contents)
+    contents=links_numbered(contents)
+    # TODO
+    #contents=links_local_new(contents)
+    contents=links_automatic(source_file_full_path, contents, File.dirname(source_file_full_path))
+
+    # Headers (<h1> etc) and table of contents preparation
+    contents=HTML_headers(contents)
+
+    # TODO: '~~~~FOOTER~~~~' is a totally hackish thing for me to do, but oh well.
+    #   I should just redo this to make it a simple header + contents + footer.. eesh.
+    # And table of contents insertion.
+    contents=header_and_footer(contents + '~~~~FOOTER~~~~', source_directory, source_file_full_path)
+    # Re-generate ordered lists, so that a table of contents can be generated.
+    if $toc != '' then
+      contents=lists(contents, %r{^(#+) (.*)$}, '<ol>', "</ol>\n", '<li> ', '</li>', '')
+    end
 
     create_file(target_file_full_path, contents)
     tidy_html(target_file_full_path)
