@@ -111,7 +111,6 @@ def view_html(file_full_path)
     # Otherwise, this script would summon it wait for it to exit!
     #system('firefox', '-new-tab', file_full_path)
     system('firefox', '-P', '-default', file_full_path)
-    #system('firefox', '-no-remote', '-P', '-default', file_full_path)
     # Does not respect accesskeys, it thinks that .asc is a PGP file.  Bah.
     # It also saves the .asc files to /tmp.. sigh.
     #system('midori', file_full_path)
@@ -228,7 +227,7 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
   end
   # TODO: Should I replace these simple numbered anchors with the name of the header?  Then I'd have to clean up the header text to make it valid HTML.  Eww.
   def HTML_headers(string)
-    $paragraph=''
+    $paragraph = ''
     regex=%r{
       ^([=]+)
       \ 
@@ -247,7 +246,7 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
         # count the number of equal signs = at the start of the header.
         n=($~[1].length).to_s
         total += 1
-        section_link = '<a class="h-link" href="#a' + total.to_s + '"> &nbsp;&sect;&nbsp; </a>'
+        section_link = '<a class="h-link" href="#s' + total.to_s + '"> &nbsp;&sect;&nbsp; </a>'
         case n.to_i
           when 1 then
             paragraph = '<div class="p1">'
@@ -263,11 +262,11 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
             paragraph = '<div class="p1"><div class="p2"><div class="p3"><div class="p4"><div class="p5"><div class="p6">'
           else ''
         end
-        header = $paragraph + paragraph + '<h' + n + ' class="h-link" id="a' + total.to_s + '">\2' + section_link + '</h' + n + '>' + "\n"
+        header = $paragraph + paragraph + '<h' + n + ' class="h-link" id="s' + total.to_s + '">\2' + section_link + '</h' + n + '>' + "\n"
         line.sub!(regex, header)
         indent=''
         indent='#' * ($~[1].length) + ' '
-        $toc << "\n" + indent + '<a href="#a' + total.to_s + '">' + $~[2] + '</a>'
+        $toc << "\n" + indent + '<a href="#s' + total.to_s + '">' + $~[2] + '</a>'
         case n.to_i
           when 1 then
             $paragraph = '<!----></div>'
@@ -399,7 +398,6 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
   def links_local_new(source_file_full_path, string)
     directory=File.dirname(source_file_full_path)
     result=[]
-      #([^\[{2}].*?[^\]{2}])
     regex = %r{
       (#{$punctuation_start})
       \[{2}
@@ -413,28 +411,31 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
         next
       end
       until line.scan(regex).size == 0 do      
-        #puts $~.size.inspect + ' ' + $~.inspect + ' ' + line.inspect
-        new_source_file_full_path = File.join(directory, $~[2] + '.asc')
+        normalized_file=$~[2].gsub(' ', '-')
+        new_source_file_full_path = File.join(directory, normalized_file + '.asc')
         # Match [[file]] with /full/path/to/file.asc
         if File.exist?(new_source_file_full_path) and File.size(new_source_file_full_path) > 0 then
           # [[file]] is not actually new - it refers to an already-existing file, with content.
           # Remove the [[ and ]] from my current working string, and then links_automatic() will process this appropriately.
-  #puts $~[1] + $~[2] + $~[3]
           line.sub!(regex, '\1\2\3')
           # Remove [[ ]] from the source file.
           # TODO: It's a bit of a waste to re-read/sub!/write this file every single time, and this needs to be optimised.
           new_contents=file_read(source_file_full_path)
-  #puts $~[1] + $~[2] + $~[3]
-            #(#{$~[2]})
-          regex = %r{
-            (#{$punctuation_start})
+          regex2 = %r{
+            (#{$~[1]})
             \[{2}
-            ([^\[{2}]#{$~[2]}?[^\]{2}])
+            ((?-x)#{$~[2]}(?x))
             \]{2}
-            (#{$punctuation_end})
+            (#{$~[3]})
           }x
-  #puts new_contents.match(regex).inspect + "<-----"
-          new_contents.sub!(regex, '\1\2\3')
+          #new_contents =~ regex2
+          #if $~ != nil then puts $~.inspect else
+            #puts "no match ----------------------------"
+            #puts regex2.inspect
+            #puts new_contents.inspect
+            #puts "no match ----------------------------"
+          #end
+          new_contents.sub!(regex2, '\1\2\3')
           create_file(source_file_full_path, new_contents)
         else
           # [[file]] is legitimately new.
@@ -493,45 +494,42 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
     end
     return string
   end
+  # Magical automatic linking.  Ambrosia for authors.
   def links_automatic(source_file_full_path, string)
-    directory=File.dirname(source_file_full_path)
     source_name=File.basename(source_file_full_path, '.asc')
     # Get the files in the present directory:
     array_files=[]
-    Dir["#{directory}/*.asc"].each do |file|
+    Dir[ File.join(File.dirname(source_file_full_path), '*.asc') ].each do |file|
       next if not File.file?(file)
       next if file == source_file_full_path
       # "/path/foo/file name.asc" => "file name"
-      array_files << File.basename(file, '')
+      array_files << File.basename(file, '.asc')
     end
-    # This sort prioritizes multiple-word files ahead of single-word files.
-    array_files.sort!
-
-    file_working=[]
-    links_working=[]
+    # This sort prioritises multiple-word files ahead of single-word files.
+    array_files.sort!.reverse!
+    result=[]
     string.each do |line|
       array_files.each do |file|
-        file_string=file.chomp('.asc')
-        file_url=file_string + '.html'
-        # I'm being pretty cheap here.  Instead of being smart about auto-linking URLs, and intentionally avoiding odd broken-assed web+local links, I'm limiting what things can be auto-linked as local links.
-        # Link the exact filename.
-        regex=%r{(#{$punctuation_start})(#{file_string})(#{$punctuation_end})}i
-        file_string_full_path=File.join(File.dirname(source_file_full_path), file_string) + '.asc'
-        until line.scan(regex).size == 0 do
-          if File.size?(file_string_full_path) then
-            line.sub!(regex, '\1<a href="' + file_url + '">\2</a>\3')
+        regex=%r{
+          (#{$punctuation_start})
+          (
+             #{file}
+            |(?-x)#{file.gsub('-', ' ')}(?x)
+          )
+          (#{$punctuation_end})
+        }ix
+        file_full_path=File.expand_path(file + '.asc')
+        until line.match(regex) == nil or line.match(regex).size == 0 do
+          if File.exist?(file_full_path) and File.size(file_full_path) > 0 then
+            line.sub!(regex, '\1<a href="' + file + '.html">\2</a>\3')
           else
-            line.sub!(regex, '\1<a class="new" href="' + file_string_full_path + '">\2</a>\3')
+            line.sub!(regex, '\1<a class="new" href="' + file_full_path + '">\2</a>\3')
           end
         end
-
-        ## Also be forgiving for punctuation like dashes.
-        #file_string.gsub!('-', ' ')
-        #line=markup(line, %r{(#{$punctuation_start})(#{file_string})(#{$punctuation_end})}i, //, '\1<a href="' + file_url + '">\2</a>\3', '', true)
       end
-      file_working << line
+      result << line
     end
-    return file_working.to_s
+    return result.to_s
   end
   def original_links_automatic(source_file_full_path, string)
     directory=File.dirname(source_file_full_path)
@@ -692,8 +690,9 @@ end
       </div>
       <a name="a0">
       <div class="main">
-        <p>
+        <p class="p0" id="s0">
     HEREDOC
+# TODO: The opening <p> I have up here seems a bit off to me.  I don't think I'm appropriately closing it.  But leveraging #{$paragraph = '<!----></div>'} doesn't seem to be the answer!  Damn.
 
 =begin
 I simplified it, here's the original:
@@ -766,7 +765,7 @@ HEREDOC
     # Unordered lists
     # FIXME: This is really fragile stuff, and doesn't like being moved around within compile()
     #   FIXME:  FUCK, it's interacting with the strikethrough feature!
-    contents=lists(contents, %r{^(-+) (.*)$}, '<ul>', "</ul>\n", '<li> ' + "\n", ' </li>' + "\n", '')
+    contents=lists(contents, %r{^(-+) (.*)$}, '<ul>', "</ul>\n", '<li> ', ' </li>' + "\n", '')
     # Ordered lists
     contents=lists(contents, %r{^(#+) (.*)$}, '<ol>', "</ol>\n", '<li> ', ' </li>' + "\n", '')
     # Indentation
