@@ -6,12 +6,18 @@
 
 
 class Markup
-  def header_and_footer( string, source_file_full_path, target_file_full_path, type='wiki' )
+  def header_and_footer(
+                          string,
+                          source_file_full_path,
+                          target_file_full_path,
+                          type='wiki'
+                        )
 #    source_directory = File.dirname( File.realdirpath( source_file_full_path ) )
 
     # HTML5 will change the text/html charset definition thusly:
     #<meta charset="UTF-8">
-    path = File.dirname( File.realdirpath( target_file_full_path ) )
+    #path = File.dirname( File.realdirpath( target_file_full_path ) )
+    path = File.dirname( target_file_full_path )
     sitemap_path = 'TODO'
     
     header = <<-heredoc.unindent
@@ -82,13 +88,13 @@ class Markup
           <div id="styles" style="display: none">
             <small>
               <br>
-              <a href="#" accesskey="1" onclick="setActiveStyleSheet('Default');  return false;">Default</a>
+              <a href="#" accesskey="8" onclick="setActiveStyleSheet('Default');  return false;">Default</a>
               |
-              <a href="#" accesskey="2" onclick="setActiveStyleSheet('Dark');     return false;">Dark</a>
+              <a href="#" accesskey="9" onclick="setActiveStyleSheet('Dark');     return false;">Dark</a>
               |
-              <a href="#" accesskey="3" onclick="setActiveStyleSheet('No Style'); return false;">No Style</a>
+              <a href="#" accesskey="0" onclick="setActiveStyleSheet('No Style'); return false;">No Style</a>
               |
-              <a href="#" accesskey="4" onclick="setActiveStyleSheet('Test'); return false;">Test</a>
+              <a href="#" onclick="setActiveStyleSheet('Test'); return false;">Test</a>
               |
               <a href="greasemonkey-and-stylish.html">Your Own!</a>
             </small>

@@ -2,6 +2,18 @@
 # http://bfts.rubyforge.org/minitest/
 require 'minitest/autorun'
 
+def assert_equal_array( expected, result )
+  assert_equal(
+    expected.size.to_s,
+    result.size.to_s,
+  )
+  result.each_index{ |i|
+    assert_equal(
+      expected[i],
+      result[i],
+    )
+  }
+end
 class Test_Markup < MiniTest::Unit::TestCase
 
   def setup()
@@ -12,7 +24,7 @@ class Test_Markup < MiniTest::Unit::TestCase
     # Odd matches.
     # Even does not match.
     # Always an odd number of elements.
-
+    #
     #
     string = 'nothing'
     expected = [
@@ -21,17 +33,8 @@ class Test_Markup < MiniTest::Unit::TestCase
       '',
     ]
     result = @o.split_string_html( string )
-    assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    result.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
-
+    assert_equal_array( expected, result )
+    #
     #
     string = '<a>html</a>'
     expected = [
@@ -40,17 +43,8 @@ class Test_Markup < MiniTest::Unit::TestCase
       '',
     ]
     result = @o.split_string_html( string )
-    assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    result.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
-
+    assert_equal_array( expected, result )
+    #
     # Trailing html tags are counted as strings.
     string = '<a>html</a><a>'
     expected = [
@@ -59,17 +53,8 @@ class Test_Markup < MiniTest::Unit::TestCase
       '<a>',
     ]
     result = @o.split_string_html( string )
-    assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    result.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
-
+    assert_equal_array( expected, result )
+    #
     # Valid HTML has content within the tags.
     string = '<>html</>'
     expected = [
@@ -78,17 +63,8 @@ class Test_Markup < MiniTest::Unit::TestCase
       '',
     ]
     result = @o.split_string_html( string )
-    assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    result.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
-
+    assert_equal_array( expected, result )
+    #
     # Valid HTML has matching content within the tags.
     string = '<a>html</b>'
     expected = [
@@ -97,17 +73,8 @@ class Test_Markup < MiniTest::Unit::TestCase
       '',
     ]
     result = @o.split_string_html( string )
-    assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    result.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
-
+    assert_equal_array( expected, result )
+    #
     # Text before and after.
     string = 'before <a>html</a> after'
     expected = [
@@ -116,17 +83,8 @@ class Test_Markup < MiniTest::Unit::TestCase
       ' after',
     ]
     result = @o.split_string_html( string )
-    assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    result.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
-
+    assert_equal_array( expected, result )
+    #
     # Multiple instances of HTML.
     string = 'before <a>html</a> during <b>more html</b> after'
     expected = [
@@ -137,16 +95,7 @@ class Test_Markup < MiniTest::Unit::TestCase
       ' after',
     ]
     result = @o.split_string_html( string )
-    assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    result.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
+    assert_equal_array( expected, result )
 
     # Multiple instances of the same HTML tags.
     string = '<strong>one</strong> during <strong>two</strong>'
@@ -158,17 +107,8 @@ class Test_Markup < MiniTest::Unit::TestCase
       '',
     ]
     result = @o.split_string_html( string )
-    assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    result.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
-
+    assert_equal_array( expected, result )
+    #
     # Nested HTML.
     string = 'before <strong>STRONG <em>STRONG-EMPHASIS</em> BOLD</strong> not markup <strong>STRONG</strong> after'
     expected = [
@@ -179,17 +119,8 @@ class Test_Markup < MiniTest::Unit::TestCase
       ' after',
     ]
     result = @o.split_string_html( string )
-    assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    result.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
-
+    assert_equal_array( expected, result )
+    #
     # Improperly-nested instances of the same HTML tags.
     # This is user-error and is invalid HTML.
     #   TODO:  Check, is it invalid?  Isn't nesting tags valid?
@@ -214,16 +145,7 @@ class Test_Markup < MiniTest::Unit::TestCase
     string = 'before <strong>one </strong><strong>two </strong> after'
 
     result = @o.split_string_html( string )
-    assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    result.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
+    assert_equal_array( expected, result )
 =end
 
     # Garbage.
@@ -234,17 +156,8 @@ class Test_Markup < MiniTest::Unit::TestCase
       '',
     ]
     result = @o.split_string_html( string )
-    assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    result.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
-
+    assert_equal_array( expected, result )
+    #
     # Painfully complex.
     string = '<tag bar="baz > quux">no</tag>'
     expected = [
@@ -253,17 +166,8 @@ class Test_Markup < MiniTest::Unit::TestCase
       '',
     ]
     result = @o.split_string_html( string )
-    assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    result.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
-
+    assert_equal_array( expected, result )
+    #
     # Mind-numbingly complex.
     string = '<tag bar="</tag>">text</tag>'
     expected = [
@@ -272,17 +176,8 @@ class Test_Markup < MiniTest::Unit::TestCase
       '',
     ]
     result = @o.split_string_html( string )
-    assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    result.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
-
+    assert_equal_array( expected, result )
+    #
     #
     string = "<a></a>DISPLAY<b></b> <a href=\"foo.html\">foo</a>"
     expected = [
@@ -295,17 +190,8 @@ class Test_Markup < MiniTest::Unit::TestCase
       '',
     ]
     result = @o.split_string_html( string )
-    assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    result.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
-
+    assert_equal_array( expected, result )
+    #
     #
     string = <<-heredoc.unindent
       <table>
@@ -318,23 +204,16 @@ class Test_Markup < MiniTest::Unit::TestCase
       "\n",
     ]
     result = @o.split_string_html( string )
-    assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    result.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
-
+    assert_equal_array( expected, result )
   end
 
   def test_not_in_html()
     # Note that more complex testing has already been done within test_split_string()
     # So I'm not getting too complex here, but just testing the not_in_html_test_method() use of yield.
-    def not_in_html_test_method( string, *array )
+    def not_in_html_test_method(
+                                  string,
+                                  *array
+                                )
       if array.size > 0 then
         append = ' ' + array[0..-1].join( ' ' )
       else
@@ -343,7 +222,7 @@ class Test_Markup < MiniTest::Unit::TestCase
       string = "{#{ string }}#{append}"
       return string
     end
-
+    #
     #
     string = 'one'
     expected = '{one}'
@@ -362,7 +241,7 @@ class Test_Markup < MiniTest::Unit::TestCase
       expected,
       result,
     )
-
+    #
     #
     string = 'one <em>two</em>'
     expected = '{one }<em>two</em>'
@@ -371,7 +250,7 @@ class Test_Markup < MiniTest::Unit::TestCase
       expected,
       result,
     )
-
+    #
     #
     string = 'one <em>two</em> three'
     expected = '{one }<em>two</em>{ three}'
@@ -380,7 +259,7 @@ class Test_Markup < MiniTest::Unit::TestCase
       expected,
       result,
     )
-
+    #
     #
     string = 'one <em>two</em> three <em>four</em> five'
     expected = '{one }<em>two</em>{ three }<em>four</em>{ five}'
@@ -389,7 +268,7 @@ class Test_Markup < MiniTest::Unit::TestCase
       expected,
       result,
     )
-
+    #
     #
     string = 'one <em>two</em> three <em>four</em> five'
     expected = '{one } hey more<em>two</em>{ three } hey more<em>four</em>{ five} hey more'
@@ -398,7 +277,7 @@ class Test_Markup < MiniTest::Unit::TestCase
       expected,
       result,
     )
-
+    #
     #
     string = <<-heredoc.unindent
       <em>
@@ -423,7 +302,7 @@ class Test_Markup < MiniTest::Unit::TestCase
   end
 
   def test_markup_underline()
-
+    #
     #
     string = '_underlined_'
     expected = '<u>underlined</u>'
@@ -432,7 +311,7 @@ class Test_Markup < MiniTest::Unit::TestCase
       expected,
       result,
     )
-
+    #
     #
     string = 'one _two_ three _four_'
     expected = 'one <u>two</u> three <u>four</u>'
@@ -441,21 +320,21 @@ class Test_Markup < MiniTest::Unit::TestCase
       expected,
       result,
     )
-
+    #
     #
     string = '<> _not underlined_ </>'
     assert_equal(
       string,
       @o.markup_underline( string ),
     )
-
+    #
     #
     string = '<>_not underlined_</>'
     assert_equal(
       string,
       @o.markup_underline( string ),
     )
-
+    #
     #
     string = <<-heredoc.unindent
         _not
@@ -465,7 +344,7 @@ class Test_Markup < MiniTest::Unit::TestCase
       string,
       @o.markup_underline( string ),
     )
-
+    #
     #
     string = <<-heredoc.unindent
         <em>
@@ -476,14 +355,14 @@ class Test_Markup < MiniTest::Unit::TestCase
       string,
       @o.markup_underline( string ),
     )
-
+    #
     #
     string = '<em>_not underlined_</em>'
     assert_equal(
       string,
       @o.markup_underline( string ),
     )
-
+    #
     #
     string = <<-heredoc.unindent
       <em>
@@ -497,7 +376,7 @@ class Test_Markup < MiniTest::Unit::TestCase
       string,
       @o.markup_underline( string ),
     )
-
+    #
     # This is another case of improperly-nested html tags.
     # It's mentioned within test_split_string()
 =begin     
@@ -555,7 +434,7 @@ class Test_Markup < MiniTest::Unit::TestCase
   end
 
   def test_split_string_by_line()
-
+    #
     # String doesn't match.
     string = <<-heredoc.unindent
       An example string
@@ -565,17 +444,8 @@ class Test_Markup < MiniTest::Unit::TestCase
       string,
     ]
     result = @o.split_string_by_line( string, rx )
-    assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    result.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
-
+    assert_equal_array( expected, result )
+    #
     # A line matches.
     string = <<-heredoc.unindent
       one
@@ -590,17 +460,9 @@ class Test_Markup < MiniTest::Unit::TestCase
       "three\nfour\n",
     ]
     result = @o.split_string_by_line( string, rx )
-    assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    result.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
-
+    assert_equal_array( expected, result )
+    #
+    # TODO:  Move such test cases to a separate tc_libs.rb
     # gpartition2
     string = <<-heredoc.unindent
       This is a test
@@ -608,17 +470,8 @@ class Test_Markup < MiniTest::Unit::TestCase
     expected = [ string ]
     rx = %r{Not matching}
     result = string.gpartition2( rx )
-    assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    result.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
-
+    assert_equal_array( expected, result )
+    #
     ##
     #string = <<-heredoc.unindent
       #aaabbbcccddd
@@ -626,16 +479,7 @@ class Test_Markup < MiniTest::Unit::TestCase
     #expected = [ string ]
     #rx = %r{bbb}
     #result = string.gpartition2( rx )
-    #assert_equal(
-      #expected.size.to_s,
-      #result.size.to_s,
-    #)
-    #result.each_index{ |i|
-      #assert_equal(
-        #expected[i],
-        #result[i],
-      #)
-    #}
+    #assert_equal_array( expected, result )
 
 
 
@@ -658,16 +502,7 @@ class Test_Markup < MiniTest::Unit::TestCase
     #]
     #result = @o.split_string_by_line_and_html( string, rx )
 #p result
-    #assert_equal(
-      #expected.size.to_s,
-      #result.size.to_s,
-    #)
-    #result.each_index{ |i|
-      #assert_equal(
-        #expected[i],
-        #result[i],
-      #)
-    #}
+    #assert_equal_array( expected, result )
 
 
 
@@ -725,16 +560,7 @@ class Test_Markup < MiniTest::Unit::TestCase
       #"one\ntwo\n",
     #]
     #result = @o.split_string_by_line( string, rx, lstrip=true )
-    #assert_equal(
-      #expected.size.to_s,
-      #result.size.to_s,
-    #)
-    #result.each_index{ |i|
-      #assert_equal(
-        #expected[i],
-        #result[i],
-      #)
-    #}
+    #assert_equal_array( expected, result )
 
   end
 
@@ -751,16 +577,7 @@ skip
       "This is an example document.\n",
     ]
     result = @o.split_string_sections( string )
-    assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    result.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
+    assert_equal_array( expected, result )
 
     #
     string = <<-heredoc.unindent
@@ -771,16 +588,7 @@ skip
       "= Title One =\n",
     ]
     result = @o.split_string_sections( string )
-    assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    result.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
+    assert_equal_array( expected, result )
 
     #
     string = <<-heredoc.unindent
@@ -802,16 +610,7 @@ skip
       "\nText in section two.\n",
     ]
     result = @o.split_string_sections( string )
-    assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    result.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
+    assert_equal_array( expected, result )
 
     string = <<-heredoc.unindent
       = 1 =
@@ -829,16 +628,7 @@ skip
       "= 3 =\n",
     ]
     result = @o.split_string_sections( string )
-    assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    result.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
+    assert_equal_array( expected, result )
 
     #
     string = <<-heredoc.unindent
@@ -1937,16 +1727,7 @@ skip
       string,
     ]
     result = @o.lists_arrays( string )
-    assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    expected.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
+    assert_equal_array( expected, result )
 
     #
     string = <<-heredoc.unindent
@@ -1957,16 +1738,7 @@ skip
       string,
     ]
     result = @o.lists_arrays( string )
-    assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    expected.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
+    assert_equal_array( expected, result )
 
     #
     string = <<-heredoc.unindent
@@ -1977,16 +1749,7 @@ skip
       string,
     ]
     result = @o.lists_arrays( string )
-    assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    expected.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
+    assert_equal_array( expected, result )
 
     #
     string = <<-heredoc.unindent
@@ -1998,16 +1761,7 @@ skip
       "- one\n",
     ]
     result = @o.lists_arrays( string )
-    assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    expected.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
+    assert_equal_array( expected, result )
 
     #
     string = <<-heredoc.unindent
@@ -2021,16 +1775,7 @@ skip
       "after\n",
     ]
     result = @o.lists_arrays( string )
-    assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    expected.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
+    assert_equal_array( expected, result )
 
     # Multiple list items in a row.
     string = <<-heredoc.unindent
@@ -2042,16 +1787,7 @@ skip
       "- one\n- two\n",
     ]
     result = @o.lists_arrays( string )
-    assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    expected.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
+    assert_equal_array( expected, result )
 
     # Multiple list items in a row.  Mixed types.
     string = <<-heredoc.unindent
@@ -2063,16 +1799,7 @@ skip
       "- one\n# two\n",
     ]
     result = @o.lists_arrays( string )
-    assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    expected.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
+    assert_equal_array( expected, result )
 
     # Single blank lines are allowed, but removed, merging the lists.
     string = <<-heredoc.unindent
@@ -2087,16 +1814,7 @@ skip
     ]
     result = @o.lists_arrays( string )
 p result
-    assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    expected.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
+    assert_equal_array( expected, result )
 
     # Multiple blank lines form separate lists.
     string = <<-heredoc.unindent
@@ -2113,16 +1831,7 @@ p result
       "- two\n- three\n",
     ]
     result = @o.lists_arrays( string )
-    assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    expected.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
+    assert_equal_array( expected, result )
 
     # Indentation is allowed, but removed.
     string = <<-heredoc
@@ -2140,16 +1849,7 @@ p result
       "- two\n- three\n",
     ]
     result = @o.lists_arrays( string )
-    assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    expected.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
+    assert_equal_array( expected, result )
 
     # I once had an issue where any paragraphs that followed were getting double spaced.
     string = <<-heredoc.unindent
@@ -2165,16 +1865,7 @@ p result
       "- list\n",
       "\none\n\ntwo\n",
     ]
-    assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    result.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
+    assert_equal_array( expected, result )
 
 # To solve this, maybe I need another kind of not_in_html(), where it goes line-by-line.
 
@@ -2187,16 +1878,7 @@ p result
     #result = @o.lists_arrays( string )
     result = @o.split_string_by_line( string, %r{^\ *[-|\#]+\ +.+?$}, true )
 p result
-    #assert_equal(
-      #expected.size.to_s,
-      #result.size.to_s,
-    #)
-    #result.each_index{ |i|
-      #assert_equal(
-        #expected[i],
-        #result[i],
-      #)
-    # }
+    #assert_equal_array( expected, result )
 
   end
 =end
@@ -2642,16 +2324,7 @@ skip
       "one\ntwo\n",
     ]
     result = @o.blocks_array( string )
-    assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    result.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
+    assert_equal_array( expected, result )
 
 # FIXME:  This isn't right.  There should be an odd number of elements, starting with non-matches.
 # But if this is wrong, then it means anything else relying on split_string_by_line() needs to be investigated.
@@ -2666,16 +2339,7 @@ skip
       "      one\n      two\n",
     ]
     result = @o.blocks_array( string )
-    assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    result.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
+    assert_equal_array( expected, result )
 
     # Text before and after.  ( .unindent will preserve the tabbing of the lines with 'one' and 'two' )
     string = <<-heredoc.unindent
@@ -2690,16 +2354,7 @@ skip
       "after\n",
     ]
     result = @o.blocks_array( string )
-    assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    result.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
+    assert_equal_array( expected, result )
 
     # Multiple separate blocks, also with regular text.  ( .unindent will preserve the tabbing of the lines with 'one', 'two', 'three' and 'four' )
     string = <<-heredoc.unindent
@@ -2718,16 +2373,7 @@ skip
       "  three\n  four\n"
     ]
     result = @o.blocks_array( string )
-    assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    result.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
+    assert_equal_array( expected, result )
 
   end
 =end
@@ -2819,16 +2465,7 @@ skip
       "\n",
     ]
     result = @o.not_in_html( string ) { |i| @o.blocks(i) }
-      assert_equal(
-      expected.size.to_s,
-      result.size.to_s,
-    )
-    result.each_index{ |i|
-      assert_equal(
-        expected[i],
-        result[i],
-      )
-    }
+    assert_equal_array( expected, result )
 
   # Make sure that any html code isn't being forced out of the pre block.  The pre block should include everything as long as it shares that same left column of spaces.
   string = '  before <html>should be on the same line</html> after'

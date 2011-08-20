@@ -16,14 +16,14 @@ class String
   #   This line is also not indented
   # EOS
   #
-  def unindent
+  def unindent()
     lines = Array.new
     self.each_line { |ln| lines << ln }
 
     first_line_ws = lines[0].match( /^\s*/ )[0]
     rx = Regexp.new( '^\s{0,' + first_line_ws.length.to_s + '}' )
 
-    lines.collect { |line| line.sub( rx, "" ) }.join
+    lines.collect { |line| line.sub( rx, '' ) }.join
   end
 
   # like Array.partition, but "global", in the same sense that `sub` has `gsub`
@@ -73,7 +73,10 @@ end
 # ---
 
 
-def create_file( file, file_contents='' )
+def create_file(
+                  file,
+                  file_contents=''
+                )
   # TODO: This can't create a file if it's in a subdirectory that doesn't exist.  I get a TypeError.  Perhaps I could intelligently create the directory..
   vputs "creating file:  '#{ file }'"
   # TODO: check that I have write access to my current directory.
@@ -132,14 +135,14 @@ def md_directory( directory )
       # All is good!
       return 0
     else
-      raise "md_directory: It's a file, I can't make a directory of the same name!:  #{ directory.inspect}"
+      raise "md_directory: It's a file, I can't make a directory of the same name!:  #{ directory.inspect }"
       return 1
     end
   end
   # TODO:  Suppress explosions using Signal.trap, and deal with things gracefully.
   #        e.g.  Signal.trap( "HUP" ) { method() }
   #        Apply this technique elsewhere/everywhere.
-  vputs "md_directory: making directory:  #{ directory.inspect}"
+  vputs "md_directory: making directory:  #{ directory.inspect }"
 
   # This can make parent directories
   FileUtils.mkdir_p( directory )
@@ -190,7 +193,10 @@ def fork_killer( pid_file )
   end
 end
 
-def fork_helper( *args, &block )
+def fork_helper(
+                  *args,
+                  &block
+                )
   pid_file = args[0]
   pid = fork do
     pidfile = pid_file + "." + $$.to_s
@@ -207,7 +213,7 @@ def fork_helper( *args, &block )
     end
     Signal.trap( "HUP"  ) { fork_helper_seppuku( pid_file ) }
     Signal.trap( "TERM" ) { fork_helper_seppuku( pid_file ) }
-    vputs "started pid:  #{ $$}"
+    vputs "started pid:  #{ $$ }"
 #    until "sky" == "falling" do
     loop do
 #       vputs "pid #{ $$} sleeping"
@@ -217,12 +223,12 @@ def fork_helper( *args, &block )
     end
   end
 end
-def test_fork
+def test_fork()
   pid_file = File.join( '', 'tmp' 'test_fork_pid' )
 
   fork_killer( pid_file )
   fork_helper( pid_file ) {
-    puts "process #{ $$} is working:  #{ Time.now}"
+    puts "process #{ $$ } is working:  #{ Time.now }"
   }
 end
 #test_fork()
@@ -230,7 +236,7 @@ end
 # fork_killer( File.join( '', 'tmp', 'test_fork_pid' ) )
 
 def file_read( file )
-  vputs "Reading file:  '#{ file }'"
+  vputs "Reading '#{ file }'"
   # I suspect that there are issues reading files with a space in them.  I'm having a hard time tracking it down though.. TODO: I should adjust the test case.
   if ! File.exists?( file ) then
     puts "That file doesn't exist:  '#{ file.inspect }'"
@@ -257,7 +263,12 @@ end
 
 # ---
 
-def timestamp_sync( source_file, target_file, &block )
+# TODO/FIXME:  Why the heck do I have a yield in there?
+def timestamp_sync(
+                    source_file,
+                    target_file,
+                    &block
+                  )
   # TODO:  Sanity-checking.
   if ! File.exists?( source_file ) || ! File.exists?( target_file ) then return 1 end
   stime = File.stat( source_file ).mtime
@@ -265,8 +276,8 @@ def timestamp_sync( source_file, target_file, &block )
   if stime != ttime then
 #     puts "this should be displayed ONCE"
     vputs " # The source and target times are different.  Fixing the target time."
-    vputs "   Source: #{ source_file} to #{ stime}"
-    vputs "   Target: #{ target_file} to #{ ttime}"
+    vputs "   Source: #{ source_file} to #{ stime }"
+    vputs "   Target: #{ target_file} to #{ ttime }"
     File.utime( stime, stime, target_file )
     if File.stat( target_file ).mtime != stime then
       puts "Failed to set the time!"
@@ -287,7 +298,7 @@ def test_timestamp_sync()
   require File.join( lib, 'mine', 'directories.rb' )
   require File.join( lib, 'mine', 'files.rb' )
   # $$ is the pid of the current process.  That should make this safer.
-  working_dir = File.join( '', 'tmp', "test_timestamp_sync.#{ $$}" )
+  working_dir = File.join( '', 'tmp', "test_timestamp_sync.#{ $$ }" )
   source_file = File.join( working_dir, 'source' )
   target_file = File.join( working_dir, 'target' )
   # Preparing directories

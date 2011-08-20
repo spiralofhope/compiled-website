@@ -1,3 +1,5 @@
+#!/bin/env ruby
+
 =begin
 Implement an exception list for not_in_html() / split_string_html(), so that things like automatic linking will work within <em>
 
@@ -12,7 +14,7 @@ Implement an exception list for not_in_html() / split_string_html(), so that thi
 # USER CONFIGURATION
 # --
 
-# For header and footer customization, hack compiled_website--header_and_footer.rb
+# For header and footer customization, hack on header_and_footer.rb
 
 # Uncomment to give more feedback at the console.
 $VERBOSE = true
@@ -30,9 +32,9 @@ remote_blog = File.join( Dir.pwd, 'live', 'b' )
 
 # --
 
-require File.join( File.dirname( __FILE__ ), 'compiled_website--header_and_footer.rb' )
-require File.join( File.dirname( __FILE__ ), 'compiled_website--libs.rb' )
-require File.join( File.dirname( __FILE__ ), 'compiled_website--test_cases.rb' )
+require File.join( File.dirname( __FILE__ ), 'header_and_footer.rb' )
+require File.join( File.dirname( __FILE__ ), 'libs.rb' )
+require File.join( File.dirname( __FILE__ ), 'tc_main.rb' )
 
 # TODO:  Sanity-checking / first-run stuff.
 # md_directory( local_wiki )
@@ -81,7 +83,11 @@ class Markup
     #return array
   #end
 
-  def not_in_html( string, iterations=1, *splat )
+  def not_in_html(
+                    string,
+                    iterations=1,
+                    *splat
+                  )
     string = split_string_html( string )
     string = string.each_index { |i|
       next if i.odd?
@@ -107,7 +113,10 @@ class Markup
     return string.join
   end
 
-  def punctuation_rx( rx_left, rx_right )
+  def punctuation_rx(
+                      rx_left,
+                      rx_right
+                    )
     # This would need to be reworked if it should match across lines.  But I don't think it should!
     # TODO:  Match across [ and ] ?
     left=(%r{
@@ -156,7 +165,10 @@ class Markup
     }x
   end
 
-  def punctuation_rx_nospaces( rx_left, rx_right )
+  def punctuation_rx_nospaces(
+                                rx_left,
+                                rx_right
+                              )
     # This would need to be reworked if it should match across lines.  But I don't think it should!
     # TODO:  Match across [ and ] ?
     left=(%r{
@@ -249,7 +261,13 @@ class Markup
       }mx
   end
   
-  def markup( string, left_rx, right_rx, left_replace, right_replace )
+  def markup(
+              string,
+              left_rx,
+              right_rx,
+              left_replace,
+              right_replace
+            )
     string = split_string_html( string )
     rx = punctuation_rx( left_rx, right_rx )
     string.each_index { |i|
@@ -451,7 +469,14 @@ class Markup
     return string
   end
 
-  def links_numbered( string, before, after, inside_before, inside_after, counter )
+  def links_numbered(
+                      string,
+                      before,
+                      after,
+                      inside_before,
+                      inside_after,
+                      counter
+                    )
     rx = %r{
       \[{1}
       #{ links_rx() }
@@ -508,7 +533,10 @@ class Markup
     return rx
   end
 
-  def links_automatic( string, source_file_full_path )
+  def links_automatic(
+                        string,
+                        source_file_full_path
+                      )
 
     files_array = links_automatic_files_array( source_file_full_path )
 
@@ -526,7 +554,10 @@ class Markup
   end
 
   # Local links to new pages, like:  [[link name]] => 'link-name.asc'
-  def links_local_new( string, source_file_full_path )
+  def links_local_new(
+                        string,
+                        source_file_full_path
+                      )
     rx = punctuation_rx_nospaces( %r{\[{2}}, %r{\]{2}} )
     until string.match( rx ) == nil do
       # Is this good on Windows?
@@ -678,15 +709,15 @@ result_element_killer.each{ |i|
 
 # TODO:  Additional functionality existed in the previous incarnations, they need to be re-added?  What about tests?  (the last two parameters)
   def split_string_by_line(
-      # Given a string.
-      string,
-      # Given a regular expression.
-      rx,
-      # one\n\ntwo becomes one\ntwo
-      merge_items_separated_by_single_spaces=true,
-      # (to describe)
-      lstrip=true
-    )
+                            # Given a string.
+                            string,
+                            # Given a regular expression.
+                            rx,
+                            # one\n\ntwo becomes one\ntwo
+                            merge_items_separated_by_single_spaces=true,
+                            # (to describe)
+                            lstrip=true
+                          )
     if not string.match( rx ) then
       return [ string ]
     end
@@ -729,7 +760,10 @@ result_element_killer.each{ |i|
     return result
   end
 
-  def split_string_by_line_and_html( string, rx )
+  def split_string_by_line_and_html(
+                                      string,
+                                      rx
+                                    )
     array = split_string_by_line( string, rx )
     array.each_index{ |i|
       next if i.even?
@@ -809,7 +843,10 @@ two         <- this is included in the full "html" block.
     return split_string_by_line( string, rx, false )
   end
 
-  def lists_initial_increase( two, string )
+  def lists_initial_increase(
+                              two,
+                              string
+                            )
     close_tally = Array.new
     if    two[0] == '-' then
       c = 'u'
@@ -830,7 +867,12 @@ two         <- this is included in the full "html" block.
     return open + string, close_tally
   end
 
-  def lists_increase( two, string, delta, close_tally )
+  def lists_increase(
+                      two,
+                      string,
+                      delta,
+                      close_tally
+                    )
     if    two[0] == '-' then
       c = 'u'
     elsif two[0] == '#' then
@@ -898,7 +940,10 @@ two         <- this is included in the full "html" block.
     return string.split("\n")[1..-1].join("\n")
   end
   # TODO:  Make universal.. grab any number or ranges of lines.
-  def get_line( string, line )
+  def get_line(
+                string,
+                line
+              )
     # This starts counting from one.  Because that's how humans count.
     return string.split("\n")[line-1]
   end
@@ -940,7 +985,11 @@ two         <- this is included in the full "html" block.
     return string.join
   end
 
-  def compile_main( string, source_file_full_path, type='wiki' )
+  def compile_main(
+                    string,
+                    source_file_full_path,
+                    type='wiki'
+                  )
     counter = 0
     string = sections( string )
     string.each_index { |i|
@@ -989,18 +1038,34 @@ end # class Markup
 class Main
 
   # TODO
-  def generate_sitemap( target_file_full_path, local_dir, source_file_full_path, type='wiki' )
+  # Also make sure that exclusion is in, to build pseudo-privacy.
+  def generate_sitemap(
+                        target_file_full_path,
+                        local_dir,
+                        source_file_full_path,
+                        type='wiki'
+                      )
     return
   end
 
-  def main( local_wiki, local_blog, remote_wiki, remote_blog, pid_file )
+  def main(
+            local_wiki,
+            local_blog,
+            remote_wiki,
+            remote_blog,
+            pid_file
+          )
     def process( local_dir, source_file_full_path, target_file_full_path, type='wiki' )
       compile(        source_file_full_path, target_file_full_path, type )
       timestamp_sync( source_file_full_path, target_file_full_path )
-      # TODO:  Re-compile all files in that same source directory, to ensure that automatic linking is re-applied to include this new file.  Ouch!
+      # TODO:  (Optionally) Re-compile all files in that same source directory, to ensure that automatic linking is re-applied to include this new file.  Ouch!
     end
 
-    def check_for_source_changes( local_dir, remote_dir, type='wiki' )
+    def check_for_source_changes(
+                                  local_dir,
+                                  remote_dir,
+                                  type='wiki'
+                                )
 =begin
       case type
         when 'wiki' then
@@ -1022,7 +1087,7 @@ class Main
         cd_directory( local_dir )
         $VERBOSE = oldverbose
       end
-      # This was '**/*.asc' but I'm not going to look into subdirectories any more.
+      # This was '**/*.asc' but I'm not going to look into subdirectories any more.  A "flat" website is better for SEO.
       Dir[ '*.asc' ].each do |asc_file|
         target_file_full_path = File.expand_path( File.join( remote_dir, asc_file.chomp( '.asc' ) + '.html' ) )
         # FIXME:  This is being naughty and expanding symbolic links.  So I can't make a nice symlink to /c and have alt-e open file:///c/src/w/foo.asc
@@ -1031,8 +1096,8 @@ class Main
         next if not File.size?( source_file_full_path )
         if not File.exists?( target_file_full_path )  then
           vputs ''
-          vputs "Building missing file:  '#{ source_file_full_path }'"
-          vputs " ...             into:  '#{ target_file_full_path }'"
+          vputs "Compiling new file '#{ source_file_full_path }'"
+          vputs "                => '#{ target_file_full_path }'"
           process( local_dir, source_file_full_path, target_file_full_path, type )
           generate_sitemap( File.dirname( target_file_full_path ), local_dir, source_file_full_path, type )
           next
@@ -1042,8 +1107,8 @@ class Main
         if not source_time == target_time then
           target_path=File.join( remote_dir, File.dirname( asc_file ) )
           vputs ''
-          vputs "Building unsynced timestamps:  '#{ source_file_full_path }'"
-          vputs " ...                    with:  '#{ target_file_full_path }'"
+          vputs "Syncing timestamps '#{ source_file_full_path }'"
+          vputs "                => '#{ target_file_full_path }'"
           process( local_dir, source_file_full_path, target_file_full_path, type )
           next
         end
@@ -1062,15 +1127,27 @@ class Main
     end
   end # main
 
-  def compile( source_file_full_path, target_file_full_path, type='wiki' )
+  def compile(
+                source_file_full_path,
+                target_file_full_path,
+                type='wiki'
+              )
     string = file_read( source_file_full_path )
     @o = Markup.new
     start_time = Time.now
 
   #puts string
 
-    string = @o.compile_main( string, source_file_full_path )
-    string = @o.header_and_footer( string, source_file_full_path, target_file_full_path, type )
+    string = @o.compile_main(
+      string,
+      source_file_full_path
+    )
+    string = @o.header_and_footer(
+      string,
+      source_file_full_path,
+      target_file_full_path,
+      type,
+    )
 
   #puts string
 
@@ -1080,4 +1157,10 @@ class Main
 
 end
 
-Main.new.main( local_wiki, local_blog, remote_wiki, remote_blog, pid_file )
+Main.new.main(
+                local_wiki,
+                local_blog,
+                remote_wiki,
+                remote_blog,
+                pid_file,
+              )

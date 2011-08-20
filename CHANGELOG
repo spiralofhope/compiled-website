@@ -1,3 +1,18 @@
+2011-08-19  spiralofhope  <spiralofhope@lavabit.com>
+  
+  1.2.7
+  
+  * I made a git repo and I'm using github:
+  https://github.com/spiralofhope/compiled-website
+  
+  * Tidied up test cases by using assert_equal_array()
+  
+  * Any method with more than one parameter has had its parameters 
+  reformatted for clarity.  And to punish me for using multiple 
+  parameters.  =)
+  
+  * Renamed the main .rb files.
+
 2011-08-18  spiralofhope  <spiralofhope@lavabit.com>
 
   1.2.5
