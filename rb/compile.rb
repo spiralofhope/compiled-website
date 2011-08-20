@@ -4,8 +4,9 @@ Usage:
 - wiki-style linking is done automatically, just type as usual and the engine will figure out the links.  Note that multiple words are given priority over single words.
 
 Requirements:
-- Ruby 1.8.7 and its standard libraries
-- My standard libraries
+- Ruby 1.8.7 and its standard libraries.
+-- Presumably this would work with the 1.9 series of Ruby too, but I don't know.
+- My standard libraries.
 - HTML Tidy (the executable, not the Ruby library)
   http://tidy.sourceforge.net/
 
@@ -56,6 +57,7 @@ $punctuation_end=%r{
   $
   |\ 
   |\.\ 
+  |\.$
   |,\ 
   |!\ 
   |'$
@@ -68,6 +70,9 @@ $punctuation_end=%r{
   |,"
   |\)\ 
   |\)$
+  |:\ 
+  |:$
+  |;\ 
 }x
 
 def sanity_check(source_directory, compiled_directory)
@@ -146,12 +151,10 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
     # Future TODO:  If I ever do nested linking, I should make sure that the parent director(y|ies) exist.
   end
   sanity_check(source_file_full_path, target_file_full_path)
+  # TODO: expand this or make a new procedure which can do search/replace only in the *middle*.  This is needed to fix links_automatic() so it works with files with spaces and hyphons.
   def markup(string, search_left, search_right, replace_left, replace_right, internal_markup_flag)
     def marked_yes(string, search_left, search_right, replace_left, replace_right)
       if string == nil or string == '' then return '' end
-      # TODO: If a link, check that the destination exists
-      #  - local = create the file
-      #  - remote = check if it exists, and cache the results?  Only check once a day?  Then I can redirect to a page if I know the link is bad, and create a notification to myself.. maybe updating a master status log file.
       if replace_left == nil and replace_right == nil then
         return string
       elsif replace_left == nil then
@@ -452,48 +455,6 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
     end # string.each
     return result.to_s
   end
-  def fucked_links_automatic(source_file_full_path, string)
-    directory=File.dirname(source_file_full_path)
-    # Get the files in the present directory:
-    array_files=[]
-    Dir["#{directory}/*.asc"].each do |file|
-      next if not File.file?(file)
-      next if file == source_file_full_path
-      # "/path/foo/file name.asc" => "file name"
-      array_files << File.basename(file, '.asc').gsub('-', ' ')
-    end
-    puts array_files.inspect
-    # I have to throw the files in an array is because there's no guarantee of reading the files off the disk in any order.
-    # This sort prioritises multiple-word files ahead of single-word files.
-    array_files.sort.each do |file|
-      # This cannot be broken up on multiple lines like my usual %r{...}x stuff, because 'file' will be completely fucked.
-      # I cannot solve that issue by trying to escape stuff.  Things don't seem to actually work.
-      regex=%r{(#{$punctuation_start})(#{file})(#{$punctuation_end})}i
-      string =~ regex
-      if $~ != nil then
-        match=$~
-        string.sub!(regex, match[1] + '<a href="' + match[2] + '.html">' + match[2] + '</a>' + match[3])
-        puts $~.inspect
-      end
-      #regex=%r{
-        #(#{$punctuation_start})
-        #(#{regex})
-        #(#{$punctuation_end})
-      #}ix
-      #puts file.inspect + '  -------------------------------'
-      #puts regex.inspect
-      #string.each do |line|
-        #puts line.inspect
-        #counter=0
-        #until line.scan(regex).size == 0 or counter > 5 do
-          #line.sub!(regex, '\1<a href="\2.html">\2</a>\3')
-          #counter+=1
-        #end
-        #puts 'counter:  ' + counter.inspect.to_s
-      #end
-    end
-    return string
-  end
   # Magical automatic linking.  Ambrosia for authors.
   def links_automatic(source_file_full_path, string)
     source_name=File.basename(source_file_full_path, '.asc')
@@ -521,6 +482,9 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
         file_full_path=File.expand_path(file + '.asc')
         until line.match(regex) == nil or line.match(regex).size == 0 do
           if File.exist?(file_full_path) and File.size(file_full_path) > 0 then
+# TODO: markup() or some new version should be used instead, so that this replace only happens outside of <a href= tags.
+#   And then I'd have to remove my 'until line.match(regex).size == 0' concept.
+#   Hell, I should only be linking one instance per section anyways.
             line.sub!(regex, '\1<a href="' + file + '.html">\2</a>\3')
           else
             line.sub!(regex, '\1<a class="new" href="' + file_full_path + '">\2</a>\3')
@@ -530,37 +494,6 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
       result << line
     end
     return result.to_s
-  end
-  def original_links_automatic(source_file_full_path, string)
-    directory=File.dirname(source_file_full_path)
-    source_name=File.basename(source_file_full_path, '.asc')
-    # Get the files in the present directory:
-    array_files=[]
-    Dir["#{directory}/*.asc"].each do |file|
-      next if not File.file?(file)
-      next if file == source_file_full_path
-      # "/path/foo/file name.asc" => "file name"
-      array_files << File.basename(file, '')
-    end
-    # This sort prioritizes multiple-word files ahead of single-word files.
-    array_files.sort!
-
-    file_working=[]
-    links_working=[]
-    string.each do |line|
-      array_files.each do |file|
-        file_string=file.chomp('.asc')
-        file_url=file_string + '.html'
-        # I'm being pretty cheap here.  Instead of being smart about auto-linking URLs, and intentionally avoiding odd broken-assed web+local links, I'm limiting what things can be auto-linked as local links.
-        # Link the exact filename.
-        line=markup(line, %r{(#{$punctuation_start})(#{file_string})(#{$punctuation_end})}i, //, '\1<a href="' + file_url + '">\2</a>\3', '', true)
-        # Also be forgiving for punctuation like dashes.
-        file_string.gsub!('-', ' ')
-        line=markup(line, %r{(#{$punctuation_start})(#{file_string})(#{$punctuation_end})}i, //, '\1<a href="' + file_url + '">\2</a>\3', '', true)
-      end
-      file_working << line
-    end
-    return file_working.to_s
   end
   # TODO: This does not allow lists of mixed types (e.g. ordered within unordered)
   # TODO: Fucking totally overhaul this piece of shit..  I'm chopping off \n and it's screwing with stuff..
@@ -688,9 +621,8 @@ end
       </noscript>
         </div>
       </div>
-      <a name="a0">
-      <div class="main">
-        <p class="p0" id="s0">
+      <div class="main" id="s0">
+        <p class="p0">
     HEREDOC
 # TODO: The opening <p> I have up here seems a bit off to me.  I don't think I'm appropriately closing it.  But leveraging #{$paragraph = '<!----></div>'} doesn't seem to be the answer!  Damn.
 
@@ -712,6 +644,7 @@ I simplified it, here's the original:
     else
       footer_replace = ''
     end
+    $paragraph||=''
     footer_replace += $paragraph
     footer_replace+=<<-"HEREDOC"
     </div> <!-- main -->
@@ -772,7 +705,7 @@ HEREDOC
     #   FIXME:  Doesn't allow nested indented items.  So two colons doesn't double-indent.
     contents=lists(contents, %r{^(:+) (.+)$}, '<dl>', "</dl>\n", '<dd> ', ' </dd>' + "\n", '')
     # Code blocks
-    contents=lists(contents, %r{^( )(.*)$}, '<pre>', "</pre>\n", '', '', ' <br>' + "\n")
+    contents=lists(contents, %r{^( )(.*)$}, '<pre>', "</pre>\n", '', '', ' <br>')
 
     contents=mixed_lists(contents)
 
@@ -944,3 +877,55 @@ main(source_directory, compiled_directory)
 # viewer(File.join(target_directory_path, 'index.html'))
 # sleep 3
 # fork_killer(File.join('', 'tmp', 'compile_child_pid'))
+
+__END__
+
+
+=begin
+None of this can work.  I *need* to do an intelligent search-and-replace leveraging my old markup() code.
+Here's why:
+
+Given 'foo', 'foo bar', 'baz foo bar quux', match against:
+foo
+foo bar
+baz foo bar quux
+I might currently get:
+[[foo]]
+[[foo]] bar
+[[baz]] [[foo bar]] quux
+I'm expecting:
+[[foo]]
+[[foo bar]]
+[[baz foo bar quux]]
+
+In order to solve this, I cannot do my 'until line.match(regex).size == 0' trick.  I must intelligently use markup() and only do the search-and-replace outside of the html <x>text</x> construct.
+=end
+
+$punctuation_start=%r{
+  \ 
+}x
+$punctuation_end=%r{
+  \ 
+}x
+["a line of foo text", "another foo - bar example"].each do |line|
+  ["foo - bar", "foo"].each do |item|
+    regex=%r{
+      (
+        (\ )
+         #{item}
+        |(?-x)#{item.gsub('-', ' ')}(?x)
+        (\ )
+      )
+    }ix
+puts line.inspect
+puts item.inspect
+#line.match(regex)
+#puts $~.inspect
+    counter=0
+    until line.match(regex) == nil or line.match(regex).size == 0 or counter > 10 do
+      line.sub!(regex, '\1<a href="' + item + '.html">\2</a>\3')
+      counter += 1
+    end
+  end
+  puts "---\n" + line.inspect
+end
