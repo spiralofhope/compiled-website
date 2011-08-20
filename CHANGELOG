@@ -1,5 +1,14 @@
 2010-01-31  spiralofhope  <spiralofhope@lavabit.com>
   
+  0.5.4_internal
+  This one seems to work well now, but I had pulled the templating
+  (header/footer) functionality to simplify and redo things.
+  So that separate code needs to be re-integrated and re-tested.
+  
+  * Pre-CHANGELOG
+
+2010-01-31  spiralofhope  <spiralofhope@lavabit.com>
+  
   0.5.1_internal
   And yet another long break.
   
