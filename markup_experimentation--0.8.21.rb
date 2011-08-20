@@ -267,35 +267,73 @@ if nonhtml.count != html.count then puts "markup error:  unbalanced element coun
   def sections( string )
     nomatch, match = section_arrays( string )
     heading_level = 0
+    heading_level_previous = 0
     match.each_index do |i|
       next if match[i] == nil
-      heading_level_previous = heading_level
       match[i].match( %r{(^=+)(\ )()(.*?)()(\ )(=+$)} )
-      heading_level = $~[1].length
-      # <h1>Title</h1>
-      match[i] = "<h#{heading_level}>" + $~[4] + "</h#{heading_level}>"
-      # All sections have their own 'div class=' preceding it.
-      match[i] = "<div class=\"s#{heading_level}\">" + match[i]
-      # If the heading level increased by more than one, then additional 'div class=' must precede it.
-      if heading_level > ( heading_level_previous + 1 ) then
-        c = heading_level - 1
-        ( heading_level - 1 - heading_level_previous ).times do
-          match[i] = "<div class=\"s#{c}\">" + match[i]
-          c -= 1
+      next if $~ == nil
+      heading_level_previous = heading_level
+      heading_level          = $~[1].length
+      title = "<h#{heading_level}>" + $~[4] + "</h#{heading_level}>"
+      match[i] = ""
+
+      # The first section encountered does not have previous sections to close.
+      if heading_level_previous == 0 then
+        # But it is legal have the document's first section be larger than one.
+        a = heading_level
+        ( heading_level - heading_level_previous ).times do
+          match[i] = "<div class=\"s#{a}\">" + match[i]
+          a -= 1
         end
+        match[i] += title
+        next
       end
 
-      # The very first section is a bit of an exception.
-      #match[i] = "<div class=\"s#{heading_level}\">" + match[i]
+      # stayed the same
+      if heading_level == heading_level_previous then
+        # Close the previous section.
+        # Begin a new section.
+        match[i] = "</div><div class=\"s#{heading_level}\">" + title
+        next
+      end
 
+      # If the heading level increased, then one or more additional sections must be declared.
+      # No previous sections will be closed.
+      if heading_level > heading_level_previous then
+        a = heading_level
+        ( heading_level - heading_level_previous ).times do
+          match[i] = "<div class=\"s#{a}\">" + match[i]
+          a -= 1
+        end
+        match[i] += title
+        next
+      end
 
+      # If the heading level decreased, then
+      # 1) we must </div> to close off the appropriate number of previous sections.
+      # 2) we must begin this new section
+      if heading_level < heading_level_previous then
+        a = heading_level
+        ( heading_level_previous - heading_level + 1 ).times do
+          match[i] = '</div>' + match[i]
+        end
+        match[i] = match[i] + "<div class=\"s#{heading_level}\">" + title
+        next
+      end
+
+    end # match.each_index do |i|
+
+    # Close off previous sections, if any.
+    if heading_level > 0 then
+      heading_level.times do
+        nomatch[-1] += '</div>'
+      end
     end
-    return recombine( match, nomatch ).join
-  end
 
+    return recombine( match, nomatch ).join
+  end # def sections( string )
 
 end # class Markup
-
 
 # http://bfts.rubyforge.org/minitest/
 require 'minitest/autorun'
@@ -679,8 +717,41 @@ class Test_Markup < MiniTest::Unit::TestCase
     assert_equal(
       ( <<-heredoc.unindent
         <div class="s1"><h1>1</h1>
+        </div>
+      heredoc
+      ),
+      (
+        @o.sections( <<-heredoc.unindent
+          = 1 =
+        heredoc
+        ) + "\n"
+      ),
+    )
+  end
 
-        <div class="s1"><h1>2</h1>
+  def test_sections_large()
+    assert_equal(
+      ( <<-heredoc.unindent
+        <div class="s1"><div class="s2"><div class="s3"><h3>3</h3>
+        </div></div></div>
+      heredoc
+      ),
+      (
+        @o.sections( <<-heredoc.unindent
+          === 3 ===
+        heredoc
+        ) + "\n"
+      ),
+    )
+  end
+
+  def test_sections_multiple()
+    assert_equal(
+      ( <<-heredoc.unindent
+        <div class="s1"><h1>1</h1>
+
+        </div><div class="s1"><h1>2</h1>
+        </div>
       heredoc
       ),
       (
@@ -688,17 +759,19 @@ class Test_Markup < MiniTest::Unit::TestCase
           = 1 =
           = 2 =
         heredoc
-        )
+        ) + "\n"
       ),
     )
   end
 
-  def test_sections2()
+
+  def test_sections_increment()
     assert_equal(
       ( <<-heredoc.unindent
         <div class="s1"><h1>1</h1>
 
         <div class="s2"><h2>2</h2>
+        </div></div>
       heredoc
       ),
       (
@@ -706,17 +779,18 @@ class Test_Markup < MiniTest::Unit::TestCase
           = 1 =
           == 2 ==
         heredoc
-        )
+        ) + "\n"
       ),
     )
   end
 
-  def test_sections2()
+  def test_sections_increment_lots()
     assert_equal(
       ( <<-heredoc.unindent
         <div class="s1"><h1>1</h1>
 
         <div class="s2"><div class="s3"><h3>3</h3>
+        </div></div></div>
       heredoc
       ),
       (
@@ -724,26 +798,67 @@ class Test_Markup < MiniTest::Unit::TestCase
           = 1 =
           === 3 ===
         heredoc
-        )
+        ) + "\n"
       ),
     )
   end
 
-  def test_sections3()
+  def test_sections_increment2()
+    assert_equal(
+      ( <<-heredoc.unindent
+        <div class="s1"><div class="s2"><h2>2</h2>
+
+        <div class="s3"><div class="s4"><h4>4</h4>
+        </div></div></div></div>
+      heredoc
+      ),
+      (
+        @o.sections( <<-heredoc.unindent
+          == 2 ==
+          ==== 4 =====
+        heredoc
+        ) + "\n"
+      ),
+    )
+  end
+
+  def test_sections_decrement()
+    assert_equal(
+      ( <<-heredoc.unindent
+        <div class="s1"><div class="s2"><h2>2</h2>
+
+        </div></div><div class="s1"><h1>1</h1>
+        </div>
+      heredoc
+      ),
+      (
+        @o.sections( <<-heredoc.unindent
+          == 2 ==
+          = 1 =
+        heredoc
+        ) + "\n"
+      ),
+    )
+  end
+
+  def test_sections_decrement_lots()
     assert_equal(
       ( <<-heredoc.unindent
         <div class="s1"><div class="s2"><div class="s3"><h3>3</h3>
+
+        </div></div></div><div class="s1"><h1>1</h1>
+        </div>
       heredoc
       ),
       (
         @o.sections( <<-heredoc.unindent
           === 3 ===
+          = 1 =
         heredoc
-        )
+        ) + "\n"
       ),
     )
   end
-
 
 end
 
