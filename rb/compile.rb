@@ -4,13 +4,12 @@ Usage:
 - wiki-style linking is done automatically, just type as usual and the engine will figure out the links.  Note that multiple words are given priority over single words.
 
 Requirements:
-Ruby 1.8.7 and its standard libraries
-My standard libraries
-
-HTML Tidy (the executable, not the Ruby library - I can't figure out how to use it, and it looks dated and unloved.)
+- Ruby 1.8.7 and its standard libraries
+- My standard libraries
+- HTML Tidy (the executable, not the Ruby library)
   http://tidy.sourceforge.net/
 
-  # Tested and works on Unity Linux 64bit as of 2010-04-12:
+  # Tested and works on Unity Linux 64bit as of 2010-04-25:
   cvs -d:pserver:anonymous@tidy.cvs.sourceforge.net:/cvsroot/tidy login
   # press enter
   cvs -z3 -d:pserver:anonymous@tidy.cvs.sourceforge.net:/cvsroot/tidy co -P tidy
@@ -50,6 +49,7 @@ $punctuation_start=%r{
   |\ 
   |\ \(
   |^\(
+  |>
 }x
 # Note that something like 'oldschool-linux.asc' won't get linked, because this regular expression requires an ending like '. '
 #   A simple '|\.' can be added to relax this restriction.
@@ -69,6 +69,7 @@ $punctuation_end=%r{
   |\ 
   |\)\ 
   |\)$
+  |<
 }x
 
 def sanity_check(source_directory, compiled_directory)
@@ -274,6 +275,7 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
     return %r{
       ( (?# http://)
          http:\/\/
+        |https:\/\/
         |ftp:\/\/
         |irc:\/\/
         |gopher:\/\/
@@ -347,7 +349,7 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
     string.each do |line|
       until line.scan(url).size == 0 do
         counter += 1
-        line.sub!(url, '\1<a href="\2\3\4">' + counter.to_s + '</a>\5')
+        line.sub!(url, '\1<a href="\2\3\4">[' + counter.to_s + ']</a>\5')
       end
       result << line
     end
@@ -554,7 +556,24 @@ I simplified it, here's the original:
     <em><small>(<a href="#{path}/sitemap.html">sitemap</a>)</small></em>
     <br>
     <a style="display: none;" accesskey="e" href="file://#{source_file_full_path}">&nbsp;</a>
-  </div> <!-- footer -->
+
+<!-- Start of StatCounter Code -->
+<script type="text/javascript">
+var sc_project=4910069;
+var sc_invisible=1;
+var sc_partition=57;
+var sc_click_stat=1;
+var sc_security="1ce5ea53";
+</script>
+
+<div id="statcounter_image"
+style="display:inline;"><a title="web stats"
+class="statcounter"
+href="http://www.statcounter.com/free_web_stats.html"><img
+src="http://c.statcounter.com/4910069/0/1ce5ea53/1/"
+alt="web stats"
+style="border:none;"/></a></div>
+
   </body>
 </html>
 HEREDOC
@@ -580,14 +599,14 @@ HEREDOC
     # Unordered lists
     # FIXME: This is really fragile stuff, and doesn't like being moved around within compile()
     #   FIXME:  FUCK, it's interacting with the strikethrough feature!
-    contents=lists(contents, %r{^(-+) (.*)$}, '<ul>', "</ul>\n", '<li> ', '</li>', '')
+    contents=lists(contents, %r{^(-+) (.*)$}, '<ul>', "</ul>\n", '<li>', ' </li>', '')
     # Ordered lists
-    contents=lists(contents, %r{^(#+) (.*)$}, '<ol>', "</ol>\n", '<li> ', '</li>', '')
+    contents=lists(contents, %r{^(#+) (.*)$}, '<ol>', "</ol>\n", '<li>', ' </li>', '')
     # Indentation
     #   FIXME:  Doesn't allow nested indented items.  So two colons doesn't double-indent.
-    contents=lists(contents, %r{^(:+) (.+)$}, '<dl>', "</dl>\n", '<dd> ', '</dd>', '')
+    contents=lists(contents, %r{^(:+) (.+)$}, '<dl>', "</dl>\n", '<dd>', ' </dd>', '')
     # Code blocks
-    contents=lists(contents, %r{^( )(.*)$}, '<pre>', "</pre>\n", '', '', '<br>')
+    contents=lists(contents, %r{^( )(.*)$}, '<pre>', "</pre>\n", '', '', ' <br>')
 
     contents=mixed_lists(contents)
 
