@@ -414,7 +414,7 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
         next
       end
       until line.scan(regex).size == 0 do      
-        normalized_file=$~[2].gsub(' ', '-')
+        normalized_file=$~[2].gsub(' ', '-').downcase
         new_source_file_full_path = File.join(directory, normalized_file + '.asc')
         # Match [[file]] with /full/path/to/file.asc
         if File.exist?(new_source_file_full_path) and File.size(new_source_file_full_path) > 0 then
@@ -431,13 +431,6 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
             \]{2}
             (#{$~[3]})
           }x
-          #new_contents =~ regex2
-          #if $~ != nil then puts $~.inspect else
-            #puts "no match ----------------------------"
-            #puts regex2.inspect
-            #puts new_contents.inspect
-            #puts "no match ----------------------------"
-          #end
           new_contents.sub!(regex2, '\1\2\3')
           create_file(source_file_full_path, new_contents)
         else
@@ -565,8 +558,8 @@ end
     path=a.relative_path_from(b)
     header_search = Regexp.new('')
     header_replace=<<-"HEREDOC"
-      <link rel="icon" href="#{path}/images/favicon.ico" type="image/x-icon">
-      <link rel="shortcut icon" href="#{path}/images/favicon.ico" type="image/x-icon">
+      <link rel="icon" href="#{path}/i/favicon.ico" type="image/x-icon">
+      <link rel="shortcut icon" href="#{path}/i/favicon.ico" type="image/x-icon">
       <link type="text/css" href="#{path}/css/persistent.css" rel="stylesheet" />
       <link type="text/css" href="#{path}/css/default.css"    rel="stylesheet"           title="Default" />
       <link type="text/css" href="#{path}/css/dark.css"       rel="alternate stylesheet" title="Dark" />
@@ -591,7 +584,7 @@ end
         <div class="float-left">
             <div class="top-t0">
               <a accesskey="z" href="#{path}/index.html">
-                <img src="#{path}/images/spiralofhope-96.png">
+                <img src="#{path}/i/spiralofhope-96.png">
               </a>
               <br>
               <div class="top-t1">S</div> <div class="top-t2">piral of Hope</div>
@@ -612,6 +605,8 @@ end
     <a href="#" accesskey="2" onclick="setActiveStyleSheet('Dark');     return false;">Dark</a>
     |
     <a href="#" accesskey="3" onclick="setActiveStyleSheet('No Style'); return false;">No Style</a>
+    |
+    <a href="greasemonkey-and-stylish.html">Your Own!</a>
   </div>
 </small>
 <br>
@@ -652,7 +647,7 @@ I simplified it, here's the original:
         &copy; <a href="#{path}/contact.html">Spiral of Hope</a> - all rights reserved (until I figure licensing out)
         <br>
         <!-- TODO -->
-        <img border="0" src="#{path}/images/FIXME.png">Hosting provided by (FIXME), <a href="#{path}/thanks.html#FIXME">thanks!</a>
+        <img border="0" src="#{path}/i/FIXME.png">Hosting provided by (FIXME), <a href="#{path}/thanks.html#FIXME">thanks!</a>
         <br>
         <em><small>(<a href="#{path}/sitemap.html">sitemap</a>)</small></em>
         <br>
