@@ -1,3 +1,4 @@
+# Happy _why day!
 #!/bin/env ruby
 
 =begin
