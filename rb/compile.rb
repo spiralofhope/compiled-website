@@ -40,6 +40,7 @@ require 'lib_files.rb'
 require 'lib_strings.rb'
 
 # [:punct:] and [:blank:] don't work..
+# Note that > was added so that markup worked well with lists and such, without any additional hackeri.
 $punctuation_start=%r{
   ^
   |^'
@@ -53,6 +54,7 @@ $punctuation_start=%r{
 }x
 # Note that something like 'oldschool-linux.asc' won't get linked, because this regular expression requires an ending like '. '
 #   A simple '|\.' can be added to relax this restriction.
+# Note that < was NOT added, so that you can do an obvious <nowiki>[http://example.com]</nowiki> and not have anything processed there.
 $punctuation_end=%r{
   $
   |\.\ 
@@ -69,7 +71,6 @@ $punctuation_end=%r{
   |\ 
   |\)\ 
   |\)$
-  |<
 }x
 
 def sanity_check(source_directory, compiled_directory)
@@ -196,6 +197,10 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
         string=markup(string, %r{(#{$punctuation_start})\*}, %r{\*(#{$punctuation_end})}, '\1<b>', '</b>\1', true)
         string=markup(string, %r{(#{$punctuation_start})_}, %r{_(#{$punctuation_end})}, '\1<u>', '</u>\1', true)
         string=markup(string, %r{(#{$punctuation_start})`}, %r{`(#{$punctuation_end})}, '\1<tt>', '</tt>\1', true)
+        string=markup(string, %r{(#{$punctuation_start})\^}, %r{\^(#{$punctuation_end})}, '\1<sup>', '</sup>\1', true)
+        # Curious, this interferes with = title, but none of this should respond in that manner.  I had to hack a solution.
+        # Maybe this is showing a flaw in the way I'm doing things.
+        string=markup(string, %r{(#{$punctuation_start})=([^ =])}, %r{=(#{$punctuation_end})}, '\1<sub>\2', '</sub>\1', true)
         internal_markup_flag=false
       end
       return string
@@ -225,6 +230,7 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
   end
   # TODO: Should I replace these simple numbered anchors with the name of the header?  Then I'd have to clean up the header text to make it valid HTML.  Eww.
   def HTML_headers(string)
+    $paragraph=''
     regex=%r{
       ^([=]+)
       \ 
@@ -237,18 +243,45 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
     string.each do |line|
       line =~ regex
       if $~ != nil then
-        # count the number of = at the start of the header.
+        # count the number of equal signs = at the start of the header.
         n=($~[1].length).to_s
         total += 1
-        prepend=if total > 1 then '</div>' else '' end
         section_link = '<a class="h-link" href="#a' + total.to_s + '"> &nbsp;&sect;&nbsp; </a>'
-        line.sub!(regex, prepend + '<h' + n + ' class="h-link" id="a' + total.to_s + '">\2' + section_link + '</h' + n + '><div class="indent' + n + '">' + "\n")
+        case n.to_i
+          when 1 then
+            paragraph = '<div class="p1">'
+          when 2 then
+            paragraph = '<div class="p1"><div class="p2">'
+          when 3 then
+            paragraph = '<div class="p1"><div class="p2"><div class="p3">'
+          when 4 then
+            paragraph = '<div class="p1"><div class="p2"><div class="p3"><div class="p4">'
+          when 5 then
+            paragraph = '<div class="p1"><div class="p2"> <div class="p3"><div class="p4"><div class="p5">'
+          when 6 then
+            paragraph = '<div class="p1"><div class="p2"><div class="p3"><div class="p4"><div class="p5"><div class="p6">'
+          else ''
+        end
+        header = $paragraph + paragraph + '<h' + n + ' class="h-link" id="a' + total.to_s + '">\2' + section_link + '</h' + n + '>' + "\n"
+        line.sub!(regex, header)
         indent=''
-        #($~[1].length).times do
-          #indent=indent + '&nbsp;'
-        #end
         indent='#' * ($~[1].length) + ' '
         $toc << "\n" + indent + '<a href="#a' + total.to_s + '">' + $~[2] + '</a>'
+        case n.to_i
+          when 1 then
+            $paragraph = '<!----></div>'
+          when 2 then
+            $paragraph = '<!----></div><!----></div>'
+          when 3 then
+            $paragraph = '<!----></div><!----></div><!----></div>'
+          when 4 then
+            $paragraph = '<!----></div><!----></div><!----></div><!----></div>'
+          when 5 then
+            $paragraph = '<!----></div><!----></div><!----></div><!----></div><!----></div>'
+          when 6 then
+            $paragraph = '<!----></div><!----></div><!----></div><!----></div><!----></div><!----></div>'
+          else ''
+        end
       end
       result << line
     end
@@ -282,7 +315,9 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
         |file:\/\/
       )
       ( (?# whatever.info)
-        \S{2,}\.\S{2,4}
+         \S{2,}\.\S{2,4}
+        | localhost
+        (?# not actually needed:  | \d{1,4}\.\d{1,4}\.\d{1,4}\.\d{1,4}  )
       )
       ( (?# /foo/bar.html)
          \/\S+[^\]]
@@ -484,11 +519,9 @@ $toc=<<-"HEREDOC"
     }
   }
 </script>
-<div id="toc-main">
-  <small><a accesskey="t" href="javascript:toggle('toc')">Table of Contents</a></small>
-  <div id="toc" style="display: none">
-    #{$toc}
-  </div>
+<small><a accesskey="t" href="javascript:toggle('toc')">Table of Contents</a></small>
+<div class="toc" id="toc" style="display: none">
+  #{$toc}
 </div>
 HEREDOC
 end
@@ -545,35 +578,34 @@ I simplified it, here's the original:
     else
       footer_replace = ''
     end
+    footer_replace += $paragraph
     footer_replace+=<<-"HEREDOC"
-  </div> <!-- main -->
-  <div class="footer">
-    &copy; <a href="#{path}/contact.html">Spiral of Hope</a> - all rights reserved (until I figure licensing out)
-    <br>
-    <!-- TODO -->
-    <img border="0" src="#{path}/images/FIXME.png">Hosting provided by (FIXME), <a href="#{path}/thanks.html#FIXME">thanks!</a>
-    <br>
-    <em><small>(<a href="#{path}/sitemap.html">sitemap</a>)</small></em>
-    <br>
-    <a style="display: none;" accesskey="e" href="file://#{source_file_full_path}">&nbsp;</a>
-
-<!-- Start of StatCounter Code -->
-<script type="text/javascript">
-var sc_project=4910069;
-var sc_invisible=1;
-var sc_partition=57;
-var sc_click_stat=1;
-var sc_security="1ce5ea53";
-</script>
-
-<div id="statcounter_image"
-style="display:inline;"><a title="web stats"
-class="statcounter"
-href="http://www.statcounter.com/free_web_stats.html"><img
-src="http://c.statcounter.com/4910069/0/1ce5ea53/1/"
-alt="web stats"
-style="border:none;"/></a></div>
-
+    </div> <!-- main -->
+      <div class="footer">
+        &copy; <a href="#{path}/contact.html">Spiral of Hope</a> - all rights reserved (until I figure licensing out)
+        <br>
+        <!-- TODO -->
+        <img border="0" src="#{path}/images/FIXME.png">Hosting provided by (FIXME), <a href="#{path}/thanks.html#FIXME">thanks!</a>
+        <br>
+        <em><small>(<a href="#{path}/sitemap.html">sitemap</a>)</small></em>
+        <br>
+        <a style="display: none;" accesskey="e" href="file://#{source_file_full_path}">&nbsp;</a>
+      </div> <!-- footer -->
+      <!-- Start of StatCounter Code -->
+      <script type="text/javascript">
+      var sc_project=4910069;
+      var sc_invisible=1;
+      var sc_partition=57;
+      var sc_click_stat=1;
+      var sc_security="1ce5ea53";
+      </script>
+      <div id="statcounter_image"
+      style="display:inline;"><a title="web stats"
+      class="statcounter"
+      href="http://www.statcounter.com/free_web_stats.html"><img
+      src="http://c.statcounter.com/4910069/0/1ce5ea53/1/"
+      alt="web stats"
+      style="border:none;"/></a></div>
   </body>
 </html>
 HEREDOC
