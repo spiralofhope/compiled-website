@@ -266,19 +266,29 @@ if nonhtml.count != html.count then puts "markup error:  unbalanced element coun
 
   def sections( string )
     nomatch, match = section_arrays( string )
+    heading_level = 0
     match.each_index do |i|
-      # ---
-      # = Title =  =>  <h1>Title</h1>
-      # ---
       next if match[i] == nil
+      heading_level_previous = heading_level
       match[i].match( %r{(^=+)(\ )()(.*?)()(\ )(=+$)} )
       heading_level = $~[1].length
+      # <h1>Title</h1>
       match[i] = "<h#{heading_level}>" + $~[4] + "</h#{heading_level}>"
-      # ---
-      # <h1>Title</h1>  =>  <div class=\"s1"><h1>Title</h1>
-      # ---
-      # All sections have (at least) one 'div class=' leading it.
+      # All sections have their own 'div class=' preceding it.
       match[i] = "<div class=\"s#{heading_level}\">" + match[i]
+      # If the heading level increased by more than one, then additional 'div class=' must precede it.
+      if heading_level > ( heading_level_previous + 1 ) then
+        c = heading_level - 1
+        ( heading_level - 1 - heading_level_previous ).times do
+          match[i] = "<div class=\"s#{c}\">" + match[i]
+          c -= 1
+        end
+      end
+
+      # The very first section is a bit of an exception.
+      #match[i] = "<div class=\"s#{heading_level}\">" + match[i]
+
+
     end
     return recombine( match, nomatch ).join
   end
@@ -682,6 +692,58 @@ class Test_Markup < MiniTest::Unit::TestCase
       ),
     )
   end
+
+  def test_sections2()
+    assert_equal(
+      ( <<-heredoc.unindent
+        <div class="s1"><h1>1</h1>
+
+        <div class="s2"><h2>2</h2>
+      heredoc
+      ),
+      (
+        @o.sections( <<-heredoc.unindent
+          = 1 =
+          == 2 ==
+        heredoc
+        )
+      ),
+    )
+  end
+
+  def test_sections2()
+    assert_equal(
+      ( <<-heredoc.unindent
+        <div class="s1"><h1>1</h1>
+
+        <div class="s2"><div class="s3"><h3>3</h3>
+      heredoc
+      ),
+      (
+        @o.sections( <<-heredoc.unindent
+          = 1 =
+          === 3 ===
+        heredoc
+        )
+      ),
+    )
+  end
+
+  def test_sections3()
+    assert_equal(
+      ( <<-heredoc.unindent
+        <div class="s1"><div class="s2"><div class="s3"><h3>3</h3>
+      heredoc
+      ),
+      (
+        @o.sections( <<-heredoc.unindent
+          === 3 ===
+        heredoc
+        )
+      ),
+    )
+  end
+
 
 end
 
