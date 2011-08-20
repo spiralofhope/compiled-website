@@ -1,7 +1,274 @@
+string = 'before <strong>some text <em>whoa</em> still</strong> NOT MARKUP <strong>here</strong> after'
+#rx = %r{<([A-Z][A-Z0-9]*)\b[^>]*>.*?</\1>}
+rx = %r{
+  <                       (?# <html> )
+  ([A-Za-z][a-zA-Z0-9]*)  (?# Valid html begins with a letter and then can have any combination of letters and numbers )
+  \b                      (?# Word boundery -- I don't understand why this is here, but I'll keep it. )
+  [^>]*
+  >
+  .*?                     (?# Anything:  .*  can be between the <html> and </html>, but don't be greedy:  ? )
+  <                       (?# </html> where 'html' must match the earlier <html>. )
+    /
+    \1
+  >
+}x
+#p string.match( rx )
+
+
+def part( string, rx )
+  a = [ string ]
+  #rx = %r{<\S*?>.*?</\S*?>}
+  #rx = %r{<\S*?>.*{1,1}?</\S*?>}
+  a = a[-1].partition( rx )
+  until a[-1].match( rx ) == nil do
+    a = [ a[0..1], a[-1].partition( rx ) ].flatten
+  end
+  return a
+end
+
+string = 'before <strong>STRONG <em>STRONG-EMPHASIS</em> BOLD</strong> not markup <strong>STRONG</strong> after'
+#left = '<>'
+#right = '</>'
+#string = string.split( %r{#{left}|#{right}} )
+
+a = part( string, rx )
+
+p string
+a.each_index{ |i|
+  printf( "%*s - %s \n", 2, i, a[i].inspect ) if i.odd?
+  printf( "%*s - %s \n", 2, i, a[i].inspect ) if i.even?
+}
+
+
+#string.each_index{ |e|
+#}
+
+
+__END__
+
+strings = [
+ "bar:baz",
+ "han:luke",
+ "foo:foo"
+]
+
+# Only foo:foo will match
+# Using back-references
+strings.each do|s|
+ if /((\w+):\2)/ =~ s
+   puts "#{$1} #{$2}"
+ end
+end
+
+
+__END__
+
+# http://ruby.about.com/od/regularexpressions/a/lookback.htm
+# lookahead
+strings = [
+ "start:bar",
+ "start:baritone",
+ "start:barbell",
+ 'nothing',
+ 'start:no',
+]
+
+start = 'start'
+second_word = 'bar'
+strings.each { |s|
+ if s =~ /(#{start}):(?=#{second_word})(\w+)/
+   puts "#{$1} #{$2}"
+ end
+}
+# So what's happening here is that the (?=x) is modifying the (\w+) that comes after it, constraining it.
+# (?=#{second_word})(\w+)
+
+__END__
+
+
+
+
+def merge_arrays( array1, array2 )
+#puts "\n\n--v"
+  result1 = [ array1[0] ]
+  result2 = [ array2[0] ]
+  array1.each_index { |i|
+    next if i == 0
+    if array1[i] == nil and result1[-1] == nil then
+      result2[-1] << array2[i]
+      next
+    end
+    if array2[i] == nil and result2[-1] == nil then
+      result1[-1] << array1[i]
+      next
+    end
+    if array1[i] != nil and result1[-1] == nil then
+      result1 << array1[i]
+      result2 << nil
+      next
+    end
+    if array2[i] != nil and result2[-1] == nil then
+      result2 << array2[i]
+      result1 << nil
+      next
+    end
+  }
+#puts "--^\n\n"
+  return result1, result2
+end
+
+
+def html_arrays2( string )
+  if string.match( %r{<.*?>.*?</.*?>} ) == nil then
+    html    = [ nil ]
+    nonhtml = [ string ]
+    return nonhtml, html
+  end
+  nonhtml = Array.new
+  html    = Array.new
+
+#puts "\n\n--v"
+
+  string_original = string
+
+  string.match( %r{(<.*?>)} )
+     html << nil
+  nonhtml << $`
+  #
+     html << $~[1]
+  nonhtml << nil
+  #
+  string  =  $'
+  nested  =  1
+
+  until string == nil do
+  
+    string.match( %r{(<.*?>|</.*?>)} )
+    if $~ == nil then
+         html << nil
+      nonhtml << string
+      break
+    end
+    if nested > 0 then
+            html << $`
+         nonhtml << nil
+    else
+         html << nil
+      nonhtml << $`
+    end
+    
+       html << $~[1]
+    nonhtml << nil
+    string = $'
+  
+    open_or_close_tag = $~[1]
+  
+    if    open_or_close_tag.match( %r{ <.*?>}x ) != nil
+      nested += 1
+    elsif open_or_close_tag.match( %r{</.*?>}x ) != nil
+      nested -= 1
+    else
+      # No closing tag was provided.  Eww.
+    end
+  
+  end
+
+html, nonhtml = merge_arrays( html, nonhtml )
+
+#puts string_original.inspect
+##puts html.inspect
+##puts nonhtml.inspect
+
+#html.each_index { |i|
+#printf("%-*s   %s\n", 25, html[i].inspect, nonhtml[i].inspect)
+##  printf("%*s   %s\n", 25, html[i].inspect, nonhtml[i].inspect)
+#}
+
+#puts "--^\n\n"
+  return nonhtml, html
+end
+
+string = 'before<>html</>after'
+string = 'before<>html<>nested</>still</>after'
+string = 'before <strong>some text <em>whoa</em> still</strong> NOT MARKUP <strong>here</strong> more'
+p html_arrays2( string )[0]
+#p html_arrays2( string )[1]
+
+
+__END__
+
+
+string = "nonhtml"
+string = "<>html</>"
+#string = "<1>html</2>"
+left  = '<>'
+right = '</>'
+pattern = %r{(#{left}|#{right})}
+result = Array.new
+nesting = 0
+holding = ''
+
+left  = %r{<.*?>}
+right = %r{</.*?>}
+
+string = "0a1a2c3c4"
+string = "123abc"
+string = "abc"
+left  = %r{a}
+right = %r{c}
+working = ''
+string.scan( %r{(#{left}|#{right})} ){ |i|
+  pre_match = $`
+  match = $~[1] # also i[0]
+  nesting_previous = nesting
+  nesting += 1 if i[0] =~ left
+  nesting -= 1 if i[0] =~ right
+p "#{nesting_previous} -> #{nesting}"
+
+  if    nesting_previous == 0 and nesting == 1 then
+    result << pre_match
+    result << match
+  elsif nesting_previous == 1 and nesting == 0 then
+    result[-1] << working
+    working = ''
+  else
+    working << pre_match << match
+  end
+}
+
+p result
+
+__END__
+
+string.scan( pattern ){ |i|
+  if $~[1] == left then
+    nesting += 1
+  else
+    nesting -= 1
+  end
+  if nesting > 0 then
+    holding += $`
+  end
+  if nesting == 0 then
+    result << $` + holding + $~[1]
+    holding = ''
+  end
+}
+
+p result
+
+
+__END__
+
+
+
 $slow = false
 $a = false
 
 =begin
+# Markup that's doable but which I don't care about.
+# <sup> - Superscript
+# <sub> - Subscript
 
 AWW FUCK..
 my 1.0.5 html_arrays2 can properly handle nesting like:  <><>foo</>bar</>
@@ -123,61 +390,39 @@ end
 
 class Markup
 
-  def split_string( string, rx )
-    return [ string ] if rx.class != Regexp or
-                         string.match( rx ) == nil
+  def split_string( string, rx_left, rx_right )
+    # even = not matching
+    # odd  =     matching
 
-    string = [ string ]
-    string = string[-1].partition( rx )
-    until string[-1].match( rx ) == nil do
-      string = [ string[0..1], string[-1].partition( rx ) ].flatten
-    end
+string = [ string ]
+result = Array.new
 
-    if string[0].match( rx ) != nil then
-      string.insert( 0, '' )
-    end
-    if string[-1] == '' then
-      string.delete_at(-1)
-    end
+string[-1].match( %r{(#{rx_left}|#{rx_right})} )
+
+case $~[1]
+  when rx_left
+    nested += 1
+  when rx_right
+    nested -= 1
+  else
+    p 'error in split_string'
+end
+if nested == 1 then
+  string[-1] =  $`
+  string     << $~[0] + $'
+end
+
+#string     << $~[1] + $'
+#string[-2]  = $`
+
+
+p string
+
     return string
   end
 
-  #def split_string_into_an_alternating_html_and_nonhtml_array( string )
-    #return split_string_into_an_alternating_match_and_nomatch_array( string, %r{<.*?>.*?</.*?>}m )
-  #end
-
-
-  # NOTE:  Nested stuff is NOT supported.  =(
-  def xx_split_string( string, rx_array )
-    if rx_array.class != Array or rx_array.size != 3 then
-       return [ string ]
-    end
-    rx = (
-      %r{
-        #{rx_array[0]}
-        #{rx_array[1]}
-        #{rx_array[2]}
-      }x
-    )
-
-    if string.match( rx ) == nil then
-      return [ string ]
-    end
-
-    string = [ string ]
-
-    string.insert( 0, '' )
-    string.each_index { |i|
-      next if i == 0
-      result = string[i].partition( rx )
-      result.delete_if { |x| x == "" }
-      string[i] = result
-      string.flatten!
-    }
-    if string[0] = '' and string[1].match( rx ) == nil then
-      string.delete_at( 0 )
-    end
-    return string
+  def split_string_into_an_alternating_html_and_nonhtml_array( string )
+    return split_string_into_an_alternating_match_and_nomatch_array( string, %r{<.*?>.*?</.*?>}m )
   end
 
   # TODO:  The splat isn't working properly..
@@ -781,6 +1026,9 @@ end
 
 end # class Markup
 
+# --
+# TEST CASES
+# --
 
 class Test_Markup < MiniTest::Unit::TestCase
 
@@ -789,21 +1037,22 @@ class Test_Markup < MiniTest::Unit::TestCase
   end
 
   def test_split_string()
-    rx = %r{<.*?>.*?</.*?>}m
+    rx_left  = %r{<.*?>}m
+    rx_right = %r{</.*?>}m
 
     string = 'nothing'
-    result = @o.split_string( string, rx )
+    result = @o.split_string( string, rx_left, rx_right )
     assert_equal(
       string,
       result[0],
     )
     assert_equal(
-      1,
-      result.size
+      '1',
+      result.size.to_s
     )
 
     string = '<>html</>'
-    result = @o.split_string( string, rx )
+    result = @o.split_string( string, rx_left, rx_right )
     assert_equal(
       '',
       result[0],
@@ -813,81 +1062,83 @@ class Test_Markup < MiniTest::Unit::TestCase
       result[1],
     )
     assert_equal(
-      2,
-      result.size
+      '2',
+      result.size.to_s
     )
 
-    string = 'before <>one</> <>two</> after'
-    result = @o.split_string( string, rx )
-    assert_equal(
-      'before ',
-      result[0],
-    )
-    assert_equal(
-      '<>one</>',
-      result[1],
-    )
-    assert_equal(
-      ' ',
-      result[2],
-    )
-    assert_equal(
-      '<>two</>',
-      result[3],
-    )
-    assert_equal(
-      ' after',
-      result[4],
-    )
+    #string = 'before <>one</> <>two</> after'
+    #result = @o.split_string( string, rx_array )
+#p string
+#p result
+    #assert_equal(
+      #'before ',
+      #result[0],
+    #)
+    #assert_equal(
+      #'<>one</>',
+      #result[1],
+    #)
+    #assert_equal(
+      #' ',
+      #result[2],
+    #)
+    #assert_equal(
+      #'<>two</>',
+      #result[3],
+    #)
+    #assert_equal(
+      #' after',
+      #result[4],
+    #)
 
-    string = <<-heredoc.unindent
-      before
-      <>
-      one
-      </>
-      <>
-      two
-      </>
-      after
-    heredoc
-    result = @o.split_string( string, rx )
-    assert_equal(
-      ( <<-heredoc.unindent
-        before
-      heredoc
-      ),
-      result[0],
-    )
-    assert_equal(
-      ( <<-heredoc.unindent
-        <>
-        one
-        </>
-      heredoc
-      ).chomp,
-      result[1],
-    )
-    assert_equal(
-      "\n",
-      result[2],
-    )
-    assert_equal(
-      ( <<-heredoc.unindent
-        <>
-        two
-        </>
-      heredoc
-      ).chomp,
-      result[3],
-    )
-    assert_equal(
-      "\nafter\n",
-      result[4],
-    )
+    #string = <<-heredoc.unindent
+      #before
+      #<>
+      #one
+      #</>
+      #<>
+      #two
+      #</>
+      #after
+    #heredoc
+    #result = @o.split_string( string, rx )
+    #assert_equal(
+      #( <<-heredoc.unindent
+        #before
+      #heredoc
+      #),
+      #result[0],
+    #)
+    #assert_equal(
+      #( <<-heredoc.unindent
+        #<>
+        #one
+        #</>
+      #heredoc
+      #).chomp,
+      #result[1],
+    #)
+    #assert_equal(
+      #"\n",
+      #result[2],
+    #)
+    #assert_equal(
+      #( <<-heredoc.unindent
+        #<>
+        #two
+        #</>
+      #heredoc
+      #).chomp,
+      #result[3],
+    #)
+    #assert_equal(
+      #"\nafter\n",
+      #result[4],
+    #)
 
-    # Not supported!
-    #string = 'this is a test <>with <>complex</> html</>'
-    #string = '<foo bar="baz > quux">no</> yes </>no</>'
+    ## Not supported!
+    ##string = 'this is a test <>with <>complex</> html</>'
+    ##string = '<foo bar="baz > quux">no</> yes </>no</>'
 
   end
 
@@ -1004,7 +1255,6 @@ class Test_Markup < MiniTest::Unit::TestCase
       #@o.markup_underline( string ),
     #)
   end
-
 
   def xx_test_markup_strong()
     assert_equal(

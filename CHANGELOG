@@ -1,3 +1,13 @@
+2011-05-11  spiralofhope  <spiralofhope@lavabit.com>
+  
+  1.0.10
+  Bumped again, to just go through and chop it apart until it works.
+  
+  * I finally figured out the nested html stuff.  I'm bumping the 
+  version to make it safe to hack around and fix everything.  I've 
+  completely smashed everything apart and I need to rebuild everything 
+  from the pieces I left behind.
+
 2011-05-22  spiralofhope  <spiralofhope@lavabit.com>
   
   1.0.7
