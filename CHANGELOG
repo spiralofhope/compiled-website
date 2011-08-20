@@ -1,3 +1,25 @@
+2011-05-16  spiralofhope  <spiralofhope@lavabit.com>
+  
+  1.2.2
+  
+  * I pushed some code into separate files to begin a broader cleanup.
+  
+  * Removed all of the `old-*` code from the previous generation and 
+  experimentation.  It's all still kept "around" in previous versions. 
+  Maybe I'll refer back to it all.  Maybe I won't.
+  
+  * Paragraphs now respect HTML.
+  
+  * Blocks now respect HTML.  No more odd pre blocks appearing when you
+  indent HTML.
+  
+  * Blocks now have the correct number of spaces within them.
+  
+  * Markup won't work around named or automatic links.  This is working
+  as currently-intended, but I'll have to change the code to support it.
+  
+  * I'm still finding some strange bugs.  =(
+
 2011-05-15  spiralofhope  <spiralofhope@lavabit.com>
   
   1.2.0
