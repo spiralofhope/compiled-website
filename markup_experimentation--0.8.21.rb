@@ -178,10 +178,13 @@ class Markup
     return match_new( string, html_exclusion_rx, false )
   end
 
-  def markup_underline( string )
-    rx = punctuation_rx( %r{_}, %r{_} )
-    left = '<u>'
-    right = '</u>'
+  def section_arrays( string )
+    rx=%r{(^=+)()()(.*?)()()(=+$)}
+    # returns two arrays:  nonhtml, html (nomatch, match)
+    return match_new( string, rx, false )
+  end
+
+  def markup( string, rx, left_replace, right_replace )
     # Separate HTML from non-HTML content.
     nonhtml, html = html_arrays( string )
     # For the nonhtml components.
@@ -192,11 +195,32 @@ class Markup
       c=0
       until ( nonhtml[i].match( rx ) == nil ) or ( c > 1000 ) do
         c=c+1
-        nonhtml[i].sub!( rx, $~[1] + left + $~[3] + right + $~[5] )
+        nonhtml[i].sub!( rx, $~[1] + left_replace + $~[3] + right_replace + $~[5] )
       end
       if c > 1000 then puts "ERROR:  markup_underline() received a huge number of matches" end
     end
     return recombine( nonhtml, html ).join
+  end
+
+  def markup_underline( string )
+    rx = punctuation_rx( %r{_}, %r{_} )
+    left_replace = '<u>'
+    right_replace = '</u>'
+    return markup( string, rx, left_replace, right_replace )
+  end
+
+  def markup_strong( string )
+    rx = punctuation_rx( %r{\*}, %r{\*} )
+    left_replace = '<strong>'
+    right_replace = '</strong>'
+    return markup( string, rx, left_replace, right_replace )
+  end
+
+  def sections( string )
+    string = "====Testing testing one two three"
+    rx = %r{(=+)}
+    puts string.match( rx ).to_s.length
+    # => 4
   end
 
 end # class Markup
@@ -218,7 +242,7 @@ class Test_Markup < MiniTest::Unit::TestCase
       @o.match_new( string, rx, false )[0], # match
     )
     assert_equal(
-      [nil],
+      [ nil ],
       @o.match_new( string, rx, false )[1], # nomatch
     )
   end
@@ -269,11 +293,11 @@ class Test_Markup < MiniTest::Unit::TestCase
   def test_html_arrays()
     nonhtml, html = @o.html_arrays( '<></>' )
     assert_equal(
-      [ '', nil                             , '' ],
+      [ '', nil, '' ],
       nonhtml,
     )
     assert_equal(
-      [ nil       , "<></>", nil   ],
+      [ nil , '<></>', nil   ],
       html,
     )
     string = '<html>text</html>'
@@ -285,11 +309,11 @@ class Test_Markup < MiniTest::Unit::TestCase
 
     nonhtml, html = @o.html_arrays( 'This is <html>some example html</html>.' )
     assert_equal(
-      [ "This is ", nil                             , "." ],
+      [ 'This is ', nil                             , '.' ],
       nonhtml,
     )
     assert_equal(
-      [ nil       , "<html>some example html</html>", nil   ],
+      [ nil       , '<html>some example html</html>', nil   ],
       html,
     )
   end
@@ -312,6 +336,21 @@ class Test_Markup < MiniTest::Unit::TestCase
     assert_equal(
       string,
       @o.markup_underline( string ),
+    )
+  end
+
+  def test_recombine()
+    array1 = [ "1", nil, nil, "4" ]
+    array2 = [ nil, "2", "3", nil ]
+    assert_equal(
+      [ "1", "2", "3", "4" ],
+      @o.recombine( array1, array2 ),
+    )
+    array1 = [ nil, "2", "3", nil ]
+    array2 = [ "1", nil, nil, "4" ]
+    assert_equal(
+      [ "1", "2", "3", "4" ],
+      @o.recombine( array1, array2 ),
     )
   end
 
@@ -475,209 +514,51 @@ class Test_Markup < MiniTest::Unit::TestCase
       @o.markup_underline( string ),
     )
   end
-  
-end
 
-
-
-class Test_Markup < MiniTest::Unit::TestCase
-
-  def setup()
-    @o = Markup.new
+  def test_markup_strong()
+    assert_equal(
+      '<strong>strong</strong>',
+      @o.markup_strong( '*strong*' ),
+    )
   end
 
-  def test_sections()
+  def test_multiple_markup()
+    string = '_underlined_ and *strong*'
+    expected = '<u>underlined</u> and <strong>strong</strong>'
+    result = @o.markup_underline( string )
+    result = @o.markup_strong( string )
+    assert_equal(
+      expected,
+      result,
+    )
+  end
+
+  def test_section_arrays_multiple()
     string = <<-heredoc.unindent
       This is an example document.
       
       = Title One =
       
-      This is section one.
+      Text in section one.
       
       = Title Two =
       
-      Section two.
+      Text in section two.
     heredoc
-    rx=%r{
-      ^
-      (=+)
-      \       (?# This is here to ensure there is a trailing space.)
-      (.+?)
-      \       (?# )
-       =+
-      $
-    }mx
-
-    rx_nomatch, rx_match = @o.match( string, rx, false )
-    # Matching the regular expression
+    nomatch, match = @o.section_arrays( string )
+    # Why is nomatch[2] = ''   ?
     assert_equal(
-      nil,
-      rx_match[0],
+      [ "This is an example document.\n\n", nil, '', "\n\nText in section one.\n\n", nil, "\n\nText in section two.\n" ],
+      nomatch,
     )
+    # Why is match[3] = nil    ?
     assert_equal(
-      "Title One",
-      rx_match[1],
-    )
-    assert_equal(
-      nil,
-      rx_match[2],
-    )
-    assert_equal(
-      "Title Two",
-      rx_match[3],
-    )
-    assert_equal(
-      nil,
-      rx_match[4],
-    )
-    # Not matching the regular expression
-    assert_equal(
-      "This is an example document.\n\n",
-      rx_nomatch[0],
-    )
-    assert_equal(
-      nil,
-      rx_nomatch[1],
-    )
-    assert_equal(
-      "\n\nThis is section one.\n\n",
-      rx_nomatch[2],
-    )
-    assert_equal(
-      nil,
-      rx_nomatch[3],
-    )
-    assert_equal(
-      "\n\nSection two.\n",
-      rx_nomatch[4],
-    )
-
-    rx_nomatch, rx_match = @o.match( string, rx, true )
-    # Matching the regular expression
-    assert_equal(
-      nil,
-      rx_match[0],
-    )
-    assert_equal(
-      "=Title One",
-      rx_match[1],
-    )
-    assert_equal(
-      nil,
-      rx_match[2],
-    )
-    assert_equal(
-      "=Title Two",
-      rx_match[3],
-    )
-    assert_equal(
-      nil,
-      rx_match[4],
-    )
-    # Not matching the regular expression
-    assert_equal(
-      "This is an example document.\n\n",
-      rx_nomatch[0],
-    )
-    assert_equal(
-      nil,
-      rx_nomatch[1],
-    )
-    assert_equal(
-      "\n\nThis is section one.\n\n",
-      rx_nomatch[2],
-    )
-    assert_equal(
-      nil,
-      rx_nomatch[3],
-    )
-    assert_equal(
-      "\n\nSection two.\n",
-      rx_nomatch[4],
+      [ nil, '= Title One =', nil, nil, '= Title Two =', nil],
+      match,
     )
   end
 
-  def test_basic_markup()
-    string = <<-heredoc.unindent
-      This is a test *testing hey* I wonder.
-    heredoc
-    rx = %r{(\*)(.*?)(\*)}
-    rx_nomatch, rx_match = @o.match( string, rx, false )
-    # Matching the regular expression
-    assert_equal(
-      nil,
-      rx_match[0],
-    )
-    assert_equal(
-      "testing hey",
-      rx_match[1],
-    )
-    assert_equal(
-      nil,
-      rx_match[2],
-    )
-    # Not matching the regular expression
-    assert_equal(
-      "This is a test ",
-      rx_nomatch[0],
-    )
-    assert_equal(
-      nil,
-      rx_nomatch[1],
-    )
-    assert_equal(
-      " I wonder.\n",
-      rx_nomatch[2],
-    )
-
-    rx_nomatch, rx_match = @o.match( string, rx, true )
-    # Matching the regular expression
-    assert_equal(
-      nil,
-      rx_match[0],
-    )
-    assert_equal(
-      "*testing hey*",
-      rx_match[1],
-    )
-    assert_equal(
-      nil,
-      rx_match[2],
-    )
-    # Not matching the regular expression
-    assert_equal(
-      "This is a test ",
-      rx_nomatch[0],
-    )
-    assert_equal(
-      nil,
-      rx_nomatch[1],
-    )
-    assert_equal(
-      " I wonder.\n",
-      rx_nomatch[2],
-    )
-
-  end
-
-  def test_recombine()
-    array1 = [ "1", nil, nil, "4" ]
-    array2 = [ nil, "2", "3", nil ]
-    assert_equal(
-      [ "1", "2", "3", "4" ],
-      @o.recombine( array1, array2 ),
-    )
-    array1 = [ nil, "2", "3", nil ]
-    array2 = [ "1", nil, nil, "4" ]
-    assert_equal(
-      [ "1", "2", "3", "4" ],
-      @o.recombine( array1, array2 ),
-    )
-  end
-
-end # class Test_Markup < MiniTest::Unit::TestCase
-
-
+end
 
 
 __END__
@@ -960,12 +841,3 @@ __END__
 require File.join(Dir.pwd, 'rb/lib/lib_misc.rb')
 require File.join(Dir.pwd, 'rb/lib/lib_files.rb')
 file_read(File.join(Dir.pwd, 'source/wiki/compiled-website-demo.asc'))
-
-
--------------------
-
-
-s = "====Testing testing one two three"
-rx = %r{(=+)}
-puts s.match(rx).to_s.length
-# => 4
