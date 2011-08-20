@@ -26,12 +26,6 @@ class String
 end
 
 
-# ---------------------------------------
-
-
-# http://bfts.rubyforge.org/minitest/
-require 'minitest/autorun'
-
 class Markup
 
   # Using a regular expression, break a string into two arrays.
@@ -76,12 +70,13 @@ class Markup
         [ string ], # nomatch
       ]
     end
+
     # TODO:  Sanity-checking.
     if replace_array == false then
       replace_array = [ nil, nil, nil, nil, nil, nil ]
     end
-    match   = [        ]
-    nomatch = [ string ]
+    nomatch   = [        ]
+    match = [ string ]
 
     until ( nomatch[-1]                   == nil ) or
           ( nomatch[-1].match( match_rx ) == nil )
@@ -128,6 +123,8 @@ class Markup
   end
 
   def punctuation_rx( left_rx, right_rx )
+
+      # TODO:  If not defined, or if not a regex..
       if right_rx == nil
         then right_rx = left_rx
       end
@@ -175,7 +172,7 @@ class Markup
         (.*?)
         (#{right_rx})
         (#{punctuation_end})
-      }x
+      }mx
   end
   
   def html_arrays( string )
@@ -184,50 +181,79 @@ class Markup
       (.*?)
       (</)(.*?)(>)
     }mx
-    # returns two arrays:  nonhtml, html
+    # returns two arrays:  html, nonhtml
     return match_new( string, html_exclusion_rx, false )
   end
 
   def markup_underline( string )
-# FIXME FIXME
     rx = punctuation_rx( %r{_}, %r{_} )
-    rx = %r{
-      (_)
-      ()
-      ()
-      (.*?)
-      ()
-      ()
-      (_)
-    }mx
-    replace_array = [ '<u>', nil, nil, nil, nil, '</u>' ]
+    left = '<u>'
+    right = '</u>'
     # Separate HTML from non-HTML content.
     html, nonhtml = html_arrays( string )
-
-#if nonhtml.size == 0 then return
-#recombine( html, nonhtml ).join
-#end
-
     # For the nonhtml components.
     nonhtml.each_index do |i|
       next if nonhtml[i] == nil
       # Perform markup.
-      a, b = match_new( nonhtml[i], rx, replace_array )
-      nonhtml[i] = recombine( a, b ).join
+      # TODO:  This would be better as a timer, and not as a counter like this.
+      c=0
+      until ( nonhtml[i].match( rx ) == nil ) or ( c > 1000 ) do
+        c=c+1
+        nonhtml[i].sub!( rx, $~[1] + left + $~[3] + right + $~[5] )
+      end
+      if c > 1000 then puts "ERROR:  markup_underline() received a huge number of matches" end
     end
-
     return recombine( nonhtml, html ).join
   end
 
 end # class Markup
 
+
+# http://bfts.rubyforge.org/minitest/
+require 'minitest/autorun'
 class Test_Markup < MiniTest::Unit::TestCase
 
   def setup()
     @o = Markup.new
   end
 
+  def test_match_new_splitting()
+    string = 'abcdefghijklmnopqrstuvwxyz'
+    rx = %r{(not matching this)()()()()()()}
+    match, nomatch = @o.match_new( string, rx, false )
+    assert_equal(
+      [[nil],['abcdefghijklmnopqrstuvwxyz']],
+      [match, nomatch]
+    )
+  end
+
+  def test_match_new_splitting_replacing()
+    string = '---AoooooA---'
+    rx = %r{()()(A)(.*?)(A)()()}
+    match, nomatch = @o.match_new( string, rx, false )
+    puts match,nomatch.inspect
+    assert_equal(
+      [[nil],['']],
+      [match, nomatch]
+    )
+  end
+
+  def test_html_arrays()
+skip
+puts "-----------------------"
+    nonhtml, html = @o.html_arrays( 'This is <html>some example html</html>.' )
+    assert_equal(
+      [ "This is ", nil                             , "." ],
+      nonhtml,
+    )
+    assert_equal(
+      [ nil       , "<html>some example html</html>", nil   ],
+      html,
+    )
+  end
+
   def test_html_arrays_replacing()
+skip
     rx = %r{
       (<)(.*?)(>)
       (.*?)
@@ -290,18 +316,6 @@ class Test_Markup < MiniTest::Unit::TestCase
       @o.recombine( nomatch, match ).join,
     )
   end
-
-  def test_html_arrays()
-    nonhtml, html = @o.html_arrays( 'This is <html>some example html</html>.' )
-    assert_equal(
-      [ "This is ", nil                             , "." ],
-      nonhtml,
-    )
-    assert_equal(
-      [ nil       , "<html>some example html</html>", nil   ],
-      html,
-    )
-  end
   
   def test_markup_underline()
     assert_equal(
@@ -310,12 +324,93 @@ class Test_Markup < MiniTest::Unit::TestCase
     )
   end
 
-  #def test_multiple_markup_underline()
+  def test_multiple_markup_underline()
+    assert_equal(
+      '<u>1</u> <u>2</u>',
+      @o.markup_underline( '_1_ _2_' ),
+    )
+  end
+
+  def test_underline_two_words()
+    assert_equal(
+      '<u>underlined across</u>',
+      @o.markup_underline( '_underlined across_' ),
+    )
+  end
+
+  def test_underline_across_line_breaks()
+    string = <<-heredoc.unindent
+      _underlined
+      across_
+    heredoc
+    expected = <<-heredoc.unindent
+      <u>underlined
+      across</u>
+    heredoc
+    assert_equal(
+      expected,
+      @o.markup_underline( string ),
+    )
+  end
+
+  def test_underline_within_html()
+    string = '<html>_underline_</html>'
+    assert_equal(
+      string,
+      @o.markup_underline( string ),
+    )
+  end
+
+  def test_underline_within_html_multiline()
+    string = <<-heredoc.unindent
+      <html>
+      _underline_
+      </html>
+    heredoc
+    assert_equal(
+      string,
+      @o.markup_underline( string ),
+    )
+  end
+
+  def test_complexity2()
+    string = <<-heredoc.unindent
+      This is a complex document.
+      
+      <html>Some html exists, which should be left alone.</html>
+      
+      <html>
+      and a bit more like so.
+      
+      Don't _underline_ that
+      </html>
+      
+      _underlined_ _two words_
+      
+      _underlined on
+      two lines!_
+    heredoc
+    expected = <<-heredoc.unindent
+      This is a complex document.
+      
+      <html>Some html exists, which should be left alone.</html>
+      
+      <html>
+      and a bit more like so.
+      
+      Don't _underline_ that
+      </html>
+      
+      <u>underlined</u> <u>two words</u>
+      
+      <u>underlined on
+      two lines!</u>
+    heredoc
     #assert_equal(
-      #'<u>1</u> <u>2</u>',
-      #@o.markup_underline( '_1_ _2_' ),
+      #expected,
+      #@o.markup_underline( string ),
     #)
-  #end
+  end
   
 end
 
