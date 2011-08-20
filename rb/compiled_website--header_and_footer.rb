@@ -2,7 +2,7 @@
 
 
 class Markup
-  def header_and_footer( string, source_file_full_path, target_file_full_path, type )
+  def header_and_footer( string, source_file_full_path, target_file_full_path, type='wiki' )
 #    source_directory = File.dirname( File.realdirpath( source_file_full_path ) )
 
     # HTML5 will change the text/html charset definition thusly:

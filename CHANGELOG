@@ -1,3 +1,15 @@
+2011-05-15  spiralofhope  <spiralofhope@lavabit.com>
+  
+  1.2.0
+  Squashed a bunch of bugs, rewrote a bunch of code.
+  
+  * Untangled all the mess and got test cases working well again.  
+  Rewrote most of them.
+  
+  * Got everything to a reasonable state.  There are still some bugs, 
+  especially with lists being processed within pre-blocks, but I'll fix 
+  that shortly.
+
 2011-05-11  spiralofhope  <spiralofhope@lavabit.com>
   
   1.0.10

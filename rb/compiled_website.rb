@@ -1,301 +1,83 @@
-string = 'before <strong>some text <em>whoa</em> still</strong> NOT MARKUP <strong>here</strong> after'
-#rx = %r{<([A-Z][A-Z0-9]*)\b[^>]*>.*?</\1>}
-rx = %r{
-  <                       (?# <html> )
-  ([A-Za-z][a-zA-Z0-9]*)  (?# Valid html begins with a letter and then can have any combination of letters and numbers )
-  \b                      (?# Word boundery -- I don't understand why this is here, but I'll keep it. )
-  [^>]*
-  >
-  .*?                     (?# Anything:  .*  can be between the <html> and </html>, but don't be greedy:  ? )
-  <                       (?# </html> where 'html' must match the earlier <html>. )
-    /
-    \1
-  >
-}x
-#p string.match( rx )
-
-
-def part( string, rx )
-  a = [ string ]
-  #rx = %r{<\S*?>.*?</\S*?>}
-  #rx = %r{<\S*?>.*{1,1}?</\S*?>}
-  a = a[-1].partition( rx )
-  until a[-1].match( rx ) == nil do
-    a = [ a[0..1], a[-1].partition( rx ) ].flatten
-  end
-  return a
-end
-
-string = 'before <strong>STRONG <em>STRONG-EMPHASIS</em> BOLD</strong> not markup <strong>STRONG</strong> after'
-#left = '<>'
-#right = '</>'
-#string = string.split( %r{#{left}|#{right}} )
-
-a = part( string, rx )
-
-p string
-a.each_index{ |i|
-  printf( "%*s - %s \n", 2, i, a[i].inspect ) if i.odd?
-  printf( "%*s - %s \n", 2, i, a[i].inspect ) if i.even?
-}
-
-
-#string.each_index{ |e|
-#}
-
-
-__END__
-
-strings = [
- "bar:baz",
- "han:luke",
- "foo:foo"
-]
-
-# Only foo:foo will match
-# Using back-references
-strings.each do|s|
- if /((\w+):\2)/ =~ s
-   puts "#{$1} #{$2}"
- end
-end
-
-
-__END__
-
-# http://ruby.about.com/od/regularexpressions/a/lookback.htm
-# lookahead
-strings = [
- "start:bar",
- "start:baritone",
- "start:barbell",
- 'nothing',
- 'start:no',
-]
-
-start = 'start'
-second_word = 'bar'
-strings.each { |s|
- if s =~ /(#{start}):(?=#{second_word})(\w+)/
-   puts "#{$1} #{$2}"
- end
-}
-# So what's happening here is that the (?=x) is modifying the (\w+) that comes after it, constraining it.
-# (?=#{second_word})(\w+)
-
-__END__
-
-
-
-
-def merge_arrays( array1, array2 )
-#puts "\n\n--v"
-  result1 = [ array1[0] ]
-  result2 = [ array2[0] ]
-  array1.each_index { |i|
-    next if i == 0
-    if array1[i] == nil and result1[-1] == nil then
-      result2[-1] << array2[i]
-      next
-    end
-    if array2[i] == nil and result2[-1] == nil then
-      result1[-1] << array1[i]
-      next
-    end
-    if array1[i] != nil and result1[-1] == nil then
-      result1 << array1[i]
-      result2 << nil
-      next
-    end
-    if array2[i] != nil and result2[-1] == nil then
-      result2 << array2[i]
-      result1 << nil
-      next
-    end
-  }
-#puts "--^\n\n"
-  return result1, result2
-end
-
-
-def html_arrays2( string )
-  if string.match( %r{<.*?>.*?</.*?>} ) == nil then
-    html    = [ nil ]
-    nonhtml = [ string ]
-    return nonhtml, html
-  end
-  nonhtml = Array.new
-  html    = Array.new
-
-#puts "\n\n--v"
-
-  string_original = string
-
-  string.match( %r{(<.*?>)} )
-     html << nil
-  nonhtml << $`
-  #
-     html << $~[1]
-  nonhtml << nil
-  #
-  string  =  $'
-  nested  =  1
-
-  until string == nil do
-  
-    string.match( %r{(<.*?>|</.*?>)} )
-    if $~ == nil then
-         html << nil
-      nonhtml << string
-      break
-    end
-    if nested > 0 then
-            html << $`
-         nonhtml << nil
-    else
-         html << nil
-      nonhtml << $`
-    end
-    
-       html << $~[1]
-    nonhtml << nil
-    string = $'
-  
-    open_or_close_tag = $~[1]
-  
-    if    open_or_close_tag.match( %r{ <.*?>}x ) != nil
-      nested += 1
-    elsif open_or_close_tag.match( %r{</.*?>}x ) != nil
-      nested -= 1
-    else
-      # No closing tag was provided.  Eww.
-    end
-  
-  end
-
-html, nonhtml = merge_arrays( html, nonhtml )
-
-#puts string_original.inspect
-##puts html.inspect
-##puts nonhtml.inspect
-
-#html.each_index { |i|
-#printf("%-*s   %s\n", 25, html[i].inspect, nonhtml[i].inspect)
-##  printf("%*s   %s\n", 25, html[i].inspect, nonhtml[i].inspect)
-#}
-
-#puts "--^\n\n"
-  return nonhtml, html
-end
-
-string = 'before<>html</>after'
-string = 'before<>html<>nested</>still</>after'
-string = 'before <strong>some text <em>whoa</em> still</strong> NOT MARKUP <strong>here</strong> more'
-p html_arrays2( string )[0]
-#p html_arrays2( string )[1]
-
-
-__END__
-
-
-string = "nonhtml"
-string = "<>html</>"
-#string = "<1>html</2>"
-left  = '<>'
-right = '</>'
-pattern = %r{(#{left}|#{right})}
-result = Array.new
-nesting = 0
-holding = ''
-
-left  = %r{<.*?>}
-right = %r{</.*?>}
-
-string = "0a1a2c3c4"
-string = "123abc"
-string = "abc"
-left  = %r{a}
-right = %r{c}
-working = ''
-string.scan( %r{(#{left}|#{right})} ){ |i|
-  pre_match = $`
-  match = $~[1] # also i[0]
-  nesting_previous = nesting
-  nesting += 1 if i[0] =~ left
-  nesting -= 1 if i[0] =~ right
-p "#{nesting_previous} -> #{nesting}"
-
-  if    nesting_previous == 0 and nesting == 1 then
-    result << pre_match
-    result << match
-  elsif nesting_previous == 1 and nesting == 0 then
-    result[-1] << working
-    working = ''
-  else
-    working << pre_match << match
-  end
-}
-
-p result
-
-__END__
-
-string.scan( pattern ){ |i|
-  if $~[1] == left then
-    nesting += 1
-  else
-    nesting -= 1
-  end
-  if nesting > 0 then
-    holding += $`
-  end
-  if nesting == 0 then
-    result << $` + holding + $~[1]
-    holding = ''
-  end
-}
-
-p result
-
-
-__END__
-
-
-
 $slow = false
-$a = false
+#$slow = true
 
 =begin
+should some variation of backticks allow auto-linking?
+
+make an announcement mailing list - use the free thing which unity had at some point.
+
+This is getting italicised completely:
+-- /The [http://www.ruby-lang.org/en/ Ruby] 1.9 core and standard libraries.
+This is showing the trailing slash:
+-- /The [http://www.ruby-lang.org/en/ Ruby] 1.9 core and standard libraries./
+
+
+This isn't working as expected, the bottom horizontal rule isn't being generated.:
+___
+Linux Software
+ http://tidy.sourceforge.net
+---
+___
+
+Some text isn't being properly merged together into one line.  For example:
+___
+But it's not finished and isn't available yet.  See the compiled website to do and compiled website bugs.
+Coming soon:
+___
+however, this ends up being double-spaced:
+___
+But it's not finished and isn't available yet.  See the compiled website to do and compiled website bugs.
+
+Coming soon:
+___
+
+
+
+Re-do the table of contents!
+
+string
+- list
+
+string
+
+There should only be one space between the string and the end of the list.  At the moment too much space is being shown.  Make the auto-paragraph stuff smarter about this?  Fix it elsewhere?
+
+Lists are being processed within pre-blocks.  Whoops!  See ruby-arrays for an example.
+
+The nesting doesn't properly go down by two:
+- one
+-- two
+--- three
+- FIXME:  one
+
+My dashed line on the left-hand side isn't appearing!
+- My div stuff hasn't been figured out?
+- I'm not using html tidy am I?
+
+
+Array.new.public_methods
+Array.superclass.public_methods
+
+
+
+
+a current limitation of sections is that at least one line has to be seen between them.
+valid:
+  = one =
+
+  = two =
+invalid:
+  = one =
+  = two =
+.. should be straightforward to fix.
+
+
 # Markup that's doable but which I don't care about.
 # <sup> - Superscript
 # <sub> - Subscript
 
-AWW FUCK..
-my 1.0.5 html_arrays2 can properly handle nesting like:  <><>foo</>bar</>
-I have to re-absorb that stuff and figure shit out properly..
+implement indentation with :
 
-
-obsolete my array merging concept, I'm just passing a method to use into not_in_html and it's spitting my string back out.
-
-I cannot use multiple parameters for not_in_html().  This must be fixed so that I can properly universally use this functionality.
-
-
-
-<pre> blocks cannot work as things stand.  This is because I'm doing this:
-  one <>two</> three
-=>
-<pre>one </pre>
-<>two</>
-<pre> three</pre>
-.. so this means that as I walk through the html-split array, I need to properly stitch things back together again!  argh.  Once this is figured out, I can use this same understanding on my markup code.. which doesn't re-markup stuff in html.
-
-
-FIXME FIXME -- I already have some stuff <p foo=bar> type stuff being defined by the section functionality.
-Therefore the paragraphing method doesn't have to do (some of?) that..
-
-
-to do:
-- ensure that nothing is done on html blocks.  Borrow that functionality from markup and use it on everything like lists, etc.  Remove that functionality from any other process that's using it and doesn't really need to.
 
 - Build a test case for whole-document creation.
 - HTML Tidy?
@@ -342,11 +124,6 @@ Failed list, d is nested twice, not once.
 
 - d
 
-
-how come 'Babylon 5' can show an auto-link to 'Babylon 5 - The Gathering' but I cannot have one on 'Babylon 5 viewing order' ??
-
-durp, don't allow multi-line markup.
-
 =end
 
 
@@ -378,66 +155,63 @@ class String
   #
   def unindent
     lines = Array.new
-    each_line { |ln| lines << ln }
+    self.each_line { |ln| lines << ln }
 
     first_line_ws = lines[0].match( /^\s*/ )[0]
     rx = Regexp.new( '^\s{0,' + first_line_ws.length.to_s + '}' )
 
     lines.collect { |line| line.sub( rx, "" ) }.join
   end
+
+  # like Array.partition, but "global", in the same sense that `sub` has `gsub`
+  def gpartition( rx )
+    a = self.partition( rx )
+    until a[-1].match( rx ) == nil do
+      a[-1] = a[-1].partition( rx )
+      a.flatten!
+    end
+    # Returns an array
+    # Odd are the non-matches
+    # Even are the matches
+    # Always returns an odd number of elements
+    return a
+  end
 end
 
 
 class Markup
 
-  def split_string( string, rx_left, rx_right )
-    # even = not matching
-    # odd  =     matching
+  def split_string_html( string )
+    # Regex thanks to
+    #   http://www.regular-expressions.info/brackets.html
+    #   Originally:  <([A-Z][A-Z0-9]*)\b[^>]*>.*?</\1>
+    rx = %r{
+      <                       (?# <html> )
+      ([A-Za-z][a-zA-Z0-9]*)  (?# Valid html begins with a letter, then can a combination of letters and numbers. )
+      \b                      (?# Word boundary, to support <foo bar="quux"> -type syntax. )
+      [^>]*                   (?# This doesn't feel quite right. Technically the > character is legal within tags.  I think it works as expected/desired though. )
+      >
+      .*?                     (?# Anything:  .*  can be between the <html> and </html>, but don't be greedy:  ?  )
+      <                       (?# </html> where 'html' must match the earlier <html>. )
+        /
+        \1
+      >
+    }mx
 
-string = [ string ]
-result = Array.new
-
-string[-1].match( %r{(#{rx_left}|#{rx_right})} )
-
-case $~[1]
-  when rx_left
-    nested += 1
-  when rx_right
-    nested -= 1
-  else
-    p 'error in split_string'
-end
-if nested == 1 then
-  string[-1] =  $`
-  string     << $~[0] + $'
-end
-
-#string     << $~[1] + $'
-#string[-2]  = $`
-
-
-p string
-
-    return string
+    return string.gpartition( rx )
   end
 
-  def split_string_into_an_alternating_html_and_nonhtml_array( string )
-    return split_string_into_an_alternating_match_and_nomatch_array( string, %r{<.*?>.*?</.*?>}m )
-  end
-
-  # TODO:  The splat isn't working properly..
   def not_in_html( string, *splat )
-    array = split_string_into_an_alternating_html_and_nonhtml_array( string )
+    array = split_string_html( string )
     array.each_index { |i|
       next if i.odd?
+      # I append a '' to ensure an odd length array.
+      # No need to process that.
+      break if i+1 == array.length and array[i] == ''
       array[i] = yield( array[i], splat )
     }
     return array
   end
-
-
-# ---
-
 
   def punctuation_rx( left_rx, right_rx )
     # This would need to be reworked if it should match across lines.  But I don't think it should!
@@ -447,11 +221,11 @@ p string
       |\      (?# Space)
     }x)
     punctuation_start=(%r{
-       #{punctuation_start}
-      |#{punctuation_start} '
-      |#{punctuation_start} "
-      |#{punctuation_start} \(
-      |#{punctuation_start} --
+       #{ punctuation_start }
+      |#{ punctuation_start } '
+      |#{ punctuation_start } "
+      |#{ punctuation_start } \(
+      |#{ punctuation_start } --
     }x)
       
     punctuation_end=(%r{
@@ -459,30 +233,30 @@ p string
       |\    (?# Space)
     }x)
     punctuation_end=(%r{
-            #{punctuation_end}
-      |\.   #{punctuation_end}
-      |,    #{punctuation_end}
-      |!    #{punctuation_end}
-      |:    #{punctuation_end}
-      |;    #{punctuation_end}
-      |\?   #{punctuation_end}
-      |--   #{punctuation_end}
-      |'    #{punctuation_end}
-      |"    #{punctuation_end}
+            #{ punctuation_end }
+      |\.   #{ punctuation_end }
+      |,    #{ punctuation_end }
+      |!    #{ punctuation_end }
+      |:    #{ punctuation_end }
+      |;    #{ punctuation_end }
+      |\?   #{ punctuation_end }
+      |--   #{ punctuation_end }
+      |'    #{ punctuation_end }
+      |"    #{ punctuation_end }
     }x)
     punctuation_end=(%r{
-            #{punctuation_end}
-      |s    #{punctuation_end}
-      |es   #{punctuation_end}
-      |ed   #{punctuation_end}
+            #{ punctuation_end }
+      |s    #{ punctuation_end }
+      |es   #{ punctuation_end }
+      |ed   #{ punctuation_end }
     }x)
 
     return %r{
-      (#{punctuation_start})
-      (#{left_rx})
+      (#{ punctuation_start })
+      (#{ left_rx })
       (.*?)
-      (#{right_rx})
-      (#{punctuation_end})
+      (#{ right_rx })
+      (#{ punctuation_end })
     }x
   end
   
@@ -493,11 +267,11 @@ p string
         |\      (?# Space)
       }x)
       punctuation_start=(%r{
-         #{punctuation_start}
-        |#{punctuation_start} '
-        |#{punctuation_start} "
-        |#{punctuation_start} \(
-        |#{punctuation_start} --
+         #{ punctuation_start }
+        |#{ punctuation_start } '
+        |#{ punctuation_start } "
+        |#{ punctuation_start } \(
+        |#{ punctuation_start } --
       }x)
         
       punctuation_end=(%r{
@@ -505,41 +279,39 @@ p string
         |\    (?# Space)
       }x)
       punctuation_end=(%r{
-              #{punctuation_end}
-        |\.   #{punctuation_end}
-        |,    #{punctuation_end}
-        |!    #{punctuation_end}
-        |:    #{punctuation_end}
-        |;    #{punctuation_end}
-        |\?   #{punctuation_end}
-        |--   #{punctuation_end}
-        |'    #{punctuation_end}
-        |"    #{punctuation_end}
+              #{ punctuation_end }
+        |\.   #{ punctuation_end }
+        |,    #{ punctuation_end }
+        |!    #{ punctuation_end }
+        |:    #{ punctuation_end }
+        |;    #{ punctuation_end }
+        |\?   #{ punctuation_end }
+        |--   #{ punctuation_end }
+        |'    #{ punctuation_end }
+        |"    #{ punctuation_end }
       }x)
       punctuation_end=(%r{
-              #{punctuation_end}
-        |s    #{punctuation_end}
-        |es   #{punctuation_end}
-        |ed   #{punctuation_end}
+              #{ punctuation_end }
+        |s    #{ punctuation_end }
+        |es   #{ punctuation_end }
+        |ed   #{ punctuation_end }
       }x)
 
       return %r{
-        (#{punctuation_start})
-        (#{rx})
-        (#{punctuation_end})
+        (#{ punctuation_start })
+        (#{ rx })
+        (#{ punctuation_end })
       }mx
   end
   
-
-  # TODO:  All of the work on 'nonhtml, html' should be pulled out of here and put into one universal thingy so it can be used by _everything_.
   def markup( string, left_rx, right_rx, left_replace, right_replace )
-    string = split_string_into_an_alternating_html_and_nonhtml_array( string )
+    string = split_string_html( string )
     rx = punctuation_rx( left_rx, right_rx )
     string.each_index { |i|
       next if i.odd?
       next if string[i].match( rx ) == nil
       string[i].sub!( rx, $~[1] + left_replace + $~[3] + right_replace + $~[5] )
-      string[i] = split_string_into_an_alternating_html_and_nonhtml_array( string[i] )
+      string[i] = split_string_html( string[i] )
       string.flatten!
     }
     return string.join
@@ -584,34 +356,28 @@ p string
     )
   end
 
-  def sections_arrays( string )
-    rx = %r{(^=+)(\ )()(.*?)()(\ )(=+$)}
-    # returns two arrays:  nonhtml, html (nomatch, match)
-    return match_new( string, rx, false )
-  end
-
   def sections( string )
-    nomatch, match = sections_arrays( string )
+    array = split_string_sections( string )
     heading_level = 0
     heading_level_previous = 0
-    match.each_index do |i|
-      next if match[i] == nil
-      match[i].match( %r{(^=+)(\ )()(.*?)()(\ )(=+$)} )
+    array.each_index do |i|
+      next if i.even?
+      array[i].match( %r{(^=+)(\ )()(.*?)()(\ )(=+$)} )
       next if $~ == nil
       heading_level_previous = heading_level
       heading_level          = $~[1].length
-      title = "<h#{heading_level}>" + $~[4] + "</h#{heading_level}>"
-      match[i] = ""
+      title = "<h#{ heading_level }>" + $~[4] + "</h#{ heading_level }>"
+      array[i] = ""
 
       # The first section encountered does not have previous sections to close.
       if heading_level_previous == 0 then
         # But it is legal have the document's first section be larger than one.
         a = heading_level
         ( heading_level - heading_level_previous ).times do
-          match[i] = "<div class=\"s#{a}\">" + match[i]
+          array[i] = "<div class=\"s#{ a }\">" + array[i]
           a -= 1
         end
-        match[i] += title
+        array[i] += title
         next
       end
 
@@ -619,7 +385,7 @@ p string
       if heading_level == heading_level_previous then
         # Close the previous section.
         # Begin a new section.
-        match[i] = "</div><div class=\"s#{heading_level}\">" + title
+        array[i] = "</div><div class=\"s#{ heading_level }\">" + title
         next
       end
 
@@ -628,10 +394,10 @@ p string
       if heading_level > heading_level_previous then
         a = heading_level
         ( heading_level - heading_level_previous ).times do
-          match[i] = "<div class=\"s#{a}\">" + match[i]
+          array[i] = "<div class=\"s#{ a }\">" + array[i]
           a -= 1
         end
-        match[i] += title
+        array[i] += title
         next
       end
 
@@ -641,39 +407,40 @@ p string
       if heading_level < heading_level_previous then
         a = heading_level
         ( heading_level_previous - heading_level + 1 ).times do
-          match[i] = '</div>' + match[i]
+          array[i] = '</div>' + array[i]
         end
-        match[i] = match[i] + "<div class=\"s#{heading_level}\">" + title
+        array[i] = array[i] + "<div class=\"s#{ heading_level }\">" + title
         next
       end
 
-    end # match.each_index do |i|
+    end # array.each_index do |i|
 
     # Close off previous sections, if any.
+    # RECHECK
     if heading_level > 0 then
       heading_level.times do
-        nomatch[-1] += '</div>'
+        array[-1] += '</div>'
       end
     end
 
-    return match, nomatch
+    return array
   end # def sections( string )
 
   def paragraphs( string )
     # TODO:  There's probably another way to do this, but a (2..10).each construct wasn't playing nice.
-    string.gsub!( /\n{10}/, "</p>\n#{"<br />\n" * 8}<p>" )
-    string.gsub!( /\n{9}/,  "</p>\n#{"<br />\n" * 7}<p>" )
-    string.gsub!( /\n{8}/,  "</p>\n#{"<br />\n" * 6}<p>" )
-    string.gsub!( /\n{7}/,  "</p>\n#{"<br />\n" * 5}<p>" )
-    string.gsub!( /\n{6}/,  "</p>\n#{"<br />\n" * 4}<p>" )
-    string.gsub!( /\n{5}/,  "</p>\n#{"<br />\n" * 3}<p>" )
-    string.gsub!( /\n{4}/,  "</p>\n#{"<br />\n" * 2}<p>" )
-    string.gsub!( /\n{3}/,  "</p>\n#{"<br />\n" * 1}<p>" )
-    string.gsub!( /\n{2}/,  "</p>\n#{"<br />\n" * 0}<p>" )
+    string.gsub!( /\n{10}/, "</p>\n#{ "<br />\n" * 8 }<p>" )
+    string.gsub!( /\n{9}/,  "</p>\n#{ "<br />\n" * 7 }<p>" )
+    string.gsub!( /\n{8}/,  "</p>\n#{ "<br />\n" * 6 }<p>" )
+    string.gsub!( /\n{7}/,  "</p>\n#{ "<br />\n" * 5 }<p>" )
+    string.gsub!( /\n{6}/,  "</p>\n#{ "<br />\n" * 4 }<p>" )
+    string.gsub!( /\n{5}/,  "</p>\n#{ "<br />\n" * 3 }<p>" )
+    string.gsub!( /\n{4}/,  "</p>\n#{ "<br />\n" * 2 }<p>" )
+    string.gsub!( /\n{3}/,  "</p>\n#{ "<br />\n" * 1 }<p>" )
+    string.gsub!( /\n{2}/,  "</p>\n#{ "<br />\n" * 0 }<p>" )
     return '<p>' + string + '</p>'
   end
 
-  def HTML_horizontal_rules( string )
+  def horizontal_rules( string )
     #   With an empty space above and below.
     string.gsub!( /\n\n\-\-\-+\n\n/m, "\n\n<hr>\n\n" )
     #   With content either above or below.
@@ -757,54 +524,60 @@ p string
   end
 
   def links_automatic( string, source_file_full_path )
-#puts "\n\n--v"
-    files_array = Dir[ File.dirname( source_file_full_path ) + '/*.asc' ]
-    files_array.each_index { |i|
-      next if files_array[i] == source_file_full_path
-      next if File.file?( files_array[i] ) != true
-      # This stuff is to make it so that only the first match is replaced.
-      matched = false
+    oldverbose = $VERBOSE
+    $VERBOSE = nil
 
-      # 'one two-three' => ['one', 'two', 'three']
-      a = ''
-      a = File.basename( files_array[i], '.asc' )
-      a = a.split(%r{-| })
+    def files_array( source_file_full_path )
+      files_array = Dir[ File.dirname( source_file_full_path ) + '/*.asc' ]
+      files_array.delete_if { |x|
+        (
+          # The current source file is not a valid link target.
+          x == source_file_full_path \
+        or
+          # Only process files.
+          # TODO:  I should write a test case for this.
+          File.file?( x ) != true
+        )
+      }
+      return files_array
+    end
 
-      # ['one', 'two', 'three'] => %r{one[-| ]two[-| ]three}
-      rx = %r{#{a[0]}}i
-      a.each_index { |i|
+    def rx( file )
+      # '/foo/bar/one-two-three.asc' => [ 'one', 'two', 'three' ]
+      basename = File.basename( file, '.asc' ).split( %r{-} )
+      # [ 'one', 'two', 'three' ] => %r{ one[-| ]two[-| ]three }
+      # This allows matching things like 'compiled website' or 'compiled-website'.
+      rx = %r{ #{ basename[0] } }ix
+      basename.each_index { |i|
         next if i == 0
-        rx = %r{#{rx}[-|\ ]#{a[i]}}i
+        rx = %r{ #{ rx }[-|\ ]#{ basename[i] } }ix
       }
+      basename = nil
+      # TODO
+      if $slow == true then
+        rx = punctuation_rx_single( rx )
+      else
+        rx = %r{ ()(#{ rx })() }ix
+      end
+      return rx
+    end
 
-if $slow == true then
-      rx = punctuation_rx_single( rx )
-else
-      rx = %r{()(#{rx})()}
-end
-
-      words_to_match = File.basename( files_array[i], '.asc' ).gsub( '-', ' ' ).downcase
-      nonhtml, html = html_arrays( string )
-
-      nonhtml.each_index { |i|
-        next if nonhtml[i] == nil
-        next if nonhtml[i] == ""
-        next if nonhtml[i] == " "
-        next if nonhtml[i] == "\n"
-        next if matched    == true
-
-        if nonhtml[i].sub!(
-          %r{#{rx}}i,
-          '\1<a href="' + words_to_match.gsub( ' ', '-' ) + '.html">\2</a>\3'
-        ) == nil then
-          matched = false
-        else
-          matched = true
-        end
+    files_array( source_file_full_path ).each{ |file|
+      string_array = split_string_html( string )
+      string = nil
+      string_array.each_index { |e|
+        next if e.odd?
+        string_array[e] = string_array[e].sub(
+          rx( file ),
+          '\1<a href="' + File.basename( file, '.asc' ) + '.html">\2</a>\3',
+        )
+        # If I've found a match for this file, don't bother looking through other strings.  Break out and continue to the next file.
+        break if $~ != nil
       }
-      string = recombine( nonhtml, html ).join
+      string = string_array.join
+      string_array = nil
     }
-#puts "--^\n\n"
+    $VERBOSE = oldverbose
     return string
   end
 
@@ -834,65 +607,53 @@ end
         string.sub!( rx, '\1' + '<a class="new" href="file://' + new_source_file_full_path + '">\3</a>' + '\4\5\6' )
         # Make a blank file so that I can link to an actually-existing file to summon my editor.
         if not File.exists?( new_source_file_full_path ) then
-          create_file( new_source_file_full_path, '' )
+          create_file( new_source_file_full_path )
         end
       end # File.exist?( new_source_file_full_path ) and File.size( new_source_file_full_path ) > 0 then
     end # string.match( rx ) == nil do
     return string
   end
 
-  def lists_arrays( string )
-    rx = %r{^(\ *)([-|\#]+)(\ +)(.+)$}
-    nomatch = Array.new
-    match   = Array.new
-    string = string.split( "\n" )
-    string.each_index { |i|
-      if string[i].match( rx ) == nil then
-        if i == 0 then
-          nomatch << string[i]
-          match   << nil
-          next
+  # TODO:  Add another flag which will not merge multiple matched lines together into one array-element.
+  def split_string_by_line( string, rx, spaces )
+    if not string.match( rx ) then
+      return [ string ]
+    end
+
+    result = [ '' ]
+    matched = false
+    matchedtwice = false
+    string.each_line{ |line|
+      if line.match( rx ) then
+        result << '' if matched == false
+        result[-1] += line.lstrip
+        matched = true
+      else # this line doesn't match.
+        # If the previous line was a match, and the current line is \n, then omit this line..
+        if matched == true and line == "\n" and matchedtwice == false and spaces == true then
+          # do nothing
+          # but allow a consecutive match to append.
+          matched = true
+          # however, don't do this for every single \n, just one.
+          matchedtwice = true
+        else
+          result << '' if matched == true
+          result[-1] += "\n" if matchedtwice == true and spaces == true
+          result[-1] += line
+          matched = false
         end
-        # If we're on a blank line, and the previous one was a match, and the next one is a match, append this \n to the previous match.
-        # This allows a blank line between items of a list.
-        # .gsub allows indentation
-        if string[i].gsub( ' ', '' ) == '' and string[ i - 1 ].match( rx ) != nil and string[ i + 1 ] != nil and string[ i + 1 ].match( rx ) != nil then
-          # This would keep a single \n if seen between list items.
-          # match[-1] = match[-1] + "\n"
-          next
-        end
-        # Just a regular line, begin a new element.
-        nomatch << string[i]
-        match   << nil
-        next
-      else # matched
-        match_string = $~[2] + ' ' + $~[4]
-        if i == 0 then
-          nomatch << nil
-          match   << match_string
-          next
-        end
-        # If the previous one was a match
-        if string[ i - 1 ].match( rx ) != nil then
-          # append it
-          match[-1] = match[-1] + "\n" + match_string
-          next
-        end
-        # If the previous was a \n, and the previous-previous was a match
-        # .gsub allows indentation
-        if i > 1 and string[ i - 1 ].gsub( ' ', '' ) == '' and string[ i - 2 ].match( rx ) != nil then
-          # append it
-          match[-1] = match[-1] + "\n" + match_string
-          next
-        end
-        # Just a plain old match, begin a new element.
-        nomatch << nil
-        match   << match_string
       end
     }
+    return result
+  end
 
-    # returns two arrays:  nonhtml, html (nomatch, match)
-    return nomatch, match
+  def lists_arrays( string )
+    return split_string_by_line( string, %r{^\ *[-|\#]+\ +.+?$}, true )
+  end
+
+  def split_string_sections( string )
+    rx = %r{^=+\ .*?\ =+$}
+    return split_string_by_line( string, rx, false )
   end
 
   def lists_initial_increase( two, string )
@@ -903,14 +664,14 @@ end
       c = 'o'
     end
     if two.length == 1 then
-      open = "<#{c}l>\n<li>"
-      close_tally << "\n</#{c}l>"
+      open = "<#{ c }l>\n<li>"
+      close_tally << "\n</#{ c }l>"
     else
-      open = ( "<#{c}l>\n<li>\n" * two.length ).chomp
+      open = ( "<#{ c }l>\n<li>\n" * two.length ).chomp
       two.length.times do
-        close_tally << "\n</#{c}l>\n</li>"
+        close_tally << "\n</#{ c }l>\n</li>"
       end
-      close_tally[-1] = close_tally[-1].chomp("</li>").chomp
+      close_tally[-1] = close_tally[-1].chomp( '</li>' ).chomp
     end
     return open + string, close_tally
   end
@@ -921,10 +682,10 @@ end
     elsif two[0] == '#' then
       c = 'o'
     end
-    open = "\n<#{c}l>\n<li>" * delta
+    open = "\n<#{ c }l>\n<li>" * delta
     open = open[1..-1]
     delta.times do
-      close_tally.insert( 0, "\n</#{c}l>\n</li>" )
+      close_tally.insert( 0, "\n</#{ c }l>\n</li>" )
     end
 
     return open + string, close_tally
@@ -932,16 +693,20 @@ end
 
   def lists( string )
 #puts "\n\n---v"
-    notlists, lists = lists_arrays( string )
     rx = %r{^(\ *)([-|\#]+)(\ +)(.+)$}
+    # This works for single items only, and a whole new thing had to be made to handle consecutive matches.
+    # array = split_string( string, rx )
+    #array = split_string( string, rx )
+    array = lists_arrays( string )
 
 #puts 'i:j   item      nesting type'
 #puts '---   ----      ------- ----'
 
 
-    lists.each_index { |i|
-      next if lists[i] == nil
-      current_list = lists[i].split( "\n" )
+    array.each_index { |i|
+#      next if array[i] == nil
+      next if i.even?
+      current_list = array[i].split( "\n" )
       close_tally = Array.new
       delta = 0
       previous_length = 0
@@ -977,10 +742,11 @@ end
         end
         previous_length = $~[2].length
       } # j (a particular list)
-      lists[i] = current_list.join( "\n" )
+      array[i] = current_list.join( "\n" )
     } # i (the array of lists)
 #puts "---^\n\n"
-    return recombine( lists, notlists ).join( "\n" )
+    #return array.join( "\n" )
+    return array.join
   end
 
   def blocks_arrays( string )
@@ -1024,11 +790,45 @@ end
     return string
   end
 
-end # class Markup
+  def compile_main( string, source_file_full_path, target_file_full_path, type='wiki' )
+    counter = 0
+    string = sections( string )
+    string.each_index { |i|
+      next if i.odd?
 
-# --
-# TEST CASES
-# --
+      #string[i] = not_in_html( string[i]                        ) { |i| blocks(i)                }.join
+      #string[i] = not_in_html( string[i]                        ) { |i| horizontal_rules(i) }.join
+      #string[i] = not_in_html( string[i]                        ) { |i| markup_everything(i)     }.join
+      #string[i] = not_in_html( string[i]                        ) { |i| links_plain(i)           }.join
+      #string[i] = not_in_html( string[i]                        ) { |i| links_named(i)           }.join
+    
+      # FIXME:  These two can't work this way.  For example, rsync will explode with links_local_new
+      # I'm not sure what I meant.  Re-examine this.
+      #string[i] = not_in_html( string[i], source_file_full_path ) { |i,j| links_local_new(i,j)       }.join
+      #string[i] = not_in_html( string[i], source_file_full_path ) { |i,j| links_automatic(i,j)       }.join
+    
+      string[i]          = blocks(            string[i] )
+      string[i]          = horizontal_rules(  string[i] )
+      string[i]          = markup_everything( string[i] )
+      string[i]          = links_plain(       string[i] )
+      string[i]          = links_named(       string[i] )
+    
+      string[i], counter = links_numbered(    string[i], '', '', '[', ']', counter )
+    
+      string[i]          = links_local_new(   string[i], source_file_full_path )
+      string[i]          = links_automatic(   string[i], source_file_full_path )
+    
+      string[i]          = lists(             string[i] )
+      string[i]          = paragraphs(        string[i] )
+      #string[i] = not_in_html( string[i] ) { |i| lists(i) }.join
+      #string[i] = not_in_html( string[i] ) { |i| paragraphs(i) }.join
+    }
+    string = string.join
+    string = header_and_footer( string, source_file_full_path, target_file_full_path, type )
+    return string
+  end
+
+end # class Markup
 
 class Test_Markup < MiniTest::Unit::TestCase
 
@@ -1037,177 +837,445 @@ class Test_Markup < MiniTest::Unit::TestCase
   end
 
   def test_split_string()
-    rx_left  = %r{<.*?>}m
-    rx_right = %r{</.*?>}m
+    # Odd matches.
+    # Even does not match.
+    # Always an even number of elements.
 
     string = 'nothing'
-    result = @o.split_string( string, rx_left, rx_right )
-    assert_equal(
+    expected = [
       string,
-      result[0],
-    )
-    assert_equal(
-      '1',
-      result.size.to_s
-    )
-
-    string = '<>html</>'
-    result = @o.split_string( string, rx_left, rx_right )
-    assert_equal(
       '',
-      result[0],
-    )
+      '',
+    ]
+    result = @o.split_string_html( string )
     assert_equal(
-      '<>html</>',
-      result[1],
+      expected.size.to_s,
+      result.size.to_s,
     )
-    assert_equal(
-      '2',
-      result.size.to_s
-    )
+    result.each_index{ |i|
+      assert_equal(
+        expected[i],
+        result[i],
+      )
+    }
 
-    #string = 'before <>one</> <>two</> after'
-    #result = @o.split_string( string, rx_array )
-#p string
+    string = '<a>html</a>'
+    expected = [
+      '',
+      string,
+      '',
+    ]
+    result = @o.split_string_html( string )
+    assert_equal(
+      expected.size.to_s,
+      result.size.to_s,
+    )
+    result.each_index{ |i|
+      assert_equal(
+        expected[i],
+        result[i],
+      )
+    }
+
+    # Trailing html tags are counted as strings.
+    string = '<a>html</a><a>'
+    expected = [
+      '',
+      '<a>html</a>',
+      '<a>',
+    ]
+    result = @o.split_string_html( string )
+    assert_equal(
+      expected.size.to_s,
+      result.size.to_s,
+    )
+    result.each_index{ |i|
+      assert_equal(
+        expected[i],
+        result[i],
+      )
+    }
+
+    # Valid HTML has content within the tags.
+    string = '<>html</>'
+    expected = [
+      string,
+      '',
+      '',
+    ]
+    result = @o.split_string_html( string )
+    assert_equal(
+      expected.size.to_s,
+      result.size.to_s,
+    )
+    result.each_index{ |i|
+      assert_equal(
+        expected[i],
+        result[i],
+      )
+    }
+
+    # Valid HTML has matching content within the tags.
+    string = '<a>html</b>'
+    expected = [
+      string,
+      '',
+      '',
+    ]
+    result = @o.split_string_html( string )
+    assert_equal(
+      expected.size.to_s,
+      result.size.to_s,
+    )
+    result.each_index{ |i|
+      assert_equal(
+        expected[i],
+        result[i],
+      )
+    }
+
+    # Text before and after.
+    string = 'before <a>html</a> after'
+    expected = [
+      'before ',
+      '<a>html</a>',
+      ' after',
+    ]
+    result = @o.split_string_html( string )
+    assert_equal(
+      expected.size.to_s,
+      result.size.to_s,
+    )
+    result.each_index{ |i|
+      assert_equal(
+        expected[i],
+        result[i],
+      )
+    }
+
+    # Multiple instances of HTML.
+    string = 'before <a>html</a> during <b>more html</b> after'
+    expected = [
+      'before ',
+      '<a>html</a>',
+      ' during ',
+      '<b>more html</b>',
+      ' after',
+    ]
+    result = @o.split_string_html( string )
+    assert_equal(
+      expected.size.to_s,
+      result.size.to_s,
+    )
+    result.each_index{ |i|
+      assert_equal(
+        expected[i],
+        result[i],
+      )
+    }
+
+    # Multiple instances of the same HTML tags.
+    string = '<strong>one</strong> during <strong>two</strong>'
+    expected = [
+      '',
+      '<strong>one</strong>',
+      ' during ',
+      '<strong>two</strong>',
+      '',
+    ]
+    result = @o.split_string_html( string )
+    assert_equal(
+      expected.size.to_s,
+      result.size.to_s,
+    )
+    result.each_index{ |i|
+      assert_equal(
+        expected[i],
+        result[i],
+      )
+    }
+
+    # Nested HTML.
+    string = 'before <strong>STRONG <em>STRONG-EMPHASIS</em> BOLD</strong> not markup <strong>STRONG</strong> after'
+    expected = [
+      'before ',
+      '<strong>STRONG <em>STRONG-EMPHASIS</em> BOLD</strong>',
+      ' not markup ',
+      '<strong>STRONG</strong>',
+      ' after',
+    ]
+    result = @o.split_string_html( string )
+    assert_equal(
+      expected.size.to_s,
+      result.size.to_s,
+    )
+    result.each_index{ |i|
+      assert_equal(
+        expected[i],
+        result[i],
+      )
+    }
+
+    # Improperly-nested instances of the same HTML tags.
+    # This is user-error and is invalid HTML.
+    #   TODO:  Check, is it invalid?  Isn't nesting tags valid?
+    # HTML Tidy can clean this kind of code up.
+    # TODO:  It would be nice to be able to deal with this sort of problem, but perhaps I can use HTML tidy on blocks of code before processing them myself.
+=begin
+    string = 'before <strong>one <strong>two </strong></strong> after'
+    # In a perfect world, we could do this.
+    expected = [
+      'before ',
+      '<strong>one <strong>two </strong></strong>',
+      ' after',
+    ]
+    # However in reality, this is what we're getting.
+    expected = [
+      'before ',
+      '<strong>one <strong>two </strong>',
+      '</strong> after',
+    ]
+
+    # proper HTML would not have nesting and would look like this:
+    string = 'before <strong>one </strong><strong>two </strong> after'
+
+    result = @o.split_string_html( string )
+    assert_equal(
+      expected.size.to_s,
+      result.size.to_s,
+    )
+    result.each_index{ |i|
+      assert_equal(
+        expected[i],
+        result[i],
+      )
+    }
+=end
+
+    # Garbage.
+    string = '<foo bar="baz > quux">no</bar> yes </baz>no</>'
+    expected = [
+      string,
+      '',
+      '',
+    ]
+    result = @o.split_string_html( string )
+    assert_equal(
+      expected.size.to_s,
+      result.size.to_s,
+    )
+    result.each_index{ |i|
+      assert_equal(
+        expected[i],
+        result[i],
+      )
+    }
+
+    # Painfully complex.
+    string = '<tag bar="baz > quux">no</tag>'
+    expected = [
+      '',
+      string,
+      '',
+    ]
+    result = @o.split_string_html( string )
+    assert_equal(
+      expected.size.to_s,
+      result.size.to_s,
+    )
+    result.each_index{ |i|
+      assert_equal(
+        expected[i],
+        result[i],
+      )
+    }
+
+    # Mind-numbingly complex.
+    string = '<tag bar="</tag>">text</tag>'
+    expected = [
+      '',
+      string,
+      '',
+    ]
+    result = @o.split_string_html( string )
+    assert_equal(
+      expected.size.to_s,
+      result.size.to_s,
+    )
+    result.each_index{ |i|
+      assert_equal(
+        expected[i],
+        result[i],
+      )
+    }
+
+    string = "<a></a>DISPLAY<b></b> <a href=\"foo.html\">foo</a>"
+    expected = [
+      '',
+      '<a></a>',
+      'DISPLAY',
+      '<b></b>',
+      ' ',
+      "<a href=\"foo.html\">foo</a>",
+      '',
+    ]
+$a = true
+    result = @o.split_string_html( string )
+$a = false
 #p result
-    #assert_equal(
-      #'before ',
-      #result[0],
-    #)
-    #assert_equal(
-      #'<>one</>',
-      #result[1],
-    #)
-    #assert_equal(
-      #' ',
-      #result[2],
-    #)
-    #assert_equal(
-      #'<>two</>',
-      #result[3],
-    #)
-    #assert_equal(
-      #' after',
-      #result[4],
-    #)
+    assert_equal(
+      expected.size.to_s,
+      result.size.to_s,
+    )
+    result.each_index{ |i|
+      assert_equal(
+        expected[i],
+        result[i],
+      )
+    }
 
-    #string = <<-heredoc.unindent
-      #before
-      #<>
-      #one
-      #</>
-      #<>
-      #two
-      #</>
-      #after
-    #heredoc
-    #result = @o.split_string( string, rx )
-    #assert_equal(
-      #( <<-heredoc.unindent
-        #before
-      #heredoc
-      #),
-      #result[0],
-    #)
-    #assert_equal(
-      #( <<-heredoc.unindent
-        #<>
-        #one
-        #</>
-      #heredoc
-      #).chomp,
-      #result[1],
-    #)
-    #assert_equal(
-      #"\n",
-      #result[2],
-    #)
-    #assert_equal(
-      #( <<-heredoc.unindent
-        #<>
-        #two
-        #</>
-      #heredoc
-      #).chomp,
-      #result[3],
-    #)
-    #assert_equal(
-      #"\nafter\n",
-      #result[4],
-    #)
-
-    ## Not supported!
-    ##string = 'this is a test <>with <>complex</> html</>'
-    ##string = '<foo bar="baz > quux">no</> yes </>no</>'
 
   end
 
-  def xx_test_not_in_html()
-    def not_in_html_test_method( string, *var2 )
-      #if defined?(var2) then puts var2.inspect end
-      #if var2 == [] then var2 = '' end
-      #string = "{#{string}}" + var2[0..-1].join
-      return '' if string == ''
-      string = "{#{string}}"
+  def test_not_in_html()
+    # Note that more complex testing has already been done within test_split_string()
+    # So I'm not getting too complex here, but just testing the not_in_html_test_method() use of yield.
+    def not_in_html_test_method( string, *array )
+      if array.size > 0 then
+        append = ' ' + array[0..-1].join( ' ' )
+      else
+        append = ''
+      end
+      string = "{#{ string }}#{append}"
       return string
     end
-
+    string = 'one'
+    expected = '{one}'
+    result = @o.not_in_html( string ) { |i| not_in_html_test_method( i ) }.join
     assert_equal(
-      '{one}',
-      @o.not_in_html( 'one' ) { |i| not_in_html_test_method( i ) }.join,
+      expected,
+      result,
     )
+    # Remember that <> and </> are not proper HTML.
+    string = 'one <>two</>'
+    expected = '{one <>two</>}'
+    result = @o.not_in_html( string ) { |i| not_in_html_test_method( i ) }.join
     assert_equal(
-      '{one }<>two</>',
-      @o.not_in_html( 'one <>two</>' ) { |i| not_in_html_test_method( i ) }.join,
+      expected,
+      result,
     )
+    string = 'one <em>two</em>'
+    expected = '{one }<em>two</em>'
+    result = @o.not_in_html( string ) { |i| not_in_html_test_method( i ) }.join
     assert_equal(
-      '{one }<>two</>{ three}',
-      @o.not_in_html( 'one <>two</> three' ) { |i| not_in_html_test_method( i ) }.join,
+      expected,
+      result,
     )
-
-    #result = @o.not_in_html( 'one <>two</> three <>four</> five' ) { |i| not_in_html_method( i ) }
-    result = @o.not_in_html( 'one <>two</> three <>four</> five' ) { |i| not_in_html_test_method( i, 'hey' ) }
+    string = 'one <em>two</em> three'
+    expected = '{one }<em>two</em>{ three}'
+    result = @o.not_in_html( string ) { |i| not_in_html_test_method( i ) }.join
     assert_equal(
+      expected,
+      result,
+    )
+    string = 'one <em>two</em> three <em>four</em> five'
+    expected = [
       '{one }',
-      result[0]
-    )
-    assert_equal(
-      '<>two</>',
-      result[1]
-    )
-    assert_equal(
+      '<em>two</em>',
       '{ three }',
-      result[2]
-    )
-    assert_equal(
-      '<>four</>',
-      result[3]
-    )
-    assert_equal(
+      '<em>four</em>',
       '{ five}',
-      result[4]
-    )
+      '',
+    ]
+    result  = @o.not_in_html( string ) { |i| not_in_html_test_method(  i        ) }
+    result.each_index{ |i|
+      assert_equal(
+        expected[i],
+        result[i],
+      )
+    }
+    string = 'one <em>two</em> three <em>four</em> five'
+    expected = [
+      '{one } hey more',
+      '<em>two</em>',
+      '{ three } hey more',
+      '<em>four</em>',
+      '{ five} hey more',
+      '',
+    ]
+    result = @o.not_in_html( string ) { |i| not_in_html_test_method( i, 'hey', 'more' ) }
+    result.each_index{ |i|
+      assert_equal(
+        expected[i],
+        result[i],
+      )
+    }
+    string = <<-heredoc.unindent
+      <em>
+        html
+      </em>
+      regular text
+    heredoc
+    expected = [
+      "{}",                  # 0
+      ( <<-heredoc.unindent  # 1
+        <em>
+          html
+        </em>
+      heredoc
+      ).chomp,
+      ( <<-heredoc.unindent  # 3
+        {
+        regular text
+        }
+      heredoc
+      ).chomp,
+      '',                    # 4
+    ]
+    result = @o.not_in_html( string ) { |i| not_in_html_test_method( i ) }
+    result.each_index{ |i|
+      assert_equal(
+        expected[i],
+        result[i],
+      )
+    }
   end
 
-  def xx_test_markup_underline()
+  def test_markup_underline()
+
+    #
+    string = '_underlined_'
+    expected = '<u>underlined</u>'
+    result = @o.markup_underline( string )
     assert_equal(
-      '<u>underlined</u>',
-      @o.markup_underline( '_underlined_' ),
+      expected,
+      result,
     )
+
+    #
+    string = 'one _two_ three _four_'
+    expected = 'one <u>two</u> three <u>four</u>'
+    result = @o.markup_underline( string )
     assert_equal(
-      'one <u>two</u> three <u>four</u>',
-      @o.markup_underline( 'one _two_ three _four_' ),
+      expected,
+      result,
     )
+
+    #
     string = '<> _not underlined_ </>'
     assert_equal(
       string,
       @o.markup_underline( string ),
     )
+
+    #
     string = '<>_not underlined_</>'
     assert_equal(
       string,
       @o.markup_underline( string ),
     )
+
+    #
     string = <<-heredoc.unindent
         _not
         underlined_
@@ -1216,86 +1284,65 @@ class Test_Markup < MiniTest::Unit::TestCase
       string,
       @o.markup_underline( string ),
     )
+
+    #
     string = <<-heredoc.unindent
-        <>
+        <em>
         _not underlined_
-        </>
+        </em>
       heredoc
     assert_equal(
       string,
       @o.markup_underline( string ),
     )
-    string = '<>_not underlined_</><>_not underlined_</>'
+
+    #
+    string = '<em>_not underlined_</em>'
     assert_equal(
       string,
       @o.markup_underline( string ),
     )
+
+    #
     string = <<-heredoc.unindent
-      <>
+      <em>
       _not underlined_
-      </>
-      <>
+      </em>
+      <em>
       _not underlined_
-      </>
+      </em>
     heredoc
     assert_equal(
       string,
       @o.markup_underline( string ),
     )
-    #string = <<-heredoc.unindent
-      #<>
-      #<>
-      #_not underlined_
-      #</>
-      #_not underlined_
-      #</>
-    #heredoc
-    #assert_equal(
-      #string,
-      #@o.markup_underline( string ),
-    #)
-  end
 
-  def xx_test_markup_strong()
-    assert_equal(
-      '<strong>strong</strong>',
-      @o.markup_strong( '*strong*' ),
-    )
-  end
-
-  def xx_test_markup_emphasis()
-    assert_equal(
-      '<em>emphasis</em>',
-      @o.markup_emphasis( '/emphasis/' ),
-    )
-
-    assert_equal(
-      '<html>/no</html><em>emphasis</em>',
-      @o.markup_emphasis( '<html>/no</html>/emphasis/' ),
-    )
-
-    assert_equal(
-      '<em>usr/bin</em>',
-      @o.markup_emphasis( '/usr/bin/' ),
-    )
-
-    # Markup does not cross HTML bounderies.
-    # Because that would be insanity.
-    string = '<em>emp<html>/no</html>hasis</em>'
+    # This is another case of improperly-nested html tags.
+    # It's mentioned within test_split_string()
+=begin     
+    string = <<-heredoc.unindent
+      <em>
+        <em>
+          _not underlined_
+        </em>
+        _not underlined_
+      </em>
+    heredoc
     assert_equal(
       string,
-      @o.markup_emphasis( string ),
+      @o.markup_underline( string ),
     )
+=end
   end
 
-  def xx_test_multiple_everything()
+  def test_multiple_everything()
     assert_equal(
       '<u>underlined</u> and <strong>strong</strong>',
       @o.markup_everything( '_underlined_ and *strong*' ),
     )
   end
 
-  def xx_test_nested_markup()
+  def test_nested_markup()
     # This demonstrates how the first markup's html-result will stop any future markup from acting within that html.
     assert_equal(
       '<u>*underlined*</u> <strong>strong</strong>',
@@ -1303,7 +1350,7 @@ class Test_Markup < MiniTest::Unit::TestCase
     )
   end
 
-  def xx_test_big()
+  def test_big()
     assert_equal(
       '<big>big</big>',
       @o.markup_big( @o.markup_underline( '**big**' ) ),
@@ -1315,7 +1362,48 @@ class Test_Markup < MiniTest::Unit::TestCase
     )
   end
 
-  def xx_test_sections_arrays_multiple()
+  def test_sections()
+
+    #
+    string = <<-heredoc.unindent
+      This is an example document.
+    heredoc
+    expected = [
+      "This is an example document.\n",
+    ]
+    result = @o.split_string_sections( string )
+    assert_equal(
+      expected.size.to_s,
+      result.size.to_s,
+    )
+    result.each_index{ |i|
+      assert_equal(
+        expected[i],
+        result[i],
+      )
+    }
+
+    #
+    string = <<-heredoc.unindent
+      = Title One =
+    heredoc
+    expected = [
+      '',
+      "= Title One =\n",
+    ]
+    result = @o.split_string_sections( string )
+    assert_equal(
+      expected.size.to_s,
+      result.size.to_s,
+    )
+    result.each_index{ |i|
+      assert_equal(
+        expected[i],
+        result[i],
+      )
+    }
+
+    #
     string = <<-heredoc.unindent
       This is an example document.
       
@@ -1327,164 +1415,176 @@ class Test_Markup < MiniTest::Unit::TestCase
       
       Text in section two.
     heredoc
-    nomatch, match = @o.sections_arrays( string )
+    expected = [
+      "This is an example document.\n\n",
+      "= Title One =\n",
+      "\nText in section one.\n\n",
+      "= Title Two =\n",
+      "\nText in section two.\n",
+    ]
+    result = @o.split_string_sections( string )
     assert_equal(
-      [ "This is an example document.\n\n", nil, '', "\n\nText in section one.\n\n", nil, "\n\nText in section two.\n" ],
-      nomatch,
+      expected.size.to_s,
+      result.size.to_s,
     )
-    assert_equal(
-      [ nil, '= Title One =', nil, nil, '= Title Two =', nil],
-      match,
-    )
-  end
+    result.each_index{ |i|
+      assert_equal(
+        expected[i],
+        result[i],
+      )
+    }
 
-  def xx_test_sections()
-    expected = <<-heredoc.unindent
-      <div class="s1"><h1>1</h1>
-      </div>
+    string = <<-heredoc.unindent
+      = 1 =
+      THIS SHOULD APPEAR
+      = 2 =
+      
+      = 3 =
     heredoc
-    match, nomatch = @o.sections( <<-heredoc.unindent
+    expected = [
+      '',
+      "= 1 =\n",
+      "THIS SHOULD APPEAR\n",
+      "= 2 =\n",
+      "\n",
+      "= 3 =\n",
+    ]
+    result = @o.split_string_sections( string )
+    assert_equal(
+      expected.size.to_s,
+      result.size.to_s,
+    )
+    result.each_index{ |i|
+      assert_equal(
+        expected[i],
+        result[i],
+      )
+    }
+
+    #
+    string = <<-heredoc.unindent
       = 1 =
     heredoc
-    )
-    result = @o.recombine( match, nomatch ).join + "\n"
+    expected = <<-heredoc.unindent
+      <div class="s1"><h1>1</h1></div>
+    heredoc
+    result = @o.sections( string ).join + "\n"
     assert_equal(
       ( expected ),
       ( result ),
     )
-  end
 
-  def xx_test_sections_large()
-    expected = <<-heredoc.unindent
-      <div class="s1"><div class="s2"><div class="s3"><h3>3</h3>
-      </div></div></div>
-    heredoc
-    match, nomatch = @o.sections( <<-heredoc.unindent
+    #
+    string = <<-heredoc.unindent
       === 3 ===
     heredoc
-    )
-    result = @o.recombine( match, nomatch ).join + "\n"
+    expected = <<-heredoc.unindent
+      <div class="s1"><div class="s2"><div class="s3"><h3>3</h3></div></div></div>
+    heredoc
+    result = @o.sections( string ).join + "\n"
     assert_equal(
       ( expected ),
       ( result ),
     )
-  end
 
-  def xx_test_sections_multiple()
-    expected = <<-heredoc.unindent
-      <div class="s1"><h1>1</h1>
-  
-      </div><div class="s1"><h1>2</h1>
-      </div>
-    heredoc
-    match, nomatch = @o.sections( <<-heredoc.unindent
+    #
+    string = <<-heredoc.unindent
       = 1 =
+      
       = 2 =
     heredoc
-    )
-    result = @o.recombine( match, nomatch ).join + "\n"
+    expected = <<-heredoc.unindent
+      <div class="s1"><h1>1</h1>
+      </div><div class="s1"><h1>2</h1></div>
+    heredoc
+    result = @o.sections( string ).join + "\n"
     assert_equal(
       ( expected ),
       ( result ),
     )
-  end
 
-  def xx_test_sections_increment()
-    expected = <<-heredoc.unindent
-      <div class="s1"><h1>1</h1>
-  
-      <div class="s2"><h2>2</h2>
-      </div></div>
-    heredoc
-    match, nomatch = @o.sections( <<-heredoc.unindent
+    #
+    string = <<-heredoc.unindent
       = 1 =
+      
       == 2 ==
     heredoc
-    )
-    result = @o.recombine( match, nomatch ).join + "\n"
+    expected = <<-heredoc.unindent
+      <div class="s1"><h1>1</h1>
+      <div class="s2"><h2>2</h2></div></div>
+    heredoc
+    result = @o.sections( string ).join + "\n"
     assert_equal(
       ( expected ),
       ( result ),
     )
-  end
 
-  def xx_test_sections_increment_lots()
-    expected = <<-heredoc.unindent
-      <div class="s1"><h1>1</h1>
-
-      <div class="s2"><div class="s3"><h3>3</h3>
-      </div></div></div>
-    heredoc
-    match, nomatch = @o.sections( <<-heredoc.unindent
+    #
+    string = <<-heredoc.unindent
       = 1 =
+      
       === 3 ===
     heredoc
-    )
-    result = @o.recombine( match, nomatch ).join + "\n"
+    expected = <<-heredoc.unindent
+      <div class="s1"><h1>1</h1>
+      <div class="s2"><div class="s3"><h3>3</h3></div></div></div>
+    heredoc
+    result = @o.sections( string ).join + "\n"
     assert_equal(
       ( expected ),
       ( result ),
     )
-  end
 
-  def xx_test_sections_increment2()
-    expected = <<-heredoc.unindent
-      <div class="s1"><div class="s2"><h2>2</h2>
-  
-      <div class="s3"><div class="s4"><h4>4</h4>
-      </div></div></div></div>
-    heredoc
-    match, nomatch = @o.sections( <<-heredoc.unindent
+    #
+    string = <<-heredoc.unindent
       == 2 ==
+      
       ==== 4 =====
     heredoc
-    )
-    result = @o.recombine( match, nomatch ).join + "\n"
-    assert_equal(
-      ( expected ),
-      ( result ),
-    )
-  end
-
-  def xx_test_sections_decrement()
     expected = <<-heredoc.unindent
       <div class="s1"><div class="s2"><h2>2</h2>
-
-      </div></div><div class="s1"><h1>1</h1>
-      </div>
+      <div class="s3"><div class="s4"><h4>4</h4></div></div></div></div>
     heredoc
-    match, nomatch = @o.sections( <<-heredoc.unindent
-      == 2 ==
-      = 1 =
-    heredoc
-    )
-    result = @o.recombine( match, nomatch ).join + "\n"
+    result = @o.sections( string ).join + "\n"
     assert_equal(
       ( expected ),
       ( result ),
     )
-  end
 
-  def xx_test_sections_decrement_lots()
+    #
+    string = <<-heredoc.unindent
+      == 2 ==
+      
+      = 1 =
+    heredoc
+    expected = <<-heredoc.unindent
+      <div class="s1"><div class="s2"><h2>2</h2>
+      </div></div><div class="s1"><h1>1</h1></div>
+    heredoc
+    result = @o.sections( string ).join + "\n"
+    assert_equal(
+      ( expected ),
+      ( result ),
+    )
+
+    #
+    string = <<-heredoc.unindent
+      === 3 ===
+      
+      = 1 =
+    heredoc
     expected = <<-heredoc.unindent
       <div class="s1"><div class="s2"><div class="s3"><h3>3</h3>
-
-      </div></div></div><div class="s1"><h1>1</h1>
-      </div>
+      </div></div></div><div class="s1"><h1>1</h1></div>
     heredoc
-    match, nomatch = @o.sections( <<-heredoc.unindent
-      === 3 ===
-      = 1 =
-    heredoc
-    )
-    result = @o.recombine( match, nomatch ).join + "\n"
+    result = @o.sections( string ).join + "\n"
     assert_equal(
       ( expected ),
       ( result ),
     )
   end
 
-  def xx_test_paragraphs()
+  def test_paragraphs()
     assert_equal(
       "<p>foo</p>",
       @o.paragraphs( 'foo' ),
@@ -1499,13 +1599,13 @@ class Test_Markup < MiniTest::Unit::TestCase
     )
   end
 
-  def xx_test_HTML_horizontal_rules()
+  def test_horizontal_rules()
     assert_equal(
       ( <<-heredoc.unindent
         line one
       heredoc
       ),
-      @o.HTML_horizontal_rules( <<-heredoc.unindent
+      @o.horizontal_rules( <<-heredoc.unindent
         line one
       heredoc
       ),
@@ -1520,7 +1620,7 @@ class Test_Markup < MiniTest::Unit::TestCase
         line two
       heredoc
       ),
-      @o.HTML_horizontal_rules( <<-heredoc.unindent
+      @o.horizontal_rules( <<-heredoc.unindent
         line one
         
         ---
@@ -1537,7 +1637,7 @@ class Test_Markup < MiniTest::Unit::TestCase
         line two
       heredoc
       ),
-      @o.HTML_horizontal_rules( <<-heredoc.unindent
+      @o.horizontal_rules( <<-heredoc.unindent
         line one
         ---
         line two
@@ -1553,7 +1653,7 @@ class Test_Markup < MiniTest::Unit::TestCase
         content
       heredoc
       ),
-      @o.HTML_horizontal_rules( <<-heredoc.unindent
+      @o.horizontal_rules( <<-heredoc.unindent
         Test >
         ---
         
@@ -1564,7 +1664,7 @@ class Test_Markup < MiniTest::Unit::TestCase
 
   end
 
-  def xx_test_links_plain()
+  def test_links_plain()
     assert_equal(
       ( <<-heredoc.unindent
         foo
@@ -1739,7 +1839,7 @@ class Test_Markup < MiniTest::Unit::TestCase
 
   end
 
-  def xx_test_links_named()
+  def test_links_named()
     assert_equal(
       ( <<-heredoc.unindent
         foo
@@ -1802,7 +1902,7 @@ class Test_Markup < MiniTest::Unit::TestCase
     )
   end
 
-  def xx_test_links_numbered()
+  def test_links_numbered()
     assert_equal(
       ( <<-heredoc.unindent
         foo
@@ -1946,197 +2046,238 @@ class Test_Markup < MiniTest::Unit::TestCase
   end
 
   # Naughty tests touch the disk.
-  def xx_test_links_automatic()
+  def test_links_automatic()
     verbose_old = $VERBOSE
     $VERBOSE = false
-    create_file( '/tmp/foo.asc', '' )
-    create_file( '/tmp/bar.asc', '' )
-    create_file( '/tmp/foo-bar.asc', '' )
-    create_file( '/tmp/compiled-website-test-file.asc', '' )
+    create_file( '/tmp/foo.asc' )
+    create_file( '/tmp/bar.asc' )
+    create_file( '/tmp/foo-bar.asc' )
+    create_file( '/tmp/compiled-website-test-file.asc' )
 
+    # Simple match
+    string = <<-heredoc.unindent
+      foo
+    heredoc
+    expected = <<-heredoc.unindent
+      <a href="foo.html">foo</a>
+    heredoc
+    source_file_full_path = '/tmp/something.asc'
+    result = @o.links_automatic( string, source_file_full_path )
     assert_equal(
-      ( <<-heredoc.unindent
-        <a href="foo.html">foo</a>
-      heredoc
-      ),
-      @o.links_automatic( (<<-heredoc.unindent
-        foo
-      heredoc
-      ),
-        '/tmp/something.asc'
-      )
+      expected,
+      result,
+    )
+
+    # Case-insensitive match.
+    string = <<-heredoc.unindent
+      Foo
+    heredoc
+    expected = <<-heredoc.unindent
+      <a href="foo.html">Foo</a>
+    heredoc
+    source_file_full_path = '/tmp/something.asc'
+    result = @o.links_automatic( string, source_file_full_path )
+    assert_equal(
+      expected,
+      result,
     )
 
     # Only link the first word.
+    string = <<-heredoc.unindent
+      foo foo
+    heredoc
+    expected = <<-heredoc.unindent
+      <a href="foo.html">foo</a> foo
+    heredoc
+    source_file_full_path = '/tmp/something.asc'
+    result = @o.links_automatic( string, source_file_full_path )
     assert_equal(
-      ( <<-heredoc.unindent
-        <a href="foo.html">foo</a> foo
-      heredoc
-      ),
-      @o.links_automatic( (<<-heredoc.unindent
-        foo foo
-      heredoc
-      ),
-        '/tmp/something.asc'
-      )
+      expected,
+      result,
     )
 
-    # Only link the first word.  No, seriously.
+    # Only link the first word.
+    string = <<-heredoc.unindent
+      foo <a href="a">a</a> foo
+    heredoc
+    expected = <<-heredoc.unindent
+      <a href="foo.html">foo</a> <a href="a">a</a> foo
+    heredoc
+    source_file_full_path = '/tmp/something.asc'
+    result = @o.links_automatic( string, source_file_full_path )
     assert_equal(
-      ( <<-heredoc.unindent
-        <a href="foo.html">foo</a> <a href="a">a</a> foo
-      heredoc
-      ),
-      @o.links_automatic( (<<-heredoc.unindent
-        foo <a href="a">a</a> foo
-      heredoc
-      ),
-        '/tmp/something.asc'
-      )
+      expected,
+      result,
     )
 
+    #
+    string = <<-heredoc.unindent
+      bar
+    heredoc
+    expected = <<-heredoc.unindent
+      <a href="bar.html">bar</a>
+    heredoc
+    source_file_full_path = '/tmp/something.asc'
+    result = @o.links_automatic( string, source_file_full_path )
     assert_equal(
-      ( <<-heredoc.unindent
-        <a href="bar.html">bar</a>
-      heredoc
-      ),
-      @o.links_automatic( (<<-heredoc.unindent
-        bar
-      heredoc
-      ),
-        '/tmp/something.asc'
-      )
+      expected,
+      result,
     )
 
+    # Links two words, and don't link single words.
+    string = <<-heredoc.unindent
+      foo bar
+    heredoc
+    expected = <<-heredoc.unindent
+      <a href="foo-bar.html">foo bar</a>
+    heredoc
+    source_file_full_path = '/tmp/something.asc'
+    result = @o.links_automatic( string, source_file_full_path )
     assert_equal(
-      ( <<-heredoc.unindent
-        <a href="foo-bar.html">foo bar</a>
-      heredoc
-      ),
-      @o.links_automatic( (<<-heredoc.unindent
-        foo bar
-      heredoc
-      ),
-        '/tmp/something.asc'
-      )
+      expected,
+      result,
     )
 
+    # Multi-word matches
+    string = <<-heredoc.unindent
+      compiled website test file
+    heredoc
+    expected = <<-heredoc.unindent
+      <a href="compiled-website-test-file.html">compiled website test file</a>
+    heredoc
+    source_file_full_path = '/tmp/something.asc'
+    result = @o.links_automatic( string, source_file_full_path )
     assert_equal(
-      ( <<-heredoc.unindent
-        <a href="compiled-website-test-file.html">compiled website test file</a>
-      heredoc
-      ),
-      @o.links_automatic( (<<-heredoc.unindent
-        compiled website test file
-      heredoc
-      ),
-        '/tmp/something.asc'
-      )
+      expected,
+      result,
+    )
+
+    # Multi-word matches, where there are dashes.
+    string = <<-heredoc.unindent
+      compiled-website test file
+    heredoc
+    expected = <<-heredoc.unindent
+      <a href="compiled-website-test-file.html">compiled-website test file</a>
+    heredoc
+    source_file_full_path = '/tmp/something.asc'
+    result = @o.links_automatic( string, source_file_full_path )
+    assert_equal(
+      expected,
+      result,
     )
 
     # Working with single words then removing them as possibilities.
+    string = <<-heredoc.unindent
+      foo
+      bar foo bar
+    heredoc
+    expected = <<-heredoc.unindent
+      <a href="foo.html">foo</a>
+      <a href="bar.html">bar</a> <a href="foo-bar.html">foo bar</a>
+    heredoc
+    source_file_full_path = '/tmp/something.asc'
+    result = @o.links_automatic( string, source_file_full_path )
     assert_equal(
-      ( <<-heredoc.unindent
-        <a href="foo.html">foo</a>
-        <a href="bar.html">bar</a> <a href="foo-bar.html">foo bar</a>
-      heredoc
-      ),
-      @o.links_automatic( (<<-heredoc.unindent
-        foo
-        bar foo bar
-      heredoc
-      ),
-        '/tmp/something.asc'
-      )
-    )
-
-    # Case-insensitive matches.
-    assert_equal(
-      ( <<-heredoc.unindent
-        <a href="foo.html">Foo</a>
-      heredoc
-      ),
-      @o.links_automatic( (<<-heredoc.unindent
-        Foo
-      heredoc
-      ),
-        '/tmp/something.asc'
-      )
+      expected,
+      result,
     )
 
     # Allow matching within punctuation and specific endings
+    string = <<-heredoc.unindent
+      fooed
+    heredoc
+    expected = <<-heredoc.unindent
+      <a href="foo.html">foo</a>ed
+    heredoc
+    source_file_full_path = '/tmp/something.asc'
+    result = @o.links_automatic( string, source_file_full_path )
     assert_equal(
-      ( <<-heredoc.unindent
-        <a href="foo.html">foo</a>ed
-      heredoc
-      ),
-      @o.links_automatic( (<<-heredoc.unindent
-        fooed
-      heredoc
-      ),
-        '/tmp/something.asc'
-      )
+      expected,
+      result,
     )
 
     # Match, ignoring dashes in the source text.
+    string = <<-heredoc.unindent
+      compiled-website test file
+    heredoc
+    expected = <<-heredoc.unindent
+      <a href="compiled-website-test-file.html">compiled-website test file</a>
+    heredoc
+    source_file_full_path = '/tmp/something.asc'
+    result = @o.links_automatic( string, source_file_full_path )
     assert_equal(
-      ( <<-heredoc.unindent
-        <a href="compiled-website-test-file.html">compiled-website test file</a>
-      heredoc
-      ),
-      @o.links_automatic( (<<-heredoc.unindent
-        compiled-website test file
-      heredoc
-      ),
-        '/tmp/something.asc'
-      )
+      expected,
+      result,
     )
 
-    # Don't match the current document's name.
+    # Don't link the current document's name.
+    string = <<-heredoc.unindent
+      foo
+    heredoc
+    expected = <<-heredoc.unindent
+      foo
+    heredoc
+    source_file_full_path = '/tmp/foo.asc'
+    result = @o.links_automatic( string, source_file_full_path )
     assert_equal(
-      ( <<-heredoc.unindent
-        foo
-      heredoc
-      ),
-      @o.links_automatic( (<<-heredoc.unindent
-        foo
-      heredoc
-      ),
-        '/tmp/foo.asc'
-      )
+      expected,
+      result,
     )
 
-    # FIXME:  This broke after I made the change to use html_arrays() everywhere.
-    ## Prioritizing two words before single words.
-    #assert_equal(
-      #( <<-heredoc.unindent
-        #<a href="foo-bar.html">foo bar</a> <a href="foo.html">foo</a> <a href="bar.html">bar</a>
-      #heredoc
-      #),
-      #@o.links_automatic( (<<-heredoc.unindent
-        #foo bar foo bar
-      #heredoc
-      #),
-        #'/tmp/something.asc'
-      #)
-    #)
-
- if $slow == true then
-    # Do not allow matching within words.  Require punctuation.
-    # FIXME:  There's a serious speed issue here.  =(
+    # Prioritizing two words before single words.
+    string = <<-heredoc.unindent
+      foo bar foo bar
+    heredoc
+    expected = <<-heredoc.unindent
+      <a href="foo-bar.html">foo bar</a> <a href="foo.html">foo</a> <a href="bar.html">bar</a>
+    heredoc
+    source_file_full_path = '/tmp/something.asc'
+    result = @o.links_automatic( string, source_file_full_path )
     assert_equal(
-      ( <<-heredoc.unindent
+      expected,
+      result,
+    )
+
+    # Multiple separate matches.
+    string = <<-heredoc.unindent
+      bar foo
+    heredoc
+    expected = <<-heredoc.unindent
+      <a href="bar.html">bar</a> <a href="foo.html">foo</a>
+    heredoc
+    source_file_full_path = '/tmp/something.asc'
+    result = @o.links_automatic( string, source_file_full_path )
+    assert_equal(
+      expected,
+      result,
+    )
+
+    # FIXME:  There's a serious speed issue here.  =(  This may be impossible to fix, or it could be a regex thing.
+    # Do not allow matching within words.
+    # Maybe I can still have improved matching without being too slow.  I don't want to match the 'pre' in 'preview' and so I could still require at least a small subset of punctuation can't i?  Investigate.
+    if $slow == true then
+      string = <<-heredoc.unindent
         abcfoodef
       heredoc
-      ),
-      @o.links_automatic( (<<-heredoc.unindent
+      expected = <<-heredoc.unindent
         abcfoodef
       heredoc
-      ),
-        '/tmp/something.asc'
+      source_file_full_path = '/tmp/something.asc'
+      result = @o.links_automatic( string, source_file_full_path )
+      assert_equal(
+        expected,
+        result,
       )
+    end
+
+    string = '<a></a>DISPLAY<b></b> foo'
+    expected = '<a></a>DISPLAY<b></b> <a href="foo.html">foo</a>'
+    source_file_full_path = '/tmp/something.asc'
+    result = @o.links_automatic( string, source_file_full_path )
+    assert_equal(
+      expected,
+      result,
     )
-end
 
     File.delete( '/tmp/foo.asc' )
     File.delete( '/tmp/bar.asc' )
@@ -2147,7 +2288,7 @@ end
   end
 
   # Naughty tests touch the disk.
-  def xx_test_links_local_new()
+  def test_links_local_new()
     verbose_old = $VERBOSE
     $VERBOSE = false
     if File.exists?( '/tmp/foo.asc' ) then
@@ -2187,7 +2328,7 @@ end
     # Second usage.  Remove [[ ]] for non-empty and already-existing files, to allow links_automatic() to operate.
     create_file( '/tmp/foo.asc', '[[bar]]' )
     # An empty file is referenced.  Therefore keep [[ ]]
-    create_file( '/tmp/bar.asc', '' )
+    create_file( '/tmp/bar.asc' )
     assert_equal(
       '<a class="new" href="file:///tmp/bar.asc">bar</a>',
       @o.links_local_new( 
@@ -2241,7 +2382,7 @@ end
   end
 
   # Naughty tests touch the disk.
-  def xx_test_links_mixed()
+  def test_links_mixed()
     verbose_old = $VERBOSE
     $VERBOSE = false
   
@@ -2265,19 +2406,18 @@ end
     filename = '/tmp/foo.asc'
 
     # [[baz]] already exists and is non-empty.  It should be auto-linked.
-    # FIXME
-    #assert_equal(
-      #'<a class="new" href="file:///tmp/bar.asc">bar</a> <a href="baz.html">baz</a> <a class="new" href="file:///tmp/quux.asc">quux</a>',
-      #@o.links_automatic(
-        #@o.links_local_new( 
-          #file_read( filename ),
-          #filename,
-        #),
-        #filename,
-      #),
-    #)
-    #File.delete( '/tmp/bar.asc' )
-    #File.delete( '/tmp/quux.asc' )
+    assert_equal(
+      '<a class="new" href="file:///tmp/bar.asc">bar</a> <a href="baz.html">baz</a> <a class="new" href="file:///tmp/quux.asc">quux</a>',
+      @o.links_automatic(
+        @o.links_local_new( 
+          file_read( filename ),
+          filename,
+        ),
+        filename,
+      ),
+    )
+    File.delete( '/tmp/bar.asc' )
+    File.delete( '/tmp/quux.asc' )
 
     File.delete( '/tmp/foo.asc' )
     File.delete( '/tmp/baz.asc' )
@@ -2285,606 +2425,651 @@ end
     $VERBOSE = verbose_old
   end
 
-  def xx_test_lists_arrays()
-    assert_equal(
-      ( <<-heredoc.unindent
-        foo
-      heredoc
-      ).chomp,
-      @o.lists_arrays( <<-heredoc.unindent
-        foo
-      heredoc
-      )[0][0],
-    )
+  def test_lists_arrays()
 
+    #
+    string = <<-heredoc.unindent
+      foo
+    heredoc
+    expected = [
+      string,
+    ]
+    result = @o.lists_arrays( string )
     assert_equal(
-      ( <<-heredoc.unindent
-        - foo
-      heredoc
-      ).chomp,
-      @o.lists_arrays( <<-heredoc.unindent
-        - foo
-      heredoc
-      )[1][0],
+      expected.size.to_s,
+      result.size.to_s,
     )
+    expected.each_index{ |i|
+      assert_equal(
+        expected[i],
+        result[i],
+      )
+    }
 
+    #
+    string = <<-heredoc.unindent
+      - one
+    heredoc
+    expected = [
+      '',
+      string,
+    ]
+    result = @o.lists_arrays( string )
     assert_equal(
-      ( <<-heredoc.unindent
-        # foo
-      heredoc
-      ).chomp,
-      @o.lists_arrays( <<-heredoc.unindent
-        # foo
-      heredoc
-      )[1][0],
+      expected.size.to_s,
+      result.size.to_s,
     )
+    expected.each_index{ |i|
+      assert_equal(
+        expected[i],
+        result[i],
+      )
+    }
 
+    #
+    string = <<-heredoc.unindent
+      # one
+    heredoc
+    expected = [
+      '',
+      string,
+    ]
+    result = @o.lists_arrays( string )
     assert_equal(
-      ( <<-heredoc.unindent
-        before
-      heredoc
-      ).chomp,
-      @o.lists_arrays( <<-heredoc.unindent
-        before
-        - foo
-      heredoc
-      )[0][0],
+      expected.size.to_s,
+      result.size.to_s,
     )
+    expected.each_index{ |i|
+      assert_equal(
+        expected[i],
+        result[i],
+      )
+    }
 
+    #
+    string = <<-heredoc.unindent
+      before
+      - one
+    heredoc
+    expected = [
+      "before\n",
+      "- one\n",
+    ]
+    result = @o.lists_arrays( string )
     assert_equal(
-      ( <<-heredoc.unindent
-        after
-      heredoc
-      ).chomp,
-      @o.lists_arrays( <<-heredoc.unindent
-        before
-        - foo
-        after
-      heredoc
-      )[0][2],
+      expected.size.to_s,
+      result.size.to_s,
     )
+    expected.each_index{ |i|
+      assert_equal(
+        expected[i],
+        result[i],
+      )
+    }
 
+    #
+    string = <<-heredoc.unindent
+      before
+      - one
+      after
+    heredoc
+    expected = [
+      "before\n",
+      "- one\n",
+      "after\n",
+    ]
+    result = @o.lists_arrays( string )
     assert_equal(
-      ( <<-heredoc.unindent
-        - foo
-        - bar
-      heredoc
-      ).chomp,
-      @o.lists_arrays( <<-heredoc.unindent
-        - foo
-        - bar
-      heredoc
-      )[1][0],
+      expected.size.to_s,
+      result.size.to_s,
     )
+    expected.each_index{ |i|
+      assert_equal(
+        expected[i],
+        result[i],
+      )
+    }
 
+    # Multiple list items in a row.
+    string = <<-heredoc.unindent
+      - one
+      - two
+    heredoc
+    expected = [
+      '',
+      "- one\n- two\n",
+    ]
+    result = @o.lists_arrays( string )
     assert_equal(
-      ( <<-heredoc.unindent
-        - foo
-        # bar
-      heredoc
-      ).chomp,
-      @o.lists_arrays( <<-heredoc.unindent
-        - foo
-        # bar
-      heredoc
-      )[1][0],
+      expected.size.to_s,
+      result.size.to_s,
     )
+    expected.each_index{ |i|
+      assert_equal(
+        expected[i],
+        result[i],
+      )
+    }
 
-    # Single blank lines are allowed, but removed.
+    # Multiple list items in a row.  Mixed types.
+    string = <<-heredoc.unindent
+      - one
+      # two
+    heredoc
+    expected = [
+      '',
+      "- one\n# two\n",
+    ]
+    result = @o.lists_arrays( string )
     assert_equal(
-      ( <<-heredoc.unindent
-        - foo
-        - bar
-        - baz
-      heredoc
-      ).chomp,
-      @o.lists_arrays( <<-heredoc.unindent
-        - foo
-        
-        - bar
-        - baz
-      heredoc
-      )[1][0],
+      expected.size.to_s,
+      result.size.to_s,
     )
+    expected.each_index{ |i|
+      assert_equal(
+        expected[i],
+        result[i],
+      )
+    }
+
+    # Single blank lines are allowed, but removed, merging the lists.
+    string = <<-heredoc.unindent
+      - one
+      
+      - two
+      - three
+    heredoc
+    expected = [
+      '',
+      "- one\n- two\n- three\n",
+    ]
+    result = @o.lists_arrays( string )
+    assert_equal(
+      expected.size.to_s,
+      result.size.to_s,
+    )
+    expected.each_index{ |i|
+      assert_equal(
+        expected[i],
+        result[i],
+      )
+    }
+
+    # Multiple blank lines form separate lists.
+    string = <<-heredoc.unindent
+      - one
+      
+      
+      - two
+      - three
+    heredoc
+    expected = [
+      '',
+      "- one\n",
+      "\n\n",
+      "- two\n- three\n",
+    ]
+    result = @o.lists_arrays( string )
+    assert_equal(
+      expected.size.to_s,
+      result.size.to_s,
+    )
+    expected.each_index{ |i|
+      assert_equal(
+        expected[i],
+        result[i],
+      )
+    }
 
     # Indentation is allowed, but removed.
+    string = <<-heredoc
+      - one
+      
+      
+      - two
+      - three
+    heredoc
+    expected = [
+      '',
+      "- one\n",
+      # yes, the whitespace is kept for the non-list lines.
+      "      \n      \n",
+      "- two\n- three\n",
+    ]
+    result = @o.lists_arrays( string )
     assert_equal(
-      ( <<-heredoc.unindent
-        - foo
-      heredoc
-      ).chomp,
-      @o.lists_arrays( <<-heredoc
-        - foo
-      heredoc
-      )[1][0],
+      expected.size.to_s,
+      result.size.to_s,
     )
-
-    # Indentation is allowed, but removed.
-    assert_equal(
-      ( <<-heredoc.unindent
-        - foo
-        - bar
-      heredoc
-      ).chomp,
-      @o.lists_arrays( <<-heredoc
-        - foo
-        - bar
-      heredoc
-      )[1][0],
-    )
-
-    # Indentation is allowed, but removed.
-    assert_equal(
-      ( <<-heredoc.unindent
-        - foo
-        - bar
-      heredoc
-      ).chomp,
-      @o.lists_arrays( <<-heredoc
-        - foo
-        
-        - bar
-      heredoc
-      )[1][0],
-    )
-
-    assert_equal(
-      ( <<-heredoc.unindent
-        - foo
-      heredoc
-      ).chomp,
-      @o.lists_arrays( <<-heredoc.unindent
-        - foo
-        
-        
-        - bar
-      heredoc
-      )[1][0],
-    )
-
-    assert_equal(
-      ( <<-heredoc.unindent
-        - bar
-      heredoc
-      ).chomp,
-      @o.lists_arrays( <<-heredoc.unindent
-        - foo
-        
-        
-        - bar
-      heredoc
-      )[1][3],
-    )
-
-    assert_equal(
-      ( <<-heredoc.unindent
-        - one
-        - two
-      heredoc
-      ).chomp,
-      @o.lists_arrays( <<-heredoc.unindent
-        - one
-        - two
-        
-        
-        - three
-      heredoc
-      )[1][0],
-    )
-
-    assert_equal(
-      ( <<-heredoc.unindent
-        - three
-      heredoc
-      ).chomp,
-      @o.lists_arrays( <<-heredoc.unindent
-        - one
-        - two
-        
-        
-        - three
-      heredoc
-      )[1][3],
-    )
+    expected.each_index{ |i|
+      assert_equal(
+        expected[i],
+        result[i],
+      )
+    }
 
   end
 
-  def xx_test_lists()
+  def test_lists()
 
+    #
+    string = <<-heredoc.unindent
+      foo
+    heredoc
+    expected = <<-heredoc.unindent
+      foo
+    heredoc
+    result = @o.lists( string )
     assert_equal(
-      ( <<-heredoc.unindent
-        foo
-      heredoc
-      ).chomp,
-      @o.lists( <<-heredoc.unindent
-        foo
-      heredoc
-      ),
+      expected,
+      result,
     )
 
+    #
+    string = <<-heredoc.unindent
+      - one
+    heredoc
+    expected = <<-heredoc.unindent
+      <ul>
+      <li>one</li>
+      </ul>
+    heredoc
+    expected.chomp!
+    result = @o.lists( string )
     assert_equal(
-      ( <<-heredoc.unindent
-        <ul>
-        <li>one</li>
-        </ul>
-      heredoc
-      ).chomp,
-      @o.lists( <<-heredoc.unindent
-        - one
-      heredoc
-      ),
+      expected,
+      result,
     )
 
+    #
+    string = <<-heredoc.unindent
+      # one
+    heredoc
+    expected = <<-heredoc.unindent
+      <ol>
+      <li>one</li>
+      </ol>
+    heredoc
+    expected.chomp!
+    result = @o.lists( string )
     assert_equal(
-      ( <<-heredoc.unindent
-        <ol>
-        <li>one</li>
-        </ol>
-      heredoc
-      ).chomp,
-      @o.lists( <<-heredoc.unindent
-        # one
-      heredoc
-      ),
+      expected,
+      result,
     )
 
+    #
+    string = <<-heredoc.unindent
+      before
+      - one
+      after
+    heredoc
+    expected = <<-heredoc.unindent
+      before
+      <ul>
+      <li>one</li>
+      </ul>after
+    heredoc
+    result = @o.lists( string )
     assert_equal(
-      ( <<-heredoc.unindent
-        before
-        <ul>
-        <li>one</li>
-        </ul>
-        after
-      heredoc
-      ).chomp,
-      @o.lists( <<-heredoc.unindent
-        before
-        - one
-        after
-      heredoc
-      ),
+      expected,
+      result,
     )
 
+    #
+    string = <<-heredoc.unindent
+      - one
+      - two
+    heredoc
+    expected = <<-heredoc.unindent
+      <ul>
+      <li>one</li>
+      <li>two</li>
+      </ul>
+    heredoc
+    expected.chomp!
+    result = @o.lists( string )
     assert_equal(
-      ( <<-heredoc.unindent
-        <ul>
-        <li>one</li>
-        <li>two</li>
-        </ul>
-      heredoc
-      ).chomp,
-      @o.lists( <<-heredoc.unindent
-        - one
-        - two
-      heredoc
-      ),
+      expected,
+      result,
     )
 
     # Single blank lines are combined.
-    assert_equal(
-      ( <<-heredoc.unindent
-        <ul>
-        <li>one</li>
-        <li>two</li>
-        </ul>
-      heredoc
-      ).chomp,
-      @o.lists( <<-heredoc.unindent
-        - one
-        
-        - two
-      heredoc
-      ),
-    )
+    string = <<-heredoc.unindent
+      - one
+      
+      - two
+    heredoc
+    expected = <<-heredoc.unindent
+      <ul>
+      <li>one</li>
+      <li>two</li>
+      </ul>
+    heredoc
+    result = @o.lists( string )
+    #assert_equal(
+      #expected,
+      #result,
+    #)
 
     # Allow indentation
-    assert_equal(
-      ( <<-heredoc.unindent
-        <ul>
-        <li>one</li>
-        <li>two</li>
-        </ul>
-      heredoc
-      ).chomp,
-      @o.lists( <<-heredoc
-        - one
-        - two
-      heredoc
-      ),
-    )
+    string = <<-heredoc
+      - one
+      - two
+    heredoc
+    expected = <<-heredoc.unindent
+      <ul>
+      <li>one</li>
+      <li>two</li>
+      </ul>
+    heredoc
+    result = @o.lists( string )
+    #assert_equal(
+      #expected,
+      #result,
+    #)
 
     # Allow indentation /and/ spaces.  Lists separated by single blank lines are combined.
-    assert_equal(
-      ( <<-heredoc.unindent
-        <ul>
-        <li>one</li>
-        <li>two</li>
-        </ul>
-      heredoc
-      ).chomp,
-      @o.lists( <<-heredoc
-        - one
-        
-        - two
-      heredoc
-      ),
-    )
+    string = <<-heredoc
+      - one
+      
+      - two
+    heredoc
+    expected = <<-heredoc.unindent
+      <ul>
+      <li>one</li>
+      <li>two</li>
+      </ul>
+    heredoc
+    result = @o.lists( string )
+    #assert_equal(
+      #expected,
+      #result,
+    #)
 
     # Allow indentation.  Lists separated by two blank lines are separate lists.
+    string = <<-heredoc
+      - one
+      
+      
+      - two
+    heredoc
+    expected = <<-heredoc.unindent
+      <ul>
+      <li>one</li>
+      </ul>
+      
+      
+      <ul>
+      <li>two</li>
+      </ul>
+    heredoc
+    result = @o.lists( string )
+    #assert_equal(
+      #expected,
+      #result,
+    #)
+
+    # Nested lists.
+    string = <<-heredoc.unindent
+      - one
+      -- two
+    heredoc
+    expected = <<-heredoc.unindent
+      <ul>
+      <li>one
+      <ul>
+      <li>two</li>
+      </ul>
+      </li>
+      </ul>
+    heredoc
+    result = @o.lists( string )
+    #assert_equal(
+      #expected,
+      #result,
+    #)
+
+    # Nested lists, changing type
+    string = <<-heredoc.unindent
+      - one
+      ## two
+    heredoc
+    expected = <<-heredoc.unindent
+      <ul>
+      <li>one
+      <ol>
+      <li>two</li>
+      </ol>
+      </li>
+      </ul>
+    heredoc
+    result = @o.lists( string )
+    #assert_equal(
+      #expected,
+      #result,
+    #)
+
+    # Initial list is nested
+    string = <<-heredoc.unindent
+      -- one
+    heredoc
+    expected = <<-heredoc.unindent
+      <ul>
+      <li>
+      <ul>
+      <li>one</li>
+      </ul>
+      </li>
+      </ul>
+    heredoc
+    result = @o.lists( string )
+    #assert_equal(
+      #expected,
+      #result,
+    #)
+
+    # Initial list is nested a lot
+    string = <<-heredoc.unindent
+      --- one
+    heredoc
+    expected = <<-heredoc.unindent
+      <ul>
+      <li>
+      <ul>
+      <li>
+      <ul>
+      <li>one</li>
+      </ul>
+      </li>
+      </ul>
+      </li>
+      </ul>
+    heredoc
+    result = @o.lists( string )
+    #assert_equal(
+      #expected,
+      #result,
+    #)
+
+    # Nested lists, incrementing then decrementing
+    string = <<-heredoc.unindent
+      - one
+      -- two
+      - three
+    heredoc
+    expected = <<-heredoc.unindent
+      <ul>
+      <li>one
+      <ul>
+      <li>two</li>
+      </ul>
+      </li>
+      <li>three</li>
+      </ul>
+    heredoc
+    result = @o.lists( string )
+    #assert_equal(
+      #expected,
+      #result,
+    #)
+
+    # Nesting lists, incrementing a lot.
+    string = <<-heredoc.unindent
+      - one
+      --- two
+    heredoc
+    expected = <<-heredoc.unindent
+      <ul>
+      <li>one
+      <ul>
+      <li>
+      <ul>
+      <li>two</li>
+      </ul>
+      </li>
+      </ul>
+      </li>
+      </ul>
+    heredoc
+    result = @o.lists( string )
+    #assert_equal(
+      #expected,
+      #result,
+    #)
+
+    # Nesting lists, incrementing even more.
+    string = <<-heredoc.unindent
+      - one
+      ---- two
+    heredoc
+    expected = <<-heredoc.unindent
+      <ul>
+      <li>one
+      <ul>
+      <li>
+      <ul>
+      <li>
+      <ul>
+      <li>two</li>
+      </ul>
+      </li>
+      </ul>
+      </li>
+      </ul>
+      </li>
+      </ul>
+    heredoc
+    result = @o.lists( string )
+    #assert_equal(
+      #expected,
+      #result,
+    #)
+
+    # Nesting lists, incrementing a lot, then decrementing a lot.
+    string = <<-heredoc.unindent
+      - one
+      --- two
+      - three
+    heredoc
+    expected = <<-heredoc.unindent
+      <ul>
+      <li>one
+      <ul>
+      <li>
+      <ul>
+      <li>two</li>
+      </ul>
+      </li>
+      </ul>
+      </li>
+      <li>three</li>
+      </ul>
+    heredoc
+    result = @o.lists( string )
+    #assert_equal(
+      #expected,
+      #result,
+    #)
+
+=begin
+    # TODO:  Mixed lists
     assert_equal(
       ( <<-heredoc.unindent
         <ul>
         <li>one</li>
         </ul>
-        
-        
-        <ul>
-        <li>two</li>
-        </ul>
-      heredoc
-      ).chomp,
-      @o.lists( <<-heredoc.unindent
-        - one
-        
-        
-        - two
-      heredoc
-      ),
-    )
-
-    # Nested lists.
-    assert_equal(
-      ( <<-heredoc.unindent
-        <ul>
-        <li>one
-        <ul>
-        <li>two</li>
-        </ul>
-        </li>
-        </ul>
-      heredoc
-      ).chomp,
-      @o.lists( <<-heredoc.unindent
-        - one
-        -- two
-      heredoc
-      ),
-    )
-
-    # Nested lists, changing type
-    assert_equal(
-      ( <<-heredoc.unindent
-        <ul>
-        <li>one
         <ol>
         <li>two</li>
         </ol>
-        </li>
-        </ul>
       heredoc
       ).chomp,
       @o.lists( <<-heredoc.unindent
-        - one
-        ## two
+        - foo
+        # bar
       heredoc
       ),
     )
-
-    # Initial list is nested
-    assert_equal(
-      ( <<-heredoc.unindent
-        <ul>
-        <li>
-        <ul>
-        <li>one</li>
-        </ul>
-        </li>
-        </ul>
-      heredoc
-      ).chomp,
-      @o.lists( <<-heredoc.unindent
-        -- one
-      heredoc
-      ),
-    )
-
-    # Initial list is nested
-    assert_equal(
-      ( <<-heredoc.unindent
-        <ul>
-        <li>
-        <ul>
-        <li>
-        <ul>
-        <li>one</li>
-        </ul>
-        </li>
-        </ul>
-        </li>
-        </ul>
-      heredoc
-      ).chomp,
-      @o.lists( <<-heredoc.unindent
-        --- one
-      heredoc
-      ),
-    )
-
-    # Nested lists, incrementing then decrementing
-    assert_equal(
-      ( <<-heredoc.unindent
-        <ul>
-        <li>one
-        <ul>
-        <li>two</li>
-        </ul>
-        </li>
-        <li>three</li>
-        </ul>
-      heredoc
-      ).chomp,
-      @o.lists( <<-heredoc.unindent
-        - one
-        -- two
-        - three
-      heredoc
-      ),
-    )
-
-    # Nesting lists, incrementing a lot.
-    assert_equal(
-      ( <<-heredoc.unindent
-        <ul>
-        <li>one
-        <ul>
-        <li>
-        <ul>
-        <li>two</li>
-        </ul>
-        </li>
-        </ul>
-        </li>
-        </ul>
-      heredoc
-      ).chomp,
-      @o.lists( <<-heredoc.unindent
-        - one
-        --- two
-      heredoc
-      ),
-    )
-
-    # Nesting lists, incrementing a lot.
-    assert_equal(
-      ( <<-heredoc.unindent
-        <ul>
-        <li>one
-        <ul>
-        <li>
-        <ul>
-        <li>
-        <ul>
-        <li>two</li>
-        </ul>
-        </li>
-        </ul>
-        </li>
-        </ul>
-        </li>
-        </ul>
-      heredoc
-      ).chomp,
-      @o.lists( <<-heredoc.unindent
-        - one
-        ---- two
-      heredoc
-      ),
-    )
-
-# TODO -- testing past here.
-    ## Nesting lists, incrementing a lot, then decrementing a lot.
-    #assert_equal(
-      #( <<-heredoc.unindent
-        #<ul>
-        #<li>one
-        #<ul>
-        #<li>
-        #<ul>
-        #<li>two</li>
-        #</ul>
-        #</li>
-        #</ul>
-        #</li>
-        #<li>three</li>
-        #</ul>
-      #heredoc
-      #).chomp,
-      #@o.lists( <<-heredoc.unindent
-        #- one
-        #--- two
-        #- three
-      #heredoc
-      #),
-    #)
-
-    ## Mixed lists
-    #assert_equal(
-      #( <<-heredoc.unindent
-        #<ul>
-        #<li>one</li>
-        #</ul>
-        #<ol>
-        #<li>two</li>
-        #</ol>
-      #heredoc
-      #).chomp,
-      #@o.lists( <<-heredoc.unindent
-        #- foo
-        ## bar
-      #heredoc
-      #),
-    #)
 
 # TODO:  Mixed lists, incrementing a lot.
 # TODO:  Mixed lists, incrementing then decrementing a lot.
 
-    ## And now let's try to break the damned thing!
-    #assert_equal(
-      #( <<-heredoc.unindent
-        #<ul>
-        #<li>
-        #<ul>
-        #<li>one</li>
-        #</ul>
-        #</li>
-        #</ul>
-        #<ol>
-        #<li>
-        #<ol>
-        #<li>two</li>
-        #</ol>
-        #</li>
-        #</ol>
-        #<ul>
-        #<li>three
-        #<ul>
-        #<li>four
-        #<ul>
-        #<li>five</li>
-        #</ul>
-        #</li>
-        #</ul>
-        #</li>
-        #</ul>
-        #<ol>
-        #<li>oh
-        #<ol>
-        #<li>
-        #<ol>
-        #<li>here</li>
-        #</ol>
-        #</li>
-        #</ol>
-        #</li>
-        #</ol>
-      #heredoc
-      #).chomp,
-      #@o.lists( <<-heredoc.unindent
-      #-- one
-      ### two
-      #- three
-      #-- four
-      #--- five
-      #-----
-      ## oh
-      #### here
-      #heredoc
-      #),
-    #)
-
+    # And now let's try to break the damned thing!
+    assert_equal(
+      ( <<-heredoc.unindent
+        <ul>
+        <li>
+        <ul>
+        <li>one</li>
+        </ul>
+        </li>
+        </ul>
+        <ol>
+        <li>
+        <ol>
+        <li>two</li>
+        </ol>
+        </li>
+        </ol>
+        <ul>
+        <li>three
+        <ul>
+        <li>four
+        <ul>
+        <li>five</li>
+        </ul>
+        </li>
+        </ul>
+        </li>
+        </ul>
+        <ol>
+        <li>oh
+        <ol>
+        <li>
+        <ol>
+        <li>here</li>
+        </ol>
+        </li>
+        </ol>
+        </li>
+        </ol>
+      heredoc
+      ).chomp,
+      @o.lists( <<-heredoc.unindent
+      -- one
+      ## two
+      - three
+      -- four
+      --- five
+      -----
+      # oh
+      ### here
+      heredoc
+      ),
+    )
+=end
   end
 
-  def xx_test_blocks_arrays()
+  def test_blocks_arrays()
 
     #assert_equal(
       #( <<-heredoc
@@ -2971,81 +3156,83 @@ end
 
   end
   
-  def xx_test_blocks()
+  def test_blocks()
   
-    assert_equal( 
-      ( <<-heredoc.unindent
-        foo
-      heredoc
-      ),
-      @o.blocks( <<-heredoc.unindent
-        foo
-      heredoc
-      ),
+    string = <<-heredoc.unindent
+      foo
+    heredoc
+    expected = <<-heredoc.unindent
+      foo
+    heredoc
+    result = @o.blocks( string )
+    assert_equal(
+      expected,
+      result,
     )
-
-    assert_equal( 
-      ( <<-heredoc.unindent
-        before
-        <pre>
+  
+    string = <<-heredoc.unindent
+      before
         some text
-        </pre>
-      heredoc
-      ),
-      @o.blocks( <<-heredoc.unindent
-        before
-          some text
-      heredoc
-      ),
+    heredoc
+    expected = <<-heredoc.unindent
+      before
+      <pre>some text
+      </pre>
+    heredoc
+    expected.chomp!
+    result = @o.blocks( string )
+    assert_equal(
+      expected,
+      result,
     )
   
-    assert_equal( 
-      ( <<-heredoc.unindent
-        before
-        <pre>
+    string = <<-heredoc.unindent
+      before
         some text
-        </pre>
-        after
-      heredoc
-      ),
-      @o.blocks( <<-heredoc.unindent
-        before
-          some text
-        after
-      heredoc
-      ),
+      after
+    heredoc
+    expected = <<-heredoc.unindent
+      before
+      <pre>some text
+      </pre>after
+    heredoc
+    #expected.chomp!
+    result = @o.blocks( string )
+    assert_equal(
+      expected,
+      result,
     )
   
-    assert_equal( 
-      ( <<-heredoc.unindent
-        before
-        <pre>
+    string = <<-heredoc.unindent
+      before
         some text
           indented text
-        </pre>
-        after
-      heredoc
-      ),
-      @o.blocks( <<-heredoc.unindent
-        before
-          some text
-            indented text
-        after
-      heredoc
-      ),
+      after
+    heredoc
+    expected = <<-heredoc.unindent
+      before
+      <pre>some text
+        indented text
+      </pre>after
+    heredoc
+    #expected.chomp!
+    result = @o.blocks( string )
+    assert_equal(
+      expected,
+      result,
     )
   
   end
 
-end
+end # class Test_Markup < MiniTest::Unit::TestCase
 
-# The below code was mostly copied from the previous generation of this codebase.
+# The below code was mostly copied from the first generation of this codebase.
 # ---
 
 
-def create_file( file, file_contents )
+def create_file( file, file_contents='' )
   # TODO: This can't create a file if it's in a subdirectory that doesn't exist.  I get a TypeError.  Perhaps I could intelligently create the directory..
-  vputs "creating file: " + file
+  vputs "creating file:  '#{ file }'"
   # TODO: check that I have write access to my current directory.
   # TODO: check for overwriting an existing file.  Also implement an optional flag to overwrite it.
   begin
@@ -3054,7 +3241,7 @@ def create_file( file, file_contents )
     }                             # file is automatically closed
   rescue Exception
     # TODO:  Causes issues, but I'm not sure why.
-#    raise "\nCreating the text file #{file.inspect} has failed with: "
+#    raise "\nCreating the text file #{ file.inspect } has failed with: "
   end
 end
 
@@ -3066,25 +3253,25 @@ end
 
 def cd_directory( directory )
   # TODO:  I have not done proper testing on any of this.  I don't even know if "raise" works.
-  # This is the equivalent of:  directory=exec("readlink", "-f", Dir.getwd)
-  directory=File.expand_path(directory)
+  # This is the equivalent of:  directory = exec( "readlink", "-f", Dir.getwd )
+  directory = File.expand_path( directory )
   start_directory = Dir.getwd
 
   # TODO: Check permissions
   if directory == start_directory then
-    vputs "cd_directory: I'm already in that directory:  " + directory.inspect
+    vputs "cd_directory: Already in that directory:  '#{ directory }'"
     return 0
   end
   if not File.directory?(directory) then
-    raise "cd_directory: That's not a directory:  " + directory.inspect
+    raise "cd_directory: Not a directory:  '#{ directory }'"
     return 1
   end
   if not File.exists?(directory) then
-    raise "cd_directory: That directory doesn't exist:  " + directory.inspect
+    raise "cd_directory: Directory doesn't exist:  '#{ directory }'"
     return 1
   end
 
-  vputs "cd_directory: entering directory: " + directory.inspect
+  vputs "cd_directory: Entering directory:  '#{ directory }'"
   Dir.chdir( directory )
   # This is a good idea, but it fails if I'm in a symlinked directory..
   # TODO: Recursively check if I'm in a symlinked dir.  =)
@@ -3096,20 +3283,20 @@ end
 
 # TODO:  Automatically make parent directories if they don't exist, like `md --parents`.
 def md_directory( directory )
-  directory=File.expand_path(directory)
-  if File.exists?(directory) then
-    if File.directory?(directory) then
+  directory = File.expand_path( directory )
+  if File.exists?( directory ) then
+    if File.directory?( directory ) then
       # All is good!
       return 0
     else
-      raise "md_directory: It's a file, I can't make a directory of the same name!:  " + directory.inspect
+      raise "md_directory: It's a file, I can't make a directory of the same name!:  #{ directory.inspect}"
       return 1
     end
   end
   # TODO:  Suppress explosions using Signal.trap, and deal with things gracefully.
-  #        e.g.  Signal.trap("HUP") { method() }
+  #        e.g.  Signal.trap( "HUP" ) { method() }
   #        Apply this technique elsewhere/everywhere.
-  vputs "md_directory: making directory: " + directory.inspect
+  vputs "md_directory: making directory:  #{ directory.inspect}"
 
   # This can make parent directories
   FileUtils.mkdir_p( directory )
@@ -3142,7 +3329,7 @@ end
 
 def fork_killer( pid_file )
   # TODO: Allow a method before the loop and after the loop (in seppuku).  This prevents unnecessarily repeating code.  However, it introduces the issue of how I ought to pass variables around.  It's not worth the work right now, but it's a big issue to solve later.
-  Dir[pid_file + '**'].each do |file|
+  Dir[ pid_file + '**' ].each do |file|
     pid = File.extname( file )[1..-1].to_i
     # If the process exists:
     if pid_exists?( pid ) == 0 then
@@ -3166,7 +3353,7 @@ def fork_helper( *args, &block )
     pidfile = pid_file + "." + $$.to_s
     create_file( pidfile, $$ )
     def fork_helper_seppuku( pid_file )
-        vputs "pid #{$$} was killed."
+        vputs "pid #{ $$} was killed."
         # TODO: Appropriately-kill any other forked processes, and delete their pid files.
         # 1.9.2 introduced an oddity where after a time this would get triggered twice.
         # Checking for existence is a cludgy workaround.
@@ -3177,10 +3364,10 @@ def fork_helper( *args, &block )
     end
     Signal.trap( "HUP"  ) { fork_helper_seppuku( pid_file ) }
     Signal.trap( "TERM" ) { fork_helper_seppuku( pid_file ) }
-    vputs "started #{$$}"
+    vputs "started pid:  #{ $$}"
 #    until "sky" == "falling" do
     loop do
-#       vputs "pid #{$$} sleeping"
+#       vputs "pid #{ $$} sleeping"
       yield
 #       vputs "\n\n\n\n\n\n\n"
       sleep 1
@@ -3192,7 +3379,7 @@ def test_fork
 
   fork_killer( pid_file )
   fork_helper( pid_file ) {
-    puts "process #{$$} is working:  #{Time.now}"
+    puts "process #{ $$} is working:  #{ Time.now}"
   }
 end
 #test_fork()
@@ -3200,14 +3387,14 @@ end
 # fork_killer( File.join( '', 'tmp', 'test_fork_pid' ) )
 
 def file_read( file )
-  vputs "Reading file " + file
+  vputs "Reading file:  '#{ file }'"
   # I suspect that there are issues reading files with a space in them.  I'm having a hard time tracking it down though.. TODO: I should adjust the test case.
   if ! File.exists?( file ) then
-    puts "That file doesn't exist: "  + file.inspect
-    return ""
+    puts "That file doesn't exist:  '#{ file.inspect }'"
+    return
   end
   # TODO: Check permissions, etc.
-# file=file.sub(' ', '_')
+# file = file.sub( ' ', '_' )
   f = File.open( file, 'r' )
     string = f.read
   f.close
@@ -3218,7 +3405,7 @@ def test_file_read()
   # FIXME:  This shouldn't be requiring other stuff, that'd be bad testing!
   require lib + "mine/misc.rb"
   require lib + "mine/files.rb"
-  working_file = "/tmp/test_file_read.#{$$}"
+  working_file = "/tmp/test_file_read.#{ $$}"
   create_file( working_file, "This is some content!" )
   puts file_read( working_file )
   File.delete( working_file )
@@ -3235,8 +3422,8 @@ def timestamp_sync( source_file, target_file, &block )
   if stime != ttime then
 #     puts "this should be displayed ONCE"
     vputs " # The source and target times are different.  Fixing the target time."
-    vputs "   Source: #{source_file} to #{stime}"
-    vputs "   Target: #{target_file} to #{ttime}"
+    vputs "   Source: #{ source_file} to #{ stime}"
+    vputs "   Target: #{ target_file} to #{ ttime}"
     File.utime( stime, stime, target_file )
     if File.stat( target_file ).mtime != stime then
       puts "Failed to set the time!"
@@ -3250,51 +3437,52 @@ def timestamp_sync( source_file, target_file, &block )
 end
 def test_timestamp_sync()
   # Setup
-  lib = File.join('', 'home', 'user', 'bin', 'rb', 'lib')
-  require File.join(lib, "mine", "misc.rb")
-  require File.join(lib, "mine", "strings.rb")
-  require File.join(lib, "mine", "directories.rb")
-  require File.join(lib, "mine", "files.rb")
+# FIXME:  Whoa, these dependencies need to be removed!
+  lib = File.join( '', 'home', 'user', 'bin', 'rb', 'lib' )
+  require File.join( lib, 'mine', 'misc.rb' )
+  require File.join( lib, 'mine', 'strings.rb' )
+  require File.join( lib, 'mine', 'directories.rb' )
+  require File.join( lib, 'mine', 'files.rb' )
   # $$ is the pid of the current process.  That should make this safer.
-  working_dir=File.join('', 'tmp', "test_timestamp_sync.#{$$}")
-  source_file=File.join(working_dir, "source")
-  target_file=File.join(working_dir, "target")
+  working_dir = File.join( '', 'tmp', "test_timestamp_sync.#{ $$}" )
+  source_file = File.join( working_dir, 'source' )
+  target_file = File.join( working_dir, 'target' )
   # Preparing directories
-  md_directory(working_dir)
+  md_directory( working_dir)
   # Preparing files
-  create_file(source_file, "content")
+  create_file( source_file, 'content' )
   # Sleep, to force the timestamp to be wrong
   sleep 1.5
-  create_file(target_file, "content")
+  create_file( target_file, 'content' )
   # NOTE: The following code is not portable!
-  system("\ls", "-lG", "--time-style=full-iso", working_dir)
+  system( "\ls", "-lG", "--time-style=full-iso", working_dir )
 
   # Test
   puts " # First pass."
-  timestamp_sync(source_file, target_file)
+  timestamp_sync( source_file, target_file )
   puts " # Second pass."
-  timestamp_sync(source_file, target_file)
+  timestamp_sync( source_file, target_file )
   puts " # There should be no output."
   # Teardown
   # FIXME: Trap all errors and then perform my cleanup.  Fix all my test scripts to do this.
   # NOTE: The following code is not portable!
-  system("\ls", "-lG", "--time-style=full-iso", working_dir)
+  system( '\ls', '-lG', '--time-style=full-iso', working_dir )
   rm_directory( working_dir )
 end # test_timestamp_sync
 
-def generate_sitemap( target_file_full_path, local_dir, source_file_full_path, type )
+def generate_sitemap( target_file_full_path, local_dir, source_file_full_path, type='wiki' )
   return 0
 end
 
 
 def main( local_wiki, local_blog, remote_wiki, remote_blog, pid_file )
-  def process( local_dir, source_file_full_path, target_file_full_path, type )
+  def process( local_dir, source_file_full_path, target_file_full_path, type='wiki' )
     compile(        source_file_full_path, target_file_full_path, type )
     timestamp_sync( source_file_full_path, target_file_full_path )
-    # TODO/FIXME: Re-compile all files in that same source directory, to ensure that automatic linking is re-applied to include this new file
+    # TODO:  Re-compile all files in that same source directory, to ensure that automatic linking is re-applied to include this new file.  Ouch!
   end
 
-  def check_for_source_changes( local_dir, remote_dir, type )
+  def check_for_source_changes( local_dir, remote_dir, type='wiki' )
 =begin
     case type
       when 'wiki' then
@@ -3317,15 +3505,15 @@ def main( local_wiki, local_blog, remote_wiki, remote_blog, pid_file )
       $VERBOSE = oldverbose
     end
     # This was '**/*.asc' but I'm not going to look into subdirectories any more.
-    Dir['*.asc'].each do |asc_file|
+    Dir[ '*.asc' ].each do |asc_file|
       target_file_full_path = File.expand_path( File.join( remote_dir, asc_file.chomp( '.asc' ) + '.html' ) )
       source_file_full_path = File.expand_path(asc_file)
       # Skip empty files.
       next if not File.size?( source_file_full_path )
       if not File.exists?( target_file_full_path )  then
         vputs ''
-        vputs 'Building missing file:  ' + source_file_full_path.inspect
-        vputs ' ...             into:  ' + target_file_full_path.inspect
+        vputs "Building missing file:  '#{ source_file_full_path }'"
+        vputs " ...             into:  '#{ target_file_full_path }'"
         process( local_dir, source_file_full_path, target_file_full_path, type )
         generate_sitemap( File.dirname( target_file_full_path ), local_dir, source_file_full_path, type )
         next
@@ -3335,8 +3523,8 @@ def main( local_wiki, local_blog, remote_wiki, remote_blog, pid_file )
       if not source_time == target_time then
         target_path=File.join( remote_dir, File.dirname( asc_file ) )
         vputs ''
-        vputs 'Building unsynced timestamps:  ' + source_file_full_path.inspect
-        vputs ' ...                    with:  ' + target_file_full_path.inspect
+        vputs "Building unsynced timestamps:  '#{ source_file_full_path }'"
+        vputs " ...                    with:  '#{ target_file_full_path }'"
         process( local_dir, source_file_full_path, target_file_full_path, type )
         next
       end
@@ -3355,50 +3543,26 @@ def main( local_wiki, local_blog, remote_wiki, remote_blog, pid_file )
   end
 end # main
 
-def compile( source_file_full_path, target_file_full_path, type )
-  start_time = Time.now
-  
-  source_dir_full_path = File.dirname( source_file_full_path )
-  counter = 0
-  @o = Markup.new
+def compile( source_file_full_path, target_file_full_path, type='wiki' )
   string = file_read( source_file_full_path )
+  @o = Markup.new
+  start_time = Time.now
 
-  match, nomatch = @o.sections( string )
-  nomatch.each_index { |i|
-    next if nomatch[i] == nil
-    nomatch[i] = @o.not_in_html( nomatch[i]                        ) { |i| @o.blocks(i)                }.join
-    nomatch[i] = @o.not_in_html( nomatch[i]                        ) { |i| @o.HTML_horizontal_rules(i) }.join
-    nomatch[i] = @o.not_in_html( nomatch[i]                        ) { |i| @o.markup_everything(i)     }.join
-    nomatch[i] = @o.not_in_html( nomatch[i]                        ) { |i| @o.links_plain(i)           }.join
-    nomatch[i] = @o.not_in_html( nomatch[i]                        ) { |i| @o.links_named(i)           }.join
-    #nomatch[i] = @o.not_in_html( nomatch[i], source_file_full_path ) { |i,j| @o.links_local_new(i,j)       }.join
-    #nomatch[i] = @o.not_in_html( nomatch[i], source_file_full_path ) { |i,j| @o.links_automatic(i,j)       }.join
+#puts string
 
-    #nomatch[i]          = @o.blocks(                nomatch[i] )
-    #nomatch[i]          = @o.HTML_horizontal_rules( nomatch[i] )
-    #nomatch[i]          = @o.markup_everything(     nomatch[i] )
-    #nomatch[i]          = @o.links_plain(           nomatch[i] )
-    #nomatch[i]          = @o.links_named(           nomatch[i] )
-    nomatch[i], counter = @o.links_numbered(        nomatch[i], '', '', '[', ']', counter )
-    nomatch[i]          = @o.links_local_new(       nomatch[i], source_file_full_path )
-    nomatch[i]          = @o.links_automatic(       nomatch[i], source_file_full_path )
+  string = @o.compile_main( string, source_file_full_path, target_file_full_path )
 
-    #nomatch[i]          = @o.lists(                 nomatch[i] )
-    #nomatch[i]          = @o.paragraphs(            nomatch[i] )
-    nomatch[i] = @o.not_in_html( nomatch[i] ) { |i| @o.lists(i) }.join
-    nomatch[i] = @o.not_in_html( nomatch[i] ) { |i| @o.paragraphs(i) }.join
-  }
-  string = @o.recombine( match, nomatch ).join
-  string = @o.header_and_footer( string, source_file_full_path, target_file_full_path, type )
+#puts string
 
   create_file( target_file_full_path, string )
-  vputs "#{Time.now - start_time} seconds."
+  vputs "Compiled in #{ Time.now - start_time } seconds."
 end
 
 
 $VERBOSE = true
 # TODO:  Check for an environment variable like $TEMP and use that instead!
 #        I see nothing in ENV which I can use.  =/
+#        That's because I don't actually have anything set in my shell.  Strange.
 pid_file = File.join( '', 'tmp', 'compile_child_pid' )
 local_wiki  = File.join( Dir.pwd, 'src', 'w' )
 local_blog  = File.join( Dir.pwd, 'src', 'b' )
