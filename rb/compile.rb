@@ -25,6 +25,7 @@ TODO list:
 - implement "new page" creation concepts.  I would make a link like [[link]] and then the system would point me to the appropriate source .asc file.  This would summon my editor as usual, and I can make the page very easily.
 - tables, somehow..
 - Create a for-print version that changes inline links into anchor links to a nice list of endnotes.  I could even tinyurl all those links automatically..
+- local links which have punctuation in their filename
 - Templating {{replacement file}}  {{subst:replacement file}}
 - what does 'abort' do?  Is it some routine I have in a library somewhere?
 
@@ -93,9 +94,12 @@ sanity_check(source_directory, compiled_directory)
 # http://localhost/wiki/Wmctrl_examples#Firefox_is_not_visible_in_the_list_of_managed_windows
 def view_html(file_full_path)
   if File.exists?(file_full_path) then
-    #system('links -g ' + file_full_path)
+    # Note: For a browser to work as expected, I'd have to already have it running before this script summons it.
+    # Otherwise, this script would summon it wait for it to exit!
     #system('firefox', '-new-tab', file_full_path)
-    system('firefox', file_full_path)
+    #system('firefox', file_full_path)
+    system('midori', file_full_path)
+    #system('links', '-g', file_full_path)
   else
     raise RuntimeErrror, "(view_html) file does not exist, aborting:  " + file_full_path.inspect
     abort
@@ -141,43 +145,41 @@ def compile(source_file_full_path, target_file_full_path)
       if internal_markup_flag != true then
         # [:punct:] and [:blank:] don't work..
         start=/(^| )/
-        punctuation=/(\.|,|!| |$)/
+        # just testing this out, it ought to be better than the below example..
+        punctuation=/(\. |, |! | |$)/
+        #punctuation=/(\.|,|!| |$)/
 
-  # TODO: If every regex has the same start and end block, I should somehow be able to remove that duplication.. but I'd have to research regexes more and maybe other stuff.  I'm not sure what to do.
-  # TODO: Something like this ought to work, but it just doesn't.  Boo.
-  # [
-  # [/\//, '<em>', '</em>'],
-  # [/\*\*/, '<big>', '</big>'],
-  # ].each do |i|
-  # puts i.inspect
-  # puts i[0].inspect
-  #   string=markup(string, %r{
-  #   (#{start})
-  #   #{i[0]}
-  #   },
-  #   %r{
-  #   #{i[0]}
-  #   (#{punctuation})
-  #   }, "\1#{i[1]}", "#{i[2]}\1", true)
-  # end
+    # TODO: This is the far cooler version which I should implement.
+    #   It cannot work as-is because \1 doesn't carry through.
+    #   So what I'd need to do is to completely tear out this markup() concept and redo things from a much simpler perspective.
+    #[
+      #['/', '<em>', '</em>'],
+      #['*', '<b>', '</b>'],
+      #['**', '<big>', '</big>'],
+    #].each do |i|
+      #i[0]=Regexp.quote(i[0])
+      #string=markup(
+        #string,
+        #%r{(#{start})#{i[0]}},
+        #%r{#{i[0]}(#{punctuation})},
+        #"\1#{i[1]}",
+        #"#{i[2]}\1",
+        #true
+      #)
+    #end
 
         # TODO: Strikethrough was removed because it interferes with lists, and I didn't feel like recoding everything to get this very rarely-used markup to work.
+        #   But I will, eventually..
         #string=markup(string, %r{(#{start})-}, %r{-(#{punctuation})}, '\1<s>', '</s>\1', true)
         string=markup(string, %r{(#{start})\/}, %r{\/(#{punctuation})}, '\1<em>', '</em>\1', true)
         string=markup(string, %r{(#{start})\*\*}, %r{\*\*(#{punctuation})}, '\1<big>', '</big>\1', true)
         string=markup(string, %r{(#{start})\*}, %r{\*(#{punctuation})}, '\1<b>', '</b>\1', true)
         string=markup(string, %r{(#{start})_}, %r{_(#{punctuation})}, '\1<u>', '</u>\1', true)
         string=markup(string, %r{(#{start})`}, %r{`(#{punctuation})}, '\1<tt>', '</tt>\1', true)
-        #string=markup(string, %r{(#{start})((http://|ftp://|irc://|gopher://|file://).+\..{2,4}(.*))}, %r{( |$)}, '\2<a href="\3">\3</a> ', '\1', true)
-        #string=markup(string, %r{(#{start})}, %r{((http://|ftp://|irc://|gopher://|file://).+\..{2,4}(.*)( |$))}, '\1<a href="\2">\2</a> ', '\1', true)
-        result=[]
-        url=%r{http://|ftp://|irc://|gopher://|file://}
-        # Everyday websites, e.g. spiralofhope.com (trailing slash optional)
-        sitename=%r{#{url}.+\..{2,4}(|/)}
-        # Handle raw IPs, with or without a port number, e.g. 123.456.789.012 or 123.456.789.012:1234 (trailing slash optional)
-        ip=%r{#{url}\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(|:\d{1,5})(|/)}
 
-        #Testing: http://rubular.com/r/whZGCL8v96
+        # Plain URLs like:  http://example.com (becomes an HTML links)
+        # Note that this also handles IP:Port, but it does no error correction.
+        result=[]
         url = %r{
           (^|\ )
           (http://|ftp://|irc://|gopher://|file://)
@@ -190,10 +192,12 @@ def compile(source_file_full_path, target_file_full_path)
           result << line.gsub(url, '\1<a href="\2\3\4">\3\4</a>')
         end
         string=result.to_s
+
+        # Numbered links, like:  [http://example.com] => [1] (HTML link to its source, and incrementally-counted)
         numbered_url = %r{
           (^\[| \[)
           (http://|ftp://|irc://|gopher://|file://)
-          (\S+\.[^\s\/]{2,4}) (?# whatever.info)
+          (\S+\.[^\]\s\/]{2,4}) (?# whatever.info)
           ([\/\S*]*) (?# /foo/bar/baz.html -- Not exactly what I wanted to use, but it works somehow)
         }x
         result=[]
@@ -203,12 +207,45 @@ def compile(source_file_full_path, target_file_full_path)
           if $~ != nil then
             line_copy = line.dup
             # TODO: I can probably split based on a regular expression, but I've never been able to actually do it.
-            line_copy.gsub!(numbered_url, "~~~~~numbered_url~~~~~")
-            line_copy=line_copy.split("~~~~~numbered_url~~~~~")
+            line_copy.gsub!(numbered_url, '~~~~~numbered_url~~~~~')
+            line_copy=line_copy.split('~~~~~numbered_url~~~~~')
             line_copy_length=(line_copy.length)-1
             line_copy_length.times do
-              line.sub!(numbered_url, "\1<a href=\"\2\3\4\">\[#{counter}\]</a>")
+              line =~ numbered_url
+              match=$~.dup
+              puts match.inspect
+              line.sub!(numbered_url, "<a href=\"#{match[2]}#{match[3]}\">\[#{counter}\]</a>")
               counter+=1
+            end
+          end
+          result << line
+        end
+        string=result.to_s
+        # Local links to new pages, like:  [[link name]] => 'link-name.asc'
+        local_url = %r{
+          (^| )
+          (\[\[)
+          (\S+)
+          (\]\])
+          ( |$)
+        }x
+        result=[]
+        string.each do |line|
+          line =~ local_url
+          if $~ != nil then
+            line_copy = line.dup
+            line_copy.gsub!(local_url, '~~~~~local_url~~~~~')
+            line_copy=line_copy.split('~~~~~local_url~~~~~')
+            line_copy_length=(line_copy.length)-1
+            line_copy_length.times do
+              line =~ local_url
+              match=$~.dup
+# check for the file
+## if exists, remove the [[ and ]] (from both this string and the source file) and then automatic_linking will catch it.
+## if it does not exist, then make some sort of self-known local link to that file, so that clicking on it in a browser will open up an editor with that filename ready (displaying an empty file)
+              line.sub!(local_url, "-> #{match[1]}#{match[3]}#{match[5]} <-")
+#puts source_file_full_path.inspect
+#puts target_file_full_path.inspect
             end
           end
           result << line
@@ -242,7 +279,7 @@ def compile(source_file_full_path, target_file_full_path)
     end
     return processed
   end
-  def automatic_linking(directory, string)
+  def automatic_linking(string, directory)
 =begin
 TODO: How to link long chains of multiple words before smaller chains or single-words:
 - some_variable=""
@@ -286,57 +323,6 @@ end
       file_working << line
     end
     return file_working.to_s
-  end
-  def header_and_footer(string, source_file_full_path)
-    header_search = Regexp.new('')
-    header_replace=<<-"HEREDOC"
-<link rel="icon" href="#{$WEBSITE}/images/favicon.ico" type="image/x-icon">
-<link rel="shortcut icon" href="#{$WEBSITE}/images/favicon.ico" type="image/x-icon">
-<link rel="stylesheet" type="text/css" href="#{$WEBSITE}/css/main.css" />
-</head>
-<body>
-<a name id="top">
-<div class="nav">
-  <div class="float-left">
-    <a class="without_u" accesskey="z" href="#{$WEBSITE}/index.html">
-      <img align="left" src="#{$WEBSITE}/images/spiralofhope-96.png">
-    </a>
-    <br>
-    <font style="font-size:1.5em;"><font color="steelblue">S</font>piral of Hope</font>
-    <br>
-    <font style="font-size: 0.5em;">Better software is possible.</font>
-  </div>
-  <div class="float-right">
-<!-- navigation goes here -->
-  </div>
-</div>
-<a name="body">
-<div class="main">
-    HEREDOC
-
-    # '~~~~FOOTER~~~~' is a totally hackish thing for me to do, but oh well.
-    # Could I search for the EOF or something cool?  Or just.. directly append this to do the bottom perhaps.
-    footer_search=Regexp.new('~~~~FOOTER~~~~')
-    puts footer_search
-    footer_replace=<<-"HEREDOC"
-          </div> <!-- main -->
-          <div class="footer">
-            <img border="0" src="#{$WEBSITE}/images/spiralofhope-16.png"> Spiral of Hope / <a href="mailto:@gmail.com">spiralofhope</a><a href="mailto:@gmail.com">@gmail.com</a>
-            <br>
-            <!-- TODO -->
-            <img border="0" src="#{$WEBSITE}/images/FIXME.png">Hosting provided by (FIXME), <a href="#{$WEBSITE}/thanks.html#FIXME">thanks!</a>
-            <br>
-            <em><small>(<a href="#{$WEBSITE}/sitemap.html">sitemap</a>)</small></em>
-            <br>
-            <a class="without_u" accesskey="e" href="file://#{source_file_full_path}">&nbsp;</a>
-          </div> <!-- footer -->
-        </body>
-      </html>
-    HEREDOC
-
-    string=multiline_replace(header_search, string, header_replace)
-    string=multiline_replace(footer_search, string, footer_replace)
-    return string
   end
   # TODO: This does not allow lists of mixed types (e.g. ordered within unordered)
   #       I don't know that I care to fix this..
@@ -390,10 +376,62 @@ end
     return result.to_s
   end
 
+  def header_and_footer(string, source_file_full_path)
+    header_search = Regexp.new('')
+    header_replace=<<-"HEREDOC"
+<link rel="icon" href="#{$WEBSITE}/images/favicon.ico" type="image/x-icon">
+<link rel="shortcut icon" href="#{$WEBSITE}/images/favicon.ico" type="image/x-icon">
+<link rel="stylesheet" type="text/css" href="#{$WEBSITE}/css/main.css" />
+</head>
+<body>
+<a name id="top">
+<div class="nav">
+  <div class="float-left">
+    <a class="without_u" accesskey="z" href="#{$WEBSITE}/index.html">
+      <img align="left" src="#{$WEBSITE}/images/spiralofhope-96.png">
+    </a>
+    <br>
+    <font style="font-size:1.5em;"><font color="steelblue">S</font>piral of Hope</font>
+    <br>
+    <font style="font-size: 0.5em;">Better software is possible.</font>
+  </div>
+  <div class="float-right">
+<!-- navigation goes here -->
+  </div>
+</div>
+<a name="body">
+<div class="main">
+    HEREDOC
+
+    # '~~~~FOOTER~~~~' is a totally hackish thing for me to do, but oh well.
+    # Could I search for the EOF or something cool?  Or just.. directly append this to do the bottom perhaps.
+    footer_search=Regexp.new('~~~~FOOTER~~~~')
+    puts footer_search
+    footer_replace=<<-"HEREDOC"
+          </div> <!-- main -->
+          <div class="footer">
+            <img border="0" src="#{$WEBSITE}/images/spiralofhope-16.png"> Spiral of Hope / <a href="mailto:@gmail.com">spiralofhope</a><a href="mailto:@gmail.com">@gmail.com</a>
+            <br>
+            <!-- TODO -->
+            <img border="0" src="#{$WEBSITE}/images/FIXME.png">Hosting provided by (FIXME), <a href="#{$WEBSITE}/thanks.html#FIXME">thanks!</a>
+            <br>
+            <em><small>(<a href="#{$WEBSITE}/sitemap.html">sitemap</a>)</small></em>
+            <br>
+            <a class="without_u" accesskey="e" href="file://#{source_file_full_path}">&nbsp;</a>
+          </div> <!-- footer -->
+        </body>
+      </html>
+    HEREDOC
+
+    string=multiline_replace(header_search, string, header_replace)
+    string=multiline_replace(footer_search, string, footer_replace)
+    return string
+  end
+
   def compile(source_file_full_path, target_file_full_path)
     contents=file_read(source_file_full_path)
     contents=markup(contents, /<.+>/, /<.+>/, nil, nil, false)
-    contents=automatic_linking(File.dirname(source_file_full_path), contents)
+    contents=automatic_linking(contents, File.dirname(source_file_full_path))
 
     # Unordered lists
     # FIXME FUCK, it's interacting with the strikethrough feature!
@@ -422,9 +460,7 @@ end
 
     create_file(target_file_full_path, contents)
     tidy_html(target_file_full_path)
-
-    # TODO: sync the timestamp, this would probably work:
-    # timestamp_sync(source_file_full_path, target_file_full_path)
+    timestamp_sync(source_file_full_path, target_file_full_path)
 
   end
   compile(source_file_full_path, target_file_full_path)
