@@ -42,7 +42,15 @@ def marked_yes(string, search_left, search_right, replace_left, replace_right)
   # TODO: If a link, check that the destination exists
   #  - local = create the file
   #  - remote = check if it exists, and cache the results?  Only check once a day?
-  return string.sub(search_left, replace_left).sub(search_right, replace_right)
+  if replace_left == nil && replace_right == nil then
+    return string
+  elsif replace_left == nil then
+    return string.sub(search_right, replace_right)
+  elsif replace_right == nil then
+    return string.sub(search_left, replace_left)
+  else
+    return string.sub(search_left, replace_left).sub(search_right, replace_right)
+  end
 end
 
 def marked_no(string, internal_markup_flag)
@@ -119,28 +127,21 @@ HEREDOC
 document=<<-HEREDOC
 *bold* **big** _underline_ /italics/ -strikethrough-
 *two _words* test_
-<a href="http://example.com">An example link which should not be re-linked</a>
+left <a href="http://example.com">no *markup* here</a> right
 example
 HEREDOC
-def crunch(string)
-  string=chew(string, /(^| )\//, /\/( |.|$)/, '\1<em>', '</em>\1', true)
-  string=chew(string, /(^| )\*\*/, /\*\*( |.|$)/, '\1<big>', '</big>\1', true)
-  string=chew(string, /(^| )\*/, /\*( |.|$)/, '\1<b>', '</b>\1', true)
-  string=chew(string, /(^| )_/, /_( |.|$)/, '\1<u>', '</u>\1', true)
-  string=chew(string, /(^| )-/, /-( |.|$)/, '\1<s>', '</s>\1', true)
 
-  # TODO:  Only allow one link for each file?
-  #  Possibly only one link for every header-section.
-  #  Possibly only allow x number of links maximum, to avoid issues with linking common things like 'a' or 'the'.
-  files=['some', 'example', 'files']
-  files.each do |file|
-#     chew(document, //, //, )
-  end
+# TODO:  Only allow one link for each file?
+#  Possibly only one link for every header-section.
+#  Possibly only allow x number of links maximum, to avoid issues with linking common things like 'a' or 'the'.
+# files=['some', 'example', 'files']
+# files.each do |file|
+# end
 
-  return string
-end
-document=crunch(document)
-
+# document=chew(document, /<.*?>/, /<.*?>/, nil, nil, false)
+# Note: This won't work as-expected.  It'll blank out the left and not the right.  This is because my left-search and right-search are the same!
+# document=chew(document, /<.*?>/, /<.*?>/, nil, '', false)
+puts document
 
 # system('tidy -indent -upper -clean -quiet -omit -asxhtml -access -output file', document)
 
