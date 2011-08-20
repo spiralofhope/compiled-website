@@ -25,16 +25,16 @@ $VERBOSE = true
 #        I don't actually have anything set in my shell.  Strange.  FIXME.
 # TODO:  Hardening.  All of these things must exist and be writable!
 pid_file = File.join( '', 'tmp', 'compile_child_pid' )
-local_wiki  = File.join( File.dirname( __FILE__ ), '..', 'src', 'w' )
-local_blog  = File.join( File.dirname( __FILE__ ), '..', 'src', 'b' )
-remote_wiki = File.join( File.dirname( __FILE__ ), '..', 'live' )
-remote_blog = File.join( File.dirname( __FILE__ ), '..', 'live', 'b' )
+local_wiki  = File.join( File.dirname( __FILE__ ), '..', '..', 'src', 'w' )
+local_blog  = File.join( File.dirname( __FILE__ ), '..', '..', 'src', 'b' )
+remote_wiki = File.join( File.dirname( __FILE__ ), '..', '..', 'live' )
+remote_blog = File.join( File.dirname( __FILE__ ), '..', '..', 'live', 'b' )
 
 # --
 
 require File.join( File.dirname( __FILE__ ), 'header_and_footer.rb' )
-require File.join( File.dirname( __FILE__ ), 'libs.rb' )
-require File.join( File.dirname( __FILE__ ), 'tc_main.rb' )
+require File.join( File.dirname( __FILE__ ), 'lib', 'lib_main.rb' )
+require File.join( File.dirname( __FILE__ ), 'tests', 'tc_main.rb' )
 
 # TODO:  Sanity-checking / first-run stuff.
 # md_directory( local_wiki )

@@ -1,3 +1,18 @@
+#!/bin/env bash
+
+:<<'heredoc'
+TODO:  Ask before performing actions.  For example, I may want to commit but not push.
+TODO:  Ask to tag.
+  \git tag "v1.3"
+  \git push --tags
+
+heredoc
+
+
+working='/mnt/ssd/projects/compiled-website/git/'
+
+\cd $working
+
 # Add anything new that's appeared.  Recursive.
 # Do not do this!  I have live website content which should never go into the git repository.  Hmm, well maybe that would be a good idea.. Ok, maybe later.: TODO
 \git add .
@@ -10,6 +25,8 @@
 
 # git commit -m ''
 
+# It used to be this, but I had to re-clone the repo, and now it's not working the same way.
+# FIXME:  Re-assert that my clone is the master.  I've no idea how..
 # \git push -u origin master
 \git push -u git@github.com:spiralofhope/compiled-website.git
 
