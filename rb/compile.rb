@@ -2,12 +2,12 @@
 Usage:
 - You can combine multiple markup by starting it all with spaces between them.
 - wiki-style linking is done automatically, just type as usual and the engine will figure out the links.  Note that multiple words are given priority over single words.
-=end
-=begin
+
 Requirements:
-HTML Tidy
+HTML Tidy (the executable, not the Ruby library)
   http://tidy.sourceforge.net/
 
+  # Tested and works on Unity Linux 64bit as of 2010-04-12:
   cvs -d:pserver:anonymous@tidy.cvs.sourceforge.net:/cvsroot/tidy login
   # press enter
   cvs -z3 -d:pserver:anonymous@tidy.cvs.sourceforge.net:/cvsroot/tidy co -P tidy
@@ -16,41 +16,23 @@ HTML Tidy
   su
   smart install libxslt-proc
   make install
-  # tested and works on Unity Linux 64bit as of 2010-04-12
-
-
-Notes:
-TODO: I'd love to use Ruby/HTML Tidy, but I don't know how to make it go.
-  http://tidy.rubyforge.org/
-  http://rubyforge.org/projects/tidy
-  http://tidy.rubyforge.org/classes/Tidy.html
-  gem install tidy
 =end
-
-
 
 =begin
 TODO list:
-- what does 'abort' do?  Is it some routine I have in a library somewhere?
-- Implement a hyphon - for unordered lists, and # for ordered lists
-- Consider manual lists.. I count the lines and paint the numbers myself.  This will let me have broken lists like this:
-
-# one
-# two
-<pre>
-something
-</pre>
-# three
-# four
-
-- Have [http://example.com] type links, which become [1] etc, auto-numbered.
 - A better 'listings' feature.  Just have it output the right CSS and let the user figure out how it ought to be displayed.  I'm tired of ;list: item
-- colon (:) for indentation
 - Manually-indent blocks between headers, like the original coWiki did.  I wonder what the HTML for that was.  Consider looking into my old archives, like my old RPG archives I sent to Angus.
 - implement "new page" creation concepts.  I would make a link like [[link]] and then the system would point me to the appropriate source .asc file.  This would summon my editor as usual, and I can make the page very easily.
 - tables, somehow..
 - Create a for-print version that changes inline links into anchor links to a nice list of endnotes.  I could even tinyurl all those links automatically..
 - Templating {{replacement file}}  {{subst:replacement file}}
+- what does 'abort' do?  Is it some routine I have in a library somewhere?
+
+TODO: I'd love to use Ruby/HTML Tidy, but I don't know how to make it go.
+  http://tidy.rubyforge.org/
+  http://rubyforge.org/projects/tidy
+  http://tidy.rubyforge.org/classes/Tidy.html
+  gem install tidy
 =end
 
 # No trailing slashes
@@ -185,9 +167,40 @@ def compile(source_file_full_path, target_file_full_path)
         string=markup(string, %r{(#{start})_}, %r{_(#{punctuation})}, '\1<u>', '</u>\1', true)
         string=markup(string, %r{(#{start})-}, %r{-(#{punctuation})}, '\1<s>', '</s>\1', true)
         string=markup(string, %r{(#{start})`}, %r{`(#{punctuation})}, '\1<tt>', '</tt>\1', true)
-        # This one only matches stuff ending in .com, .ca, etc.
-  #       string=markup(string, /(^| )((http\:\/\/|ftp:\/\/|irc:\/\/|gopher:\/\/)(.*)(\....?))( |$)/, /( |$)/, '\1<a href="\2">\2</a> ', '\1', true)
-        string=markup(string, /(^| )((http\:\/\/|ftp:\/\/|irc:\/\/|gopher:\/\/)(.*))( |$)/, /( |$)/, '\1<a href="\2">\2</a> ', '\1', true)
+        #string=markup(string, %r{(#{start})((http://|ftp://|irc://|gopher://|file://).+\..{2,4}(.*))}, %r{( |$)}, '\2<a href="\3">\3</a> ', '\1', true)
+        #string=markup(string, %r{(#{start})}, %r{((http://|ftp://|irc://|gopher://|file://).+\..{2,4}(.*)( |$))}, '\1<a href="\2">\2</a> ', '\1', true)
+        result=[]
+        url=%r{http://|ftp://|irc://|gopher://|file://}
+        # Everyday websites, e.g. spiralofhope.com (trailing slash optional)
+        sitename=%r{#{url}.+\..{2,4}(|/)}
+        # Handle raw IPs, with or without a port number, e.g. 123.456.789.012 or 123.456.789.012:1234 (trailing slash optional)
+        ip=%r{#{url}\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(|:\d{1,5})(|/)}
+
+        #Testing: http://rubular.com/r/whZGCL8v96
+        url = %r{
+          (^|\ )
+          (http://|ftp://|irc://|gopher://|file://)
+          (\S+\.[^\s\/]{2,4}) (?# whatever.info)
+          ([\/\S*]*) (?# /foo/bar/baz.html -- Not exactly what I wanted to use, but it works somehow)
+          (?# Note that this regex doesn't discard trailing ], so be careful about [ http://example.com] becoming a link to 'example.com]')
+        }x
+        numbered_url = %r{
+          (^\[| \[)
+          (http://|ftp://|irc://|gopher://|file://)
+          (\S+\.[^\s\/]{2,4}) (?# whatever.info)
+          ([\/\S*]*) (?# /foo/bar/baz.html -- Not exactly what I wanted to use, but it works somehow)
+        }x
+        result=[]
+        string.each do |line|
+          result << line.gsub(url, '\1<a href="\2\3\4">\3\4</a>')
+        end
+        result2=[]
+        counter=1
+        result.each_index { |i|
+          result2 << result[i].to_s.gsub(numbered_url, "\1<a href=\"\2\3\4\">\[#{counter}\]</a>")
+          if $~ != nil then counter+=1 end
+        }
+        string=result2.to_s
 
         internal_markup_flag=false
       end
@@ -368,12 +381,16 @@ end
     contents=file_read(source_file_full_path)
     contents=markup(contents, /<.+>/, /<.+>/, nil, nil, false)
     contents=automatic_linking(File.dirname(source_file_full_path), contents)
+
     # Unordered lists
     contents=lists(contents, /^(-+) (.*)$/, '<ul>', '</ul>', '<li>', '</li>', '')
     # Ordered lists
     contents=lists(contents, /^(#+) (.*)$/, '<ol>', '</ol>', '<li>', '</li>', '')
     # Code blocks
     contents=lists(contents, /^( )(.+)$/, '<pre>', '</pre>', '', '', '<br>')
+    # Indentation
+    contents=lists(contents, /^(:+) (.+)$/, '<dl>', '</dl>', '<dd>', '</dd>', '')
+
     # '~~~~FOOTER~~~~' is a totally hackish thing for me to do, but oh well.
     # I should just redo this to make it a simple header + contents + footer.. eesh.
     contents=header_and_footer(contents + '~~~~FOOTER~~~~', source_file_full_path)
