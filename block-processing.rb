@@ -1,21 +1,5 @@
 =begin
 
-3)
-Allow multiple separator triggers.
-foo(
-      string,
-      [
-        [
-          [ begin1 ],
-          [ end1 ],
-        ],
-        [
-          [ begin2 ],
-          [ end2 ],
-        ],
-      ]
-    )
-
 4)
 Allow each separator trigger to have multiple beginnings and endings.
 
@@ -52,60 +36,73 @@ end
 # --
 
 def line_partition(
-                      string=nil,
-                      match_array=nil,
-                      in_or_out=true
+                      string='',
+                      match_array=[],
+                      begin_in_or_out='in',
+                      end_in_or_out='in'
                     )
-  # Sanity checking.
-  return '' if string == nil
   #
-  # Default values.
-  string      ||= ''
-  match_array ||= []
-  #in_or_out   ||= true
+  return '' if string == nil
+  return '' if match_array == []
+  #
+  if match_array[0].class == String then
+    # using the simple syntax:  match_array = [ 'begin', 'end' ]
+    # Beef it up.
+    match_array = [ match_array ]
+  end
   #
   result = [ '' ]
-  close_tags = []
-  match_begin = match_array[0]
-  match_end   = match_array[1]
-  match_string = ''
+  active_close_tags = []
   #
   string.each_line{ |line|
-    if close_tags == [] then
+    #
+    matched = false
+    #
+    if active_close_tags == [] then
       # We're looking for a begin match.
-      if line.match( match_begin ) == nil then
+      match_array.each_index{ |i|
+        if line.match( match_array[i][0] ) != nil then
+          # We found a begin match.
+          matched = true
+          # We found a begin match.
+          active_close_tags = [ match_array[i][1] ]
+          result << ''
+          if begin_in_or_out == 'in' then
+            result[-1] += line
+          else
+            result[-2] += line
+          end
+          break
+        end
+      }
+      if matched == false then
         # No match.
         # Append it.
         result[-1] += line
-      else
-        # Match.  Found a new block.
-        close_tags = [ match_end ]
-        result << ''
-        if in_or_out == true then
-          result[-1] += line
-        else
-          result[-2] += line
-        end
       end
     else
       # We're in the middle of a block.
       # Look for an end match.
-      if line.match( close_tags[0] ) == nil then
+      active_close_tags.each{ |e|
+        if line.match( e ) != nil then
+          matched = true
+          active_close_tags = []
+          # Match.  Found the end of a block.
+          if end_in_or_out == 'in' then
+            # Append the closing tag.
+            result[-1] += line
+            # Begin a new element.
+            result << ''
+          else
+            result << line
+          end
+          break
+        end
+      }
+      if matched == false then
         # No match.
         # Append it.
         result[-1] += line
-      else
-        # Match.  Found the end of a block.
-        # Tidy up, and expect the next opening tag.
-        close_tags = []
-        if in_or_out == true then
-          # Append the closing tag.
-          result[-1] += line
-          # Begin a new element.
-          result << ''
-        else
-          result << line
-        end
       end
     end
   }
@@ -129,6 +126,7 @@ class Test_line_partition < MiniTest::Unit::TestCase
   def setup()
   end
   def test_line_partition()
+#=begin
     #
     #
     string = <<-heredoc.unindent
@@ -174,10 +172,148 @@ class Test_line_partition < MiniTest::Unit::TestCase
     result = line_partition(
                               string,
                               match_array,
-                              false
+                              'out',
+                              'out',
                             )
     assert_equal_array( expected, result )
     #
     #
+    match_array = [ 'BEGIN', 'END' ]
+    expected = [
+      "This is a string\n",
+      "BEGIN\nLine two\n",
+      "END\nThree\n",
+    ]
+    result = line_partition(
+                              string,
+                              match_array,
+                              'in',
+                              'out',
+                            )
+    assert_equal_array( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
+      This is a string
+      BEGIN
+      Line two
+      END
+      Three
+    heredoc
+    match_array = [
+                    [ 'BEGIN1', 'END1' ],
+                    [ 'BEGIN2', 'END2' ]
+                  ]
+    expected = [
+      "This is a string\nBEGIN\n",
+      "Line two\n",
+      "END\nThree\n",
+    ]
+    expected = [ string ]
+    result = line_partition(
+                              string,
+                              match_array,
+                              'out',
+                              'out',
+                            )
+    assert_equal_array( expected, result )
+#=end
+    #
+    #
+    string = <<-heredoc.unindent
+      This is a string
+      BEGIN1
+      Line two
+      END1
+      Three
+    heredoc
+    match_array = [
+                    [ 'BEGIN1', 'END1' ],
+                    [ 'BEGIN2', 'END2' ]
+                  ]
+    expected = [
+      "This is a string\n",
+      "BEGIN1\nLine two\nEND1\n",
+      "Three\n",
+    ]
+    result = line_partition(
+                              string,
+                              match_array,
+                            )
+    assert_equal_array( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
+      This is a string
+      BEGIN1
+      Line two
+      END1
+      Three
+    heredoc
+    match_array = [
+                    [ 'BEGIN1', 'END1' ],
+                    [ 'BEGIN2', 'END2' ]
+                  ]
+    expected = [
+      "This is a string\nBEGIN1\n",
+      "Line two\n",
+      "END1\nThree\n",
+    ]
+    result = line_partition(
+                              string,
+                              match_array,
+                              'out',
+                              'out',
+                            )
+    assert_equal_array( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
+      This is a string
+      BEGIN2
+      Line two
+      END2
+      Three
+    heredoc
+    match_array = [
+                    [ 'BEGIN1', 'END1' ],
+                    [ 'BEGIN2', 'END2' ]
+                  ]
+    expected = [
+      "This is a string\nBEGIN2\n",
+      "Line two\n",
+      "END2\nThree\n",
+    ]
+    result = line_partition(
+                              string,
+                              match_array,
+                              'out',
+                              'out',
+                            )
+    assert_equal_array( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
+      This is a string
+      BEGIN1
+      Line two
+      END2
+      Three
+    heredoc
+    match_array = [
+                    [ 'BEGIN1', 'END1' ],
+                    [ 'BEGIN2', 'END2' ]
+                  ]
+    expected = [
+      "This is a string\nBEGIN1\n",
+      "Line two\nEND2\nThree\n",
+    ]
+    result = line_partition(
+                              string,
+                              match_array,
+                              'out',
+                              'out',
+                            )
+    assert_equal_array( expected, result )
   end
 end
