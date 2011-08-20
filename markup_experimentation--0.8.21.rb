@@ -63,48 +63,42 @@ class Markup
                  match_rx,     # Seven elements.  e.g. HTML is (<)(.*?)(>)(.*?)(</)(.*?)(>)
                  replace_array #                               (a)( b )(c)(.*?)(d )( e )(f)
                                #                            .. which is [ a, b, c, d, e, f ]
-               )
-    match   = [        ]
+              )
+    match   = [ nil    ]
     nomatch = [ string ]
-
+    #
     # TODO:  Sanity-checking.
     if replace_array == false then
       replace_array = [ nil, nil, nil, nil, nil, nil ]
     end
-
     # Count starting from one, dammit.
     replace_array.insert(0, nil)
     # Pad a nil in the middle to make the replace_array number of elements the same as the $~ matches.  3 before, 1 match, 3 after ( 7 ).
     replace_array.insert(4, nil)
-
+    #
     firstpass = true
     until nomatch[-1].match( match_rx ) == nil
       # If this is my first pass, empty the array.
       if firstpass == true then
         firstpass = false
         nomatch = Array.new
+        match = Array.new
+      else
+        nomatch[-1] = ''
       end
-    
-      nomatch << $`  # The content before the match.
+      # Before the match.
+      nomatch << $`
       match   << nil
-
-
+      # The match.
       nomatch << nil
-      match   << "" # The match.  Additional content is appended just below:
-      
-      if replace_array[1] == nil then match[-1] += $~[1] end
-      if replace_array[2] == nil then match[-1] += $~[2] end
-      if replace_array[3] == nil then match[-1] += $~[3] end
-      if replace_array[4] == nil then match[-1] += $~[4] end
-      if replace_array[5] == nil then match[-1] += $~[5] end
-      if replace_array[6] == nil then match[-1] += $~[6] end
-      if replace_array[7] == nil then match[-1] += $~[7] end
-
-      nomatch << $'   # The content after the match.  To be re-examined on the next pass.
+      match   << ""
+      (1..7).each do |i|
+        match[-1] += if replace_array[i] == nil then $~[i] else replace_array[i] end
+      end      
+      # After the match.  To be re-examined on the next pass.
+      nomatch << $'
       match   << nil
-
     end
-
     return nomatch, match
   end
 
@@ -217,13 +211,15 @@ class Test_Markup < MiniTest::Unit::TestCase
   end
 
   def test_match_new_splitting()
-  skip
     string = 'abcdefghijklmnopqrstuvwxyz'
     rx = %r{(not matching this)()()()()()()}
-    match, nomatch = @o.match_new( string, rx, false )
     assert_equal(
-      [['abcdefghijklmnopqrstuvwxyz'], [nil]],
-      [match, nomatch]
+      [ string ],
+      @o.match_new( string, rx, false )[0], # match
+    )
+    assert_equal(
+      [nil],
+      @o.match_new( string, rx, false )[1], # nomatch
     )
   end
 
@@ -271,12 +267,22 @@ class Test_Markup < MiniTest::Unit::TestCase
   end
 
   def test_html_arrays()
+    nonhtml, html = @o.html_arrays( '<></>' )
+    assert_equal(
+      [ '', nil                             , '' ],
+      nonhtml,
+    )
+    assert_equal(
+      [ nil       , "<></>", nil   ],
+      html,
+    )
     string = '<html>text</html>'
     nonhtml, html = @o.html_arrays( string )
     assert_equal(
       string,
       html[1],
     )
+
     nonhtml, html = @o.html_arrays( 'This is <html>some example html</html>.' )
     assert_equal(
       [ "This is ", nil                             , "." ],
@@ -303,72 +309,95 @@ class Test_Markup < MiniTest::Unit::TestCase
       @o.html_arrays( string )[0], # nonhtml
     )
 
-# If I can get the above to work, then try this:
-    #assert_equal(
-      #string,
-      #@o.markup_underline( string ),
-    #)
+    assert_equal(
+      string,
+      @o.markup_underline( string ),
+    )
   end
 
   def test_html_arrays_replacing()
-  skip
     rx = %r{
       (<)(.*?)(>)
       (.*?)
       (</)(.*?)(>)
     }mx
-  
-    replace_array = false
-    nomatch, match = @o.match_new( 'This is <html>some example html</html>.', rx, replace_array )
+    string = 'This is <html>some example html</html>.'
+
+    nomatch, match = @o.match_new(
+      string,
+      rx,
+      false,
+    )
     assert_equal(
       'This is <html>some example html</html>.',
       @o.recombine( nomatch, match ).join,
     )
 
-    replace_array = [ nil, nil, nil, nil, nil, nil ]
-    nomatch, match = @o.match_new( 'This is <html>some example html</html>.', rx, replace_array )
+    nomatch, match = @o.match_new(
+      string,
+      rx,
+      [ nil, nil, nil, nil, nil, nil ],
+    )
     assert_equal(
       'This is <html>some example html</html>.',
       @o.recombine( nomatch, match ).join,
     )
   
-    replace_array = [ '|', nil, nil, nil, nil, nil ]
-    nomatch, match = @o.match_new( 'This is <html>some example html</html>.', rx, replace_array )
+    nomatch, match = @o.match_new(
+      string,
+      rx,
+      [ '|', nil, nil, nil, nil, nil ],
+    )
     assert_equal(
       'This is |html>some example html</html>.',
       @o.recombine( nomatch, match ).join,
     )
 
-    replace_array = [ nil, '|', nil, nil, nil, nil ]
-    nomatch, match = @o.match_new( 'This is <html>some example html</html>.', rx, replace_array )
+    nomatch, match = @o.match_new(
+      string,
+      rx,
+      [ nil, '|', nil, nil, nil, nil ],
+    )
     assert_equal(
       'This is <|>some example html</html>.',
       @o.recombine( nomatch, match ).join,
     )
   
-    replace_array = [ nil, nil, '|', nil, nil, nil ]
-    nomatch, match = @o.match_new( 'This is <html>some example html</html>.', rx, replace_array )
+    nomatch, match = @o.match_new(
+      string,
+      rx,
+      [ nil, nil, '|', nil, nil, nil ],
+    )
     assert_equal(
       'This is <html|some example html</html>.',
       @o.recombine( nomatch, match ).join,
     )
   
-    replace_array = [ nil, nil, nil, '|', nil, nil ]
-    nomatch, match = @o.match_new( 'This is <html>some example html|html>.', rx, replace_array )
+    nomatch, match = @o.match_new(
+      string,
+      rx,
+      [ nil, nil, nil, '|', nil, nil ],
+    )
     assert_equal(
       'This is <html>some example html|html>.',
       @o.recombine( nomatch, match ).join,
     )
   
-    replace_array = [ nil, nil, nil, nil, '|', nil ]
-    nomatch, match = @o.match_new( 'This is <html>some example html</html>.', rx, replace_array )
+    nomatch, match = @o.match_new(
+      string,
+      rx,
+      [ nil, nil, nil, nil, '|', nil ],
+    )
     assert_equal(
       'This is <html>some example html</|>.',
       @o.recombine( nomatch, match ).join,
     )
   
-    replace_array = [ nil, nil, nil, nil, nil, '|' ]
-    nomatch, match = @o.match_new( 'This is <html>some example html</html>.', rx, replace_array )
+    nomatch, match = @o.match_new(
+      string,
+      rx,
+      [ nil, nil, nil, nil, nil, '|' ],
+    )
     assert_equal(
       'This is <html>some example html</html|.',
       @o.recombine( nomatch, match ).join,
@@ -424,6 +453,22 @@ class Test_Markup < MiniTest::Unit::TestCase
       <html>
       _underline_
       </html>
+    heredoc
+    assert_equal(
+      string,
+      @o.markup_underline( string ),
+    )
+  end
+
+  def test_underline_within_html_multiline_multiples()
+    string = <<-heredoc.unindent
+      <html>
+      _underline_
+      </html>
+      <html>
+      _underline_
+      </html>
+      <html>_underline_</html>
     heredoc
     assert_equal(
       string,
