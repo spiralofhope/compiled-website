@@ -40,23 +40,21 @@ require 'lib_files.rb'
 require 'lib_strings.rb'
 
 # [:punct:] and [:blank:] don't work..
-# Note that > was added so that markup worked well with lists and such, without any additional hackeri.
 $punctuation_start=%r{
   ^
+  |\ 
   |^'
   |\ '
   |^"
   |\ "
-  |\ 
   |\ \(
   |^\(
-  |>
 }x
 # Note that something like 'oldschool-linux.asc' won't get linked, because this regular expression requires an ending like '. '
 #   A simple '|\.' can be added to relax this restriction.
-# Note that < was NOT added, so that you can do an obvious <nowiki>[http://example.com]</nowiki> and not have anything processed there.
 $punctuation_end=%r{
   $
+  |\ 
   |\.\ 
   |,\ 
   |!\ 
@@ -68,7 +66,6 @@ $punctuation_end=%r{
   |"\ 
   |",
   |,"
-  |\ 
   |\)\ 
   |\)$
 }x
@@ -113,7 +110,8 @@ def view_html(file_full_path)
     # Note: For a browser to work as expected, I'd have to already have it running before this script summons it.
     # Otherwise, this script would summon it wait for it to exit!
     #system('firefox', '-new-tab', file_full_path)
-    system('firefox', file_full_path)
+    system('firefox', '-P', '-default', file_full_path)
+    #system('firefox', '-no-remote', '-P', '-default', file_full_path)
     # Does not respect accesskeys, it thinks that .asc is a PGP file.  Bah.
     # It also saves the .asc files to /tmp.. sigh.
     #system('midori', file_full_path)
@@ -235,7 +233,10 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
       ^([=]+)
       \ 
       ([^\ ].*?[^\=])
-      (\ [=]+$|$)
+      (
+         \ [=]+$
+        |$
+      )
     }x
     result=[]
     total=0
@@ -283,6 +284,7 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
           else ''
         end
       end
+
       result << line
     end
     string=result.to_s
@@ -302,13 +304,13 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
     # This is a hackish way to do paragraphs:
     string.gsub!(/(\n\n)/, "\n</p><p>\n")
     # Allow multiple spaces to bleed through into the HTML:
-    string.gsub!(/\n\n/, "<br>")
+    string.gsub!(/\n\n/, "<br>\n")
     return string
   end
-  # Plain links, like:  http://example.com (HTML link to its source)
   def links_rx()
     return %r{
-      ( (?# http://)
+      (?# http://  )
+      (
          http:\/\/
         |https:\/\/
         |ftp:\/\/
@@ -316,19 +318,22 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
         |gopher:\/\/
         |file:\/\/
       )
-      ( (?# whatever.info)
+      (?# whatever.info  )
+      (?# Also includes IPs, though I'm not sure how.  )
+      (
          \S{2,}\.\S{2,4}
         | localhost
-        (?# not actually needed:  | \d{1,4}\.\d{1,4}\.\d{1,4}\.\d{1,4}  )
       )
-      ( (?# /foo/bar.html)
+      (?# This also handles ports, but it does no error correction.  )
+      ( (?# /foo/bar.html  )
          \/\S+[^\]]
         |[^\]]
       )
     }x
   end
+  # FIXME: All of these links procedures have a potentially infinite looping issue.  If the regex matches, but the replace fails for some reason.  Harden it with either a catch/counter/throw, or a counter/raise.
+  # Plain links, like:  http://example.com (HTML link to its source)
   def links_plain(string)
-    # Note that this also handles IP:Port, but it does no error correction.
     result=[]
     url = %r{
       (#{$punctuation_start})
@@ -350,7 +355,6 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
   end
   # Named links, like:  [http://example.com name] => name (HTML link to its source)
   def links_named(string)
-    # Note that this also handles IP:Port, but it does no error correction.
     url = %r{
       (#{$punctuation_start})
       \[
@@ -373,7 +377,6 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
   end
   # Numbered links, like:  [http://example.com] => [1] (HTML link to its source, and incrementally-counted)
   def links_numbered(string)
-    # Note that this also handles IP:Port, but it does no error correction.
     url = %r{
       (#{$punctuation_start})
       \[
@@ -392,37 +395,106 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
     end
     return result.to_s
   end
-  # TODO: Local links to new pages, like:  [[link name]] => 'link-name.asc'
-  def TODO_links_local_new(string)
-    url = %r{
+  # Local links to new pages, like:  [[link name]] => 'link-name.asc'
+  def links_local_new(source_file_full_path, string)
+    directory=File.dirname(source_file_full_path)
+    result=[]
+      #([^\[{2}].*?[^\]{2}])
+    regex = %r{
       (#{$punctuation_start})
-      (\[\[)
-      (\S+)
-      (\]\])
+      \[{2}
+      ([^\[{2}].*?[^\]{2}])
+      \]{2}
       (#{$punctuation_end})
     }x
-    result=[]
     string.each do |line|
-      line =~ url
-      if $~ != nil then
-        line_copy = line.dup
-        line_copy.gsub!(url, '~~~~~url~~~~~')
-        line_copy=line_copy.split('~~~~~url~~~~~')
-        line_copy_length=(line_copy.length)-1
-        line_copy_length.times do
-          line =~ url
-          match=$~.dup
-# check for the file
-## if exists, remove the [[ and ]] (from both this string and the source file) and then links_automatic() will catch it.
-## if it does not exist, then make some sort of self-known local link to that file, so that clicking on it in a browser will open up an editor with that filename ready (displaying an empty file)
-          line.sub!(url, " -> #{match[1]}#{match[3]}#{match[5]} <- ")
+      if not line =~ regex then
+        result << line
+        next
+      end
+      until line.scan(regex).size == 0 do      
+        #puts $~.size.inspect + ' ' + $~.inspect + ' ' + line.inspect
+        new_source_file_full_path = File.join(directory, $~[2] + '.asc')
+        # Match [[file]] with /full/path/to/file.asc
+        if File.exist?(new_source_file_full_path) and File.size(new_source_file_full_path) > 0 then
+          # [[file]] is not actually new - it refers to an already-existing file, with content.
+          # Remove the [[ and ]] from my current working string, and then links_automatic() will process this appropriately.
+  #puts $~[1] + $~[2] + $~[3]
+          line.sub!(regex, '\1\2\3')
+          # Remove [[ ]] from the source file.
+          # TODO: It's a bit of a waste to re-read/sub!/write this file every single time, and this needs to be optimised.
+          new_contents=file_read(source_file_full_path)
+  #puts $~[1] + $~[2] + $~[3]
+            #(#{$~[2]})
+          regex = %r{
+            (#{$punctuation_start})
+            \[{2}
+            ([^\[{2}]#{$~[2]}?[^\]{2}])
+            \]{2}
+            (#{$punctuation_end})
+          }x
+  #puts new_contents.match(regex).inspect + "<-----"
+          new_contents.sub!(regex, '\1\2\3')
+          create_file(source_file_full_path, new_contents)
+        else
+          # [[file]] is legitimately new.
+          # Turn this into a link to create the file.
+          # TODO: Make the 'a new' CSS (red on paragraph mouseover).
+          # fixme: the filename shouldn't use spaces/etc.
+          line.sub!(regex, '\1' + '<a class="new" href="file://' + new_source_file_full_path + '">\2</a>' + '\3')
+          # Make a blank file so that I can link to an actually-existing file to summon my editor.
+          if not File.exist?(new_source_file_full_path) then create_file(new_source_file_full_path, "") end
+          #create_file(new_source_file_full_path, "")
         end
       end
       result << line
-    end
+    end # string.each
     return result.to_s
   end
-  def links_automatic(source_file_full_path, string, directory)
+  def fucked_links_automatic(source_file_full_path, string)
+    directory=File.dirname(source_file_full_path)
+    # Get the files in the present directory:
+    array_files=[]
+    Dir["#{directory}/*.asc"].each do |file|
+      next if not File.file?(file)
+      next if file == source_file_full_path
+      # "/path/foo/file name.asc" => "file name"
+      array_files << File.basename(file, '.asc').gsub('-', ' ')
+    end
+    puts array_files.inspect
+    # I have to throw the files in an array is because there's no guarantee of reading the files off the disk in any order.
+    # This sort prioritises multiple-word files ahead of single-word files.
+    array_files.sort.each do |file|
+      # This cannot be broken up on multiple lines like my usual %r{...}x stuff, because 'file' will be completely fucked.
+      # I cannot solve that issue by trying to escape stuff.  Things don't seem to actually work.
+      regex=%r{(#{$punctuation_start})(#{file})(#{$punctuation_end})}i
+      string =~ regex
+      if $~ != nil then
+        match=$~
+        string.sub!(regex, match[1] + '<a href="' + match[2] + '.html">' + match[2] + '</a>' + match[3])
+        puts $~.inspect
+      end
+      #regex=%r{
+        #(#{$punctuation_start})
+        #(#{regex})
+        #(#{$punctuation_end})
+      #}ix
+      #puts file.inspect + '  -------------------------------'
+      #puts regex.inspect
+      #string.each do |line|
+        #puts line.inspect
+        #counter=0
+        #until line.scan(regex).size == 0 or counter > 5 do
+          #line.sub!(regex, '\1<a href="\2.html">\2</a>\3')
+          #counter+=1
+        #end
+        #puts 'counter:  ' + counter.inspect.to_s
+      #end
+    end
+    return string
+  end
+  def links_automatic(source_file_full_path, string)
+    directory=File.dirname(source_file_full_path)
     source_name=File.basename(source_file_full_path, '.asc')
     # Get the files in the present directory:
     array_files=[]
@@ -436,6 +508,47 @@ def compile(source_directory, source_file_full_path, target_file_full_path)
     array_files.sort!
 
     file_working=[]
+    links_working=[]
+    string.each do |line|
+      array_files.each do |file|
+        file_string=file.chomp('.asc')
+        file_url=file_string + '.html'
+        # I'm being pretty cheap here.  Instead of being smart about auto-linking URLs, and intentionally avoiding odd broken-assed web+local links, I'm limiting what things can be auto-linked as local links.
+        # Link the exact filename.
+        regex=%r{(#{$punctuation_start})(#{file_string})(#{$punctuation_end})}i
+        file_string_full_path=File.join(File.dirname(source_file_full_path), file_string) + '.asc'
+        until line.scan(regex).size == 0 do
+          if File.size?(file_string_full_path) then
+            line.sub!(regex, '\1<a href="' + file_url + '">\2</a>\3')
+          else
+            line.sub!(regex, '\1<a class="new" href="' + file_string_full_path + '">\2</a>\3')
+          end
+        end
+
+        ## Also be forgiving for punctuation like dashes.
+        #file_string.gsub!('-', ' ')
+        #line=markup(line, %r{(#{$punctuation_start})(#{file_string})(#{$punctuation_end})}i, //, '\1<a href="' + file_url + '">\2</a>\3', '', true)
+      end
+      file_working << line
+    end
+    return file_working.to_s
+  end
+  def original_links_automatic(source_file_full_path, string)
+    directory=File.dirname(source_file_full_path)
+    source_name=File.basename(source_file_full_path, '.asc')
+    # Get the files in the present directory:
+    array_files=[]
+    Dir["#{directory}/*.asc"].each do |file|
+      next if not File.file?(file)
+      next if file == source_file_full_path
+      # "/path/foo/file name.asc" => "file name"
+      array_files << File.basename(file, '')
+    end
+    # This sort prioritizes multiple-word files ahead of single-word files.
+    array_files.sort!
+
+    file_working=[]
+    links_working=[]
     string.each do |line|
       array_files.each do |file|
         file_string=file.chomp('.asc')
@@ -573,12 +686,13 @@ end
 <br>
           #{$toc}
       <noscript>
-<br>TODO: JavaScript is diabled
+        <br>TODO: JavaScript is diabled
       </noscript>
         </div>
       </div>
-      <a name="body">
+      <a name="a0">
       <div class="main">
+        <p>
     HEREDOC
 
 =begin
@@ -652,14 +766,14 @@ HEREDOC
     # Unordered lists
     # FIXME: This is really fragile stuff, and doesn't like being moved around within compile()
     #   FIXME:  FUCK, it's interacting with the strikethrough feature!
-    contents=lists(contents, %r{^(-+) (.*)$}, '<ul>', "</ul>\n", '<li>', ' </li>', '')
+    contents=lists(contents, %r{^(-+) (.*)$}, '<ul>', "</ul>\n", '<li> ' + "\n", ' </li>' + "\n", '')
     # Ordered lists
-    contents=lists(contents, %r{^(#+) (.*)$}, '<ol>', "</ol>\n", '<li>', ' </li>', '')
+    contents=lists(contents, %r{^(#+) (.*)$}, '<ol>', "</ol>\n", '<li> ', ' </li>' + "\n", '')
     # Indentation
     #   FIXME:  Doesn't allow nested indented items.  So two colons doesn't double-indent.
-    contents=lists(contents, %r{^(:+) (.+)$}, '<dl>', "</dl>\n", '<dd>', ' </dd>', '')
+    contents=lists(contents, %r{^(:+) (.+)$}, '<dl>', "</dl>\n", '<dd> ', ' </dd>' + "\n", '')
     # Code blocks
-    contents=lists(contents, %r{^( )(.*)$}, '<pre>', "</pre>\n", '', '', ' <br>')
+    contents=lists(contents, %r{^( )(.*)$}, '<pre>', "</pre>\n", '', '', ' <br>' + "\n")
 
     contents=mixed_lists(contents)
 
@@ -667,9 +781,8 @@ HEREDOC
     contents=links_plain(contents)
     contents=links_named(contents)
     contents=links_numbered(contents)
-    # TODO
-    #contents=links_local_new(contents)
-    contents=links_automatic(source_file_full_path, contents, File.dirname(source_file_full_path))
+    contents=links_local_new(source_file_full_path, contents)
+    contents=links_automatic(source_file_full_path, contents)
 
     # Headers (<h1> etc) and table of contents preparation
     contents=HTML_headers(contents)
@@ -757,7 +870,6 @@ FIXME http://example.com
   puts file_read(target_file_full_path)
   view_html(target_file_full_path)
 end
-# $VERBOSE=nil
 #test_compile()
 # clean up the working directories with something like:
 # rm -rf /tmp/test_markup.???? /tmp/test_markup.????
@@ -805,7 +917,9 @@ def main(source_directory, compiled_directory)
     Dir['**/*.asc'].each do |asc_file|
       target_file_full_path=File.expand_path(File.join(compiled_directory, asc_file.chomp('.asc') + '.html'))
       source_file_full_path=File.expand_path(asc_file)
-      if not File.exists?(target_file_full_path) then
+      # Skip empty files.
+      next if not File.size?(source_file_full_path)
+      if not File.exists?(target_file_full_path)  then
         vputs 'Building missing file:  ' + source_file_full_path.inspect
         vputs ' ...             into:  ' + target_file_full_path.inspect
         process(source_directory, source_file_full_path, target_file_full_path)
@@ -826,7 +940,6 @@ def main(source_directory, compiled_directory)
 end # main
 
 $VERBOSE=nil
-
 main(source_directory, compiled_directory)
 # sleep 1
 # viewer(File.join(target_directory_path, 'index.html'))
