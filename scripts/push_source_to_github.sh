@@ -8,8 +8,8 @@ TODO:  Ask to tag.
 
 heredoc
 
-
-working='/mnt/ssd/projects/compiled-website/git/'
+__FILE__=$( \readlink -f $0 )
+working=$( \dirname $__FILE__ )/..
 
 \cd $working
 

@@ -1,3 +1,17 @@
+  
+  * scripts/push_content_to_website.rb
+  Added my helper script to sync the website to a server.  More work
+  has to be done to make this more universally useful to other people.
+  
+  * scripts/edit.sh
+  Added my helper script to launch and edit this project.  More work
+  has to be done to make this more universally useful to other people.
+  
+  * Beginning to modify my scripts to use a .ini file to load up
+  private variables.  This lets me include those scripts into this
+  project without having, for example, my directory preferences or
+  server password in a script.
+  
   * Split up some library code and test cases into separate files.
   This will reduce the complexity of test cases which are important to
   the project versus tried-and-true code.

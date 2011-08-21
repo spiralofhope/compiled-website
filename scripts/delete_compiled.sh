@@ -1,4 +1,4 @@
-#!/bin/env bash
+#!/bin/env sh
 
 :<<'heredoc'
 This script deletes all the compiled .html files.
@@ -16,7 +16,9 @@ This is important for major events like:
 This need is probably the biggest downside to this kind of engine.
 heredoc
 
-working='/mnt/ssd/projects/compiled-website/live/'
+__FILE__=$( \readlink -f $0 )
+working=$( \dirname $__FILE__ )/../../live/
+echo $working
 
 # Doesn't remove any .html files in a directory which has 'hosted' in its name.  It's a bit inexact but should be ok.
 \find $working \
