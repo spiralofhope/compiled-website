@@ -113,7 +113,7 @@ class Test_Markup < MiniTest::Unit::TestCase
     # This is user-error and is invalid HTML.
     #   TODO:  Check, is it invalid?  Isn't nesting tags valid?
     # HTML Tidy can clean this kind of code up.
-    # TODO:  It would be nice to be able to deal with this sort of problem, but perhaps I can use HTML tidy on blocks of code before processing them myself.
+    # TODO:  It would be nice to be able to deal with this sort of problem, but perhaps I can use HTML tidy on small blocks of code like this, before processing them myself.
 =begin
     string = 'before <strong>one <strong>two </strong></strong> after'
     # In a perfect world, we could do this.
@@ -215,56 +215,37 @@ class Test_Markup < MiniTest::Unit::TestCase
     string = 'one'
     expected = '{one}'
     result = @o.not_in_html( string ) { |i| not_in_html_test_method( i ) }
-    #p result, result.class
-    assert_equal(
-      expected,
-      result,
-    )
-
+    assert_equal( expected, result )
+    #
     # Remember that <> and </> are not proper HTML.
     string = 'one <>two</>'
     expected = '{one <>two</>}'
     result = @o.not_in_html( string ) { |i| not_in_html_test_method( i ) }
-    assert_equal(
-      expected,
-      result,
-    )
+    assert_equal( expected, result )
     #
     #
     string = 'one <em>two</em>'
     expected = '{one }<em>two</em>'
     result = @o.not_in_html( string ) { |i| not_in_html_test_method( i ) }
-    assert_equal(
-      expected,
-      result,
-    )
+    assert_equal( expected, result )
     #
     #
     string = 'one <em>two</em> three'
     expected = '{one }<em>two</em>{ three}'
     result = @o.not_in_html( string ) { |i| not_in_html_test_method( i ) }
-    assert_equal(
-      expected,
-      result,
-    )
+    assert_equal( expected, result )
     #
     #
     string = 'one <em>two</em> three <em>four</em> five'
     expected = '{one }<em>two</em>{ three }<em>four</em>{ five}'
-    result  = @o.not_in_html( string ) { |i| not_in_html_test_method(  i        ) }
-    assert_equal(
-      expected,
-      result,
-    )
-    #
+    result = @o.not_in_html( string ) { |i| not_in_html_test_method( i ) }
+    assert_equal( expected, result )
+
     #
     string = 'one <em>two</em> three <em>four</em> five'
     expected = '{one } hey more<em>two</em>{ three } hey more<em>four</em>{ five} hey more'
     result = @o.not_in_html( string ) { |i| not_in_html_test_method( i, 'hey', 'more' ) }
-    assert_equal(
-      expected,
-      result,
-    )
+    assert_equal( expected, result )
     #
     #
     string = <<-heredoc.unindent
@@ -283,10 +264,7 @@ class Test_Markup < MiniTest::Unit::TestCase
     heredoc
     expected.chomp!
     result = @o.not_in_html( string ) { |i| not_in_html_test_method( i ) }
-    assert_equal(
-      expected,
-      result,
-    )
+    assert_equal( expected, result )
   end
 
   def test_markup_underline()
@@ -295,43 +273,34 @@ class Test_Markup < MiniTest::Unit::TestCase
     string = '_underlined_'
     expected = '<u>underlined</u>'
     result = @o.markup_underline( string )
-    assert_equal(
-      expected,
-      result,
-    )
+    assert_equal( expected, result )
     #
     #
     string = 'one _two_ three _four_'
     expected = 'one <u>two</u> three <u>four</u>'
     result = @o.markup_underline( string )
-    assert_equal(
-      expected,
-      result,
-    )
+    assert_equal( expected, result )
     #
     #
     string = '<> _not underlined_ </>'
-    assert_equal(
-      string,
-      @o.markup_underline( string ),
-    )
+    expected = string
+    result = @o.markup_underline( string )
+    assert_equal( expected, result )
     #
     #
     string = '<>_not underlined_</>'
-    assert_equal(
-      string,
-      @o.markup_underline( string ),
-    )
+    expected = string
+    result = @o.markup_underline( string )
+    assert_equal( expected, result )
     #
     #
     string = <<-heredoc.unindent
         _not
         underlined_
       heredoc
-    assert_equal(
-      string,
-      @o.markup_underline( string ),
-    )
+    expected = string
+    result = @o.markup_underline( string )
+    assert_equal( expected, result )
     #
     #
     string = <<-heredoc.unindent
@@ -339,17 +308,15 @@ class Test_Markup < MiniTest::Unit::TestCase
         _not underlined_
         </em>
       heredoc
-    assert_equal(
-      string,
-      @o.markup_underline( string ),
-    )
+    expected = string
+    result = @o.markup_underline( string )
+    assert_equal( expected, result )
     #
     #
     string = '<em>_not underlined_</em>'
-    assert_equal(
-      string,
-      @o.markup_underline( string ),
-    )
+    expected = string
+    result = @o.markup_underline( string )
+    assert_equal( expected, result )
     #
     #
     string = <<-heredoc.unindent
@@ -360,10 +327,9 @@ class Test_Markup < MiniTest::Unit::TestCase
       _not underlined_
       </em>
     heredoc
-    assert_equal(
-      string,
-      @o.markup_underline( string ),
-    )
+    expected = string
+    result = @o.markup_underline( string )
+    assert_equal( expected, result )
     #
     # This is another case of improperly-nested html tags.
     # It's mentioned within test_split_string()
@@ -376,38 +342,39 @@ class Test_Markup < MiniTest::Unit::TestCase
         _not underlined_
       </em>
     heredoc
-    assert_equal(
-      string,
-      @o.markup_underline( string ),
-    )
+    expected = string
+    result = @o.markup_underline( string )
+    assert_equal( expected, result )
 =end
   end
 
   def test_multiple_markup()
-    assert_equal(
-      '<u>underlined</u> and <strong>strong</strong>',
-      @o.markup_everything( '_underlined_ and *strong*' ),
-    )
+    string = '_underlined_ and *strong*'
+    expected = '<u>underlined</u> and <strong>strong</strong>'
+    result = @o.markup_everything( string )
+    assert_equal( expected, result )
   end
 
   def test_nested_markup()
     # This demonstrates how the first markup's html-result will stop any future markup from acting within that html.
-    assert_equal(
-      '<u>*underlined*</u> <strong>strong</strong>',
-      @o.markup_everything( @o.markup_underline( '_*underlined*_ *strong*' ) ),
-    )
+    string = '_*underlined*_ *strong*'
+    expected = '<u>*underlined*</u> <strong>strong</strong>'
+    result = @o.markup_everything( @o.markup_underline( string ) )
+    assert_equal( expected, result )
   end
 
   def test_big()
-    assert_equal(
-      '<big>big</big>',
-      @o.markup_big( @o.markup_underline( '**big**' ) ),
-    )
+    #
+    string = '**big**'
+    expected = '<big>big</big>'
+    result = @o.markup_big( @o.markup_underline( string ) )
+    assert_equal( expected, result )
+    #
     # This demonstrates the need for markup done in a specific order.  Big has to be performed before bold.
-    assert_equal(
-      '<big>big</big>',
-      @o.markup_everything( @o.markup_underline( '**big**' ) ),
-    )
+    string = '**big**'
+    expected = '<big>big</big>'
+    result = @o.markup_everything( @o.markup_underline( string ) )
+    assert_equal( expected, result )
   end
 
   def test_emphasis()
@@ -415,10 +382,7 @@ class Test_Markup < MiniTest::Unit::TestCase
     string = '(/nobekan/)'
     expected = '(<em>nobekan</em>)'
     result = @o.markup_emphasis( string )
-    assert_equal(
-      expected,
-      result,
-    )
+    assert_equal( expected, result )
   end
 
   def test_split_string_by_line()
@@ -722,16 +686,13 @@ skip
 =end
 
   def test_paragraphs()
-
+    #
     #
     string = 'foo'
     expected = '<p>foo</p>'
     result = @o.paragraphs( string )
-    assert_equal(
-      expected,
-      result,
-    )
-
+    assert_equal( expected, result )
+    #
     #
     string = <<-heredoc.unindent
       one
@@ -745,11 +706,8 @@ skip
     heredoc
     expected.chomp!
     result = @o.paragraphs( string )
-    assert_equal(
-      expected,
-      result,
-    )
-
+    assert_equal( expected, result )
+    #
     # Multiple line breaks.
     string = <<-heredoc.unindent
       one
@@ -765,11 +723,8 @@ skip
     heredoc
     expected.chomp!
     result = @o.paragraphs( string )
-    assert_equal(
-      expected,
-      result,
-    )
-
+    assert_equal( expected, result )
+    #
     # Many line breaks.
     string = <<-heredoc.unindent
       one
@@ -789,11 +744,8 @@ skip
     heredoc
     expected.chomp!
     result = @o.paragraphs( string )
-    assert_equal(
-      expected,
-      result,
-    )
-
+    assert_equal( expected, result )
+    #
     # Skip HTML content.
     string = <<-heredoc.unindent
       <pre>
@@ -812,457 +764,425 @@ skip
     heredoc
     expected.chomp!
     result = @o.paragraphs( string )
-    assert_equal(
-      expected,
-      result,
-    )
-
+    assert_equal( expected, result )
   end
 
   def test_horizontal_rules()
-    assert_equal(
-      ( <<-heredoc.unindent
+    string = <<-heredoc.unindent
         line one
       heredoc
-      ),
-      @o.horizontal_rules( <<-heredoc.unindent
+    expected = string
+    result = @o.horizontal_rules( string )
+    assert_equal( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
         line one
+        
+        ---
+        
+        line two
       heredoc
-      ),
-    )
-
-    assert_equal(
-      ( <<-heredoc.unindent
+    expected = <<-heredoc.unindent
         line one
         
         <hr>
         
         line two
       heredoc
-      ),
-      @o.horizontal_rules( <<-heredoc.unindent
-        line one
-        
-        ---
-        
-        line two
-      heredoc
-      ),
-    )
-
-    assert_equal(
-      ( <<-heredoc.unindent
-        line one
-        <hr class="small">
-        line two
-      heredoc
-      ),
-      @o.horizontal_rules( <<-heredoc.unindent
+    result = @o.horizontal_rules( string )
+    assert_equal( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
         line one
         ---
         line two
       heredoc
-      ),
-    )
-
-    assert_equal(
-      ( <<-heredoc.unindent
-        Test >
+    expected = <<-heredoc.unindent
+        line one
         <hr class="small">
-        
-        content
+        line two
       heredoc
-      ),
-      @o.horizontal_rules( <<-heredoc.unindent
+    result = @o.horizontal_rules( string )
+    assert_equal( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
         Test >
         ---
         
         content
       heredoc
-      ),
-    )
-
+    expected = <<-heredoc.unindent
+        Test >
+        <hr class="small">
+        
+        content
+      heredoc
+    result = @o.horizontal_rules( string )
+    assert_equal( expected, result )
+    #
+    #
   end
 
   def test_links_plain()
-    assert_equal(
-      ( <<-heredoc.unindent
+    string = <<-heredoc.unindent
         foo
       heredoc
-      ),
-      @o.links_plain( <<-heredoc.unindent
-        foo
-      heredoc
-      ),
-    )
-
-    assert_equal(
-      ( <<-heredoc.unindent
-        <a href="http://example.com">http://example.com</a>
-      heredoc
-      ),
-      @o.links_plain( <<-heredoc.unindent
+    expected = string
+    result = @o.links_plain( string )
+    assert_equal( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
         http://example.com
       heredoc
-      ),
-    )
-
-    assert_equal(
-      ( <<-heredoc.unindent
-        before <a href="http://example.com">http://example.com</a> after
+    expected = <<-heredoc.unindent
+        <a href="http://example.com">http://example.com</a>
       heredoc
-      ),
-      @o.links_plain( <<-heredoc.unindent
+    result = @o.links_plain( string )
+    assert_equal( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
         before http://example.com after
       heredoc
-      ),
-    )
-
-    assert_equal(
-      ( <<-heredoc.unindent
-        <a href="http://example.com/">http://example.com/</a>
+    expected = <<-heredoc.unindent
+        before <a href="http://example.com">http://example.com</a> after
       heredoc
-      ),
-      @o.links_plain( <<-heredoc.unindent
+    result = @o.links_plain( string )
+    assert_equal( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
         http://example.com/
       heredoc
-      ),
-    )
-
-    assert_equal(
-      ( <<-heredoc.unindent
-        <a href="http://example.com/foo">http://example.com/foo</a>
+    expected = <<-heredoc.unindent
+        <a href="http://example.com/">http://example.com/</a>
       heredoc
-      ),
-      @o.links_plain( <<-heredoc.unindent
+    result = @o.links_plain( string )
+    assert_equal( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
         http://example.com/foo
       heredoc
-      ),
-    )
-
-    assert_equal(
-      ( <<-heredoc.unindent
-        <a href="http://example.com/foo/">http://example.com/foo/</a>
+    expected = <<-heredoc.unindent
+        <a href="http://example.com/foo">http://example.com/foo</a>
       heredoc
-      ),
-      @o.links_plain( <<-heredoc.unindent
+    result = @o.links_plain( string )
+    assert_equal( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
         http://example.com/foo/
       heredoc
-      ),
-    )
-
-    assert_equal(
-      ( <<-heredoc.unindent
-        <a href="http://127.0.0.1">http://127.0.0.1</a>
+    expected = <<-heredoc.unindent
+        <a href="http://example.com/foo/">http://example.com/foo/</a>
       heredoc
-      ),
-      @o.links_plain( <<-heredoc.unindent
+    result = @o.links_plain( string )
+    assert_equal( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
         http://127.0.0.1
       heredoc
-      ),
-    )
-
-    assert_equal(
-      ( <<-heredoc.unindent
-        <a href="http://127.0.0.1/">http://127.0.0.1/</a>
+    expected = <<-heredoc.unindent
+        <a href="http://127.0.0.1">http://127.0.0.1</a>
       heredoc
-      ),
-      @o.links_plain( <<-heredoc.unindent
+    result = @o.links_plain( string )
+    assert_equal( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
         http://127.0.0.1/
       heredoc
-      ),
-    )
-
-    assert_equal(
-      ( <<-heredoc.unindent
-        <a href="http://127.0.0.1/foo">http://127.0.0.1/foo</a>
+    expected = <<-heredoc.unindent
+        <a href="http://127.0.0.1/">http://127.0.0.1/</a>
       heredoc
-      ),
-      @o.links_plain( <<-heredoc.unindent
+    result = @o.links_plain( string )
+    assert_equal( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
         http://127.0.0.1/foo
       heredoc
-      ),
-    )
-
-    assert_equal(
-      ( <<-heredoc.unindent
-        <a href="http://127.0.0.1/foo/">http://127.0.0.1/foo/</a>
+    expected = <<-heredoc.unindent
+        <a href="http://127.0.0.1/foo">http://127.0.0.1/foo</a>
       heredoc
-      ),
-      @o.links_plain( <<-heredoc.unindent
+    result = @o.links_plain( string )
+    assert_equal( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
         http://127.0.0.1/foo/
       heredoc
-      ),
-    )
-
-    assert_equal(
-      ( <<-heredoc.unindent
-        <a href="http://example.com:1234">http://example.com:1234</a>
+    expected = <<-heredoc.unindent
+        <a href="http://127.0.0.1/foo/">http://127.0.0.1/foo/</a>
       heredoc
-      ),
-      @o.links_plain( <<-heredoc.unindent
+    result = @o.links_plain( string )
+    assert_equal( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
         http://example.com:1234
       heredoc
-      ),
-    )
-
-    assert_equal(
-      ( <<-heredoc.unindent
-        <a href="http://example.com:1234/">http://example.com:1234/</a>
+    expected = <<-heredoc.unindent
+        <a href="http://example.com:1234">http://example.com:1234</a>
       heredoc
-      ),
-      @o.links_plain( <<-heredoc.unindent
+    result = @o.links_plain( string )
+    assert_equal( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
         http://example.com:1234/
       heredoc
-      ),
-    )
-
-    assert_equal(
-      ( <<-heredoc.unindent
-        <a href="http://example.com:1234/foo">http://example.com:1234/foo</a>
+    expected = <<-heredoc.unindent
+        <a href="http://example.com:1234/">http://example.com:1234/</a>
       heredoc
-      ),
-      @o.links_plain( <<-heredoc.unindent
+    result = @o.links_plain( string )
+    assert_equal( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
         http://example.com:1234/foo
       heredoc
-      ),
-    )
-
-    assert_equal(
-      ( <<-heredoc.unindent
-        <a href="http://example.com:1234/foo/">http://example.com:1234/foo/</a>
+    expected = <<-heredoc.unindent
+        <a href="http://example.com:1234/foo">http://example.com:1234/foo</a>
       heredoc
-      ),
-      @o.links_plain( <<-heredoc.unindent
+    result = @o.links_plain( string )
+    assert_equal( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
         http://example.com:1234/foo/
       heredoc
-      ),
-    )
-
-    assert_equal(
-      ( <<-heredoc.unindent
-        line one
-        <a href="http://example.com/foo/index.php?bar|baz#quux">http://example.com/foo/index.php?bar|baz#quux</a>
-        line two
+    expected = <<-heredoc.unindent
         <a href="http://example.com:1234/foo/">http://example.com:1234/foo/</a>
       heredoc
-      ),
-      @o.links_plain( <<-heredoc.unindent
+    result = @o.links_plain( string )
+    assert_equal( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
         line one
         http://example.com/foo/index.php?bar|baz#quux
         line two
         http://example.com:1234/foo/
       heredoc
-      ),
-    )
-
-
+    expected = <<-heredoc.unindent
+        line one
+        <a href="http://example.com/foo/index.php?bar|baz#quux">http://example.com/foo/index.php?bar|baz#quux</a>
+        line two
+        <a href="http://example.com:1234/foo/">http://example.com:1234/foo/</a>
+      heredoc
+    result = @o.links_plain( string )
+    assert_equal( expected, result )
+    #
+    #
   end
 
   def test_links_named()
-    assert_equal(
-      ( <<-heredoc.unindent
+    #
+    #
+    string = <<-heredoc.unindent
         foo
       heredoc
-      ),
-      @o.links_named( <<-heredoc.unindent
-        foo
-      heredoc
-      ),
-    )
-
-    assert_equal(
-      ( <<-heredoc.unindent
-        <a href="http://example.com">foo</a>
-      heredoc
-      ),
-      @o.links_named( <<-heredoc.unindent
+    expected = string
+    result = @o.links_named( string )
+    assert_equal( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
         [http://example.com foo]
       heredoc
-      ),
-    )
-
-    assert_equal(
-      ( <<-heredoc.unindent
-        <a href="http://example.com">two words</a>
+    expected = <<-heredoc.unindent
+        <a href="http://example.com">foo</a>
       heredoc
-      ),
-      @o.links_named( <<-heredoc.unindent
+    result = @o.links_named( string )
+    assert_equal( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
         [http://example.com two words]
       heredoc
-      ),
-    )
-
-    assert_equal(
-      ( <<-heredoc.unindent
-        before <a href="http://example.com">two words</a> after
+    expected = <<-heredoc.unindent
+        <a href="http://example.com">two words</a>
       heredoc
-      ),
-      @o.links_named( <<-heredoc.unindent
+    result = @o.links_named( string )
+    assert_equal( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
         before [http://example.com two words] after
       heredoc
-      ),
-    )
-
-    assert_equal(
-      ( <<-heredoc.unindent
-        line one
-        before <a href="http://example.com/foo/index.php?bar|baz#quux">foo bar</a> after
-        line two
+    expected = <<-heredoc.unindent
         before <a href="http://example.com">two words</a> after
       heredoc
-      ),
-      @o.links_named( <<-heredoc.unindent
+    result = @o.links_named( string )
+    assert_equal( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
         line one
         before [http://example.com/foo/index.php?bar|baz#quux foo bar] after
         line two
         before [http://example.com two words] after
       heredoc
-      ),
-    )
+    expected = <<-heredoc.unindent
+        line one
+        before <a href="http://example.com/foo/index.php?bar|baz#quux">foo bar</a> after
+        line two
+        before <a href="http://example.com">two words</a> after
+      heredoc
+    result = @o.links_named( string )
+    assert_equal( expected, result )
+    #
+    #
   end
 
   def test_links_numbered()
-    assert_equal(
-      ( <<-heredoc.unindent
+    #
+    #
+    string = <<-heredoc.unindent
         foo
       heredoc
-      ),
-      @o.links_numbered( (<<-heredoc.unindent
-        foo
+    expected = string
+    result = @o.links_numbered( string,
+                                '',
+                                '',
+                                '',
+                                '',
+                                1
+                                )
+    result = result[0]
+    assert_equal( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
+        [http://example.com]
       heredoc
-      ),
-      '',
-      '',
-      '',
-      '',
-      1
-      )[0],
-    )
-
-    assert_equal(
-      ( <<-heredoc.unindent
+    expected = <<-heredoc.unindent
         <a href="http://example.com">1</a>
       heredoc
-      ),
-      @o.links_numbered( (<<-heredoc.unindent
-        [http://example.com]
-      heredoc
-      ),
-      '',
-      '',
-      '',
-      '',
-      0
-      )[0],
-    )
-
-    assert_equal(
-      ( <<-heredoc.unindent
-        before <a href="http://example.com">1</a> after
-      heredoc
-      ),
-      @o.links_numbered( (<<-heredoc.unindent
+    result = @o.links_numbered( string,
+                                '',
+                                '',
+                                '',
+                                '',
+                                0
+                                )
+    result = result[0]
+    assert_equal( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
         before [http://example.com] after
       heredoc
-      ),
-      '',
-      '',
-      '',
-      '',
-      0
-      )[0],
-    )
-
-    assert_equal(
-      ( <<-heredoc.unindent
+    expected = <<-heredoc.unindent
+        before <a href="http://example.com">1</a> after
+      heredoc
+    result = @o.links_numbered( string,
+                                '',
+                                '',
+                                '',
+                                '',
+                                0
+                                )
+    result = result[0]
+    assert_equal( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
+        [http://example.com]
+      heredoc
+    expected = <<-heredoc.unindent
         <a href="http://example.com">[1]</a>
       heredoc
-      ),
-      @o.links_numbered( (<<-heredoc.unindent
+    result = @o.links_numbered( string,
+                                '',
+                                '',
+                                '[',
+                                ']',
+                                0
+                                )
+    result = result[0]
+    assert_equal( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
         [http://example.com]
       heredoc
-      ),
-      '',
-      '',
-      '[',
-      ']',
-      0
-      )[0],
-    )
-
-    assert_equal(
-      ( <<-heredoc.unindent
+    expected = <<-heredoc.unindent
         [<a href="http://example.com">1</a>]
       heredoc
-      ),
-      @o.links_numbered( (<<-heredoc.unindent
-        [http://example.com]
-      heredoc
-      ),
-      '[',
-      ']',
-      '',
-      '',
-      0
-      )[0],
-    )
-
-    assert_equal(
-      ( <<-heredoc.unindent
-        [<a href="http://example.com">a1b</a>]
-        [<a href="http://exampletwo.com">a2b</a>]
-      heredoc
-      ),
-      @o.links_numbered( (<<-heredoc.unindent
+    result = @o.links_numbered( string,
+                                '[',
+                                ']',
+                                '',
+                                '',
+                                0
+                                )
+    result = result[0]
+    assert_equal( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
         [http://example.com]
         [http://exampletwo.com]
       heredoc
-      ),
-      '[',
-      ']',
-      'a',
-      'b',
-      0
-      )[0],
-    )
-
-    assert_equal(
-      ( <<-heredoc.unindent
+    expected = <<-heredoc.unindent
         [<a href="http://example.com">a1b</a>]
-        a [<a href="http://exampletwo.com">a2b</a>] b
+        [<a href="http://exampletwo.com">a2b</a>]
       heredoc
-      ),
-      @o.links_numbered( (<<-heredoc.unindent
+    result = @o.links_numbered( string,
+                                '[',
+                                ']',
+                                'a',
+                                'b',
+                                0
+                                )
+    result = result[0]
+    assert_equal( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
         [http://example.com]
         a [http://exampletwo.com] b
       heredoc
-      ),
-      '[',
-      ']',
-      'a',
-      'b',
-      0
-      )[0],
-    )
-
+    expected = <<-heredoc.unindent
+        [<a href="http://example.com">a1b</a>]
+        a [<a href="http://exampletwo.com">a2b</a>] b
+      heredoc
+    result = @o.links_numbered( string,
+                                '[',
+                                ']',
+                                'a',
+                                'b',
+                                0
+                                )
+    result = result[0]
+    assert_equal( expected, result )
+    #
     # Don't link this sort of thing.  Someone's being retarded and is mixing in the syntax for a new link.
-    assert_equal(
-      ( <<-heredoc.unindent
+    string = <<-heredoc.unindent
         [[http://example.com]]
       heredoc
-      ),
-      @o.links_numbered( (<<-heredoc.unindent
+    expected = <<-heredoc.unindent
         [[http://example.com]]
       heredoc
-      ),
-      '',
-      '',
-      '[',
-      ']',
-      0
-      )[0],
-    )
+    result = @o.links_numbered( string,
+                                '',
+                                '',
+                                '[',
+                                ']',
+                                0
+                                )
+    result = result[0]
+    assert_equal( expected, result )
+    #
+    #
   end
 
   # Naughty tests touch the disk.
@@ -1274,7 +1194,7 @@ skip
     create_file( '/tmp/foo-bar.asc' )
     create_file( '/tmp/bar-foo-bar.asc' )
     create_file( '/tmp/compiled-website-test-file.asc' )
-
+    #
     # Simple match
     string = <<-heredoc.unindent
       foo
@@ -1284,11 +1204,8 @@ skip
     heredoc
     source_file_full_path = '/tmp/something.asc'
     result = @o.links_automatic( string, source_file_full_path )
-    assert_equal(
-      expected,
-      result,
-    )
-
+    assert_equal( expected, result )
+    #
     # Case-insensitive match.
     string = <<-heredoc.unindent
       Foo
@@ -1298,11 +1215,8 @@ skip
     heredoc
     source_file_full_path = '/tmp/something.asc'
     result = @o.links_automatic( string, source_file_full_path )
-    assert_equal(
-      expected,
-      result,
-    )
-
+    assert_equal( expected, result )
+    #
     # Only link the first word.
     string = <<-heredoc.unindent
       foo foo
@@ -1312,13 +1226,9 @@ skip
     heredoc
     source_file_full_path = '/tmp/something.asc'
     result = @o.links_automatic( string, source_file_full_path )
-    assert_equal(
-      expected,
-      result,
-    )
-
+    assert_equal( expected, result )
 skip "ungh, my philosophy is wrong for not_in_html(), I need another wrapper to only intelligently do that *per-line* or some sort of block_not_in_html()"
-
+    #
     # Only link the first word.
     string = <<-heredoc.unindent
       foo <a href="a">a</a> foo
@@ -1328,11 +1238,8 @@ skip "ungh, my philosophy is wrong for not_in_html(), I need another wrapper to 
     heredoc
     source_file_full_path = '/tmp/something.asc'
     result = @o.links_automatic( string, source_file_full_path )
-    assert_equal(
-      expected,
-      result,
-    )
-
+    assert_equal( expected, result )
+    #
     #
     string = <<-heredoc.unindent
       bar
@@ -1342,11 +1249,8 @@ skip "ungh, my philosophy is wrong for not_in_html(), I need another wrapper to 
     heredoc
     source_file_full_path = '/tmp/something.asc'
     result = @o.links_automatic( string, source_file_full_path )
-    assert_equal(
-      expected,
-      result,
-    )
-
+    assert_equal( expected, result )
+    #
     # Links two words, and don't link single words.
     string = <<-heredoc.unindent
       foo bar
@@ -1356,11 +1260,8 @@ skip "ungh, my philosophy is wrong for not_in_html(), I need another wrapper to 
     heredoc
     source_file_full_path = '/tmp/something.asc'
     result = @o.links_automatic( string, source_file_full_path )
-    assert_equal(
-      expected,
-      result,
-    )
-
+    assert_equal( expected, result )
+    #
     # Multi-word matches
     string = <<-heredoc.unindent
       compiled website test file
@@ -1370,11 +1271,8 @@ skip "ungh, my philosophy is wrong for not_in_html(), I need another wrapper to 
     heredoc
     source_file_full_path = '/tmp/something.asc'
     result = @o.links_automatic( string, source_file_full_path )
-    assert_equal(
-      expected,
-      result,
-    )
-
+    assert_equal( expected, result )
+    #
     # Multi-word matches, where there are dashes.
     string = <<-heredoc.unindent
       compiled-website test file
@@ -1384,11 +1282,8 @@ skip "ungh, my philosophy is wrong for not_in_html(), I need another wrapper to 
     heredoc
     source_file_full_path = '/tmp/something.asc'
     result = @o.links_automatic( string, source_file_full_path )
-    assert_equal(
-      expected,
-      result,
-    )
-
+    assert_equal( expected, result )
+    #
     # Working with single words then removing them as possibilities.
     string = <<-heredoc.unindent
       foo
@@ -1400,11 +1295,8 @@ skip "ungh, my philosophy is wrong for not_in_html(), I need another wrapper to 
     heredoc
     source_file_full_path = '/tmp/something.asc'
     result = @o.links_automatic( string, source_file_full_path )
-    assert_equal(
-      expected,
-      result,
-    )
-
+    assert_equal( expected, result )
+    #
     # Allow matching within punctuation and specific endings
     string = <<-heredoc.unindent
       fooed
@@ -1414,11 +1306,8 @@ skip "ungh, my philosophy is wrong for not_in_html(), I need another wrapper to 
     heredoc
     source_file_full_path = '/tmp/something.asc'
     result = @o.links_automatic( string, source_file_full_path )
-    assert_equal(
-      expected,
-      result,
-    )
-
+    assert_equal( expected, result )
+    #
     # Match, ignoring dashes in the source text.
     string = <<-heredoc.unindent
       compiled-website test file
@@ -1428,11 +1317,8 @@ skip "ungh, my philosophy is wrong for not_in_html(), I need another wrapper to 
     heredoc
     source_file_full_path = '/tmp/something.asc'
     result = @o.links_automatic( string, source_file_full_path )
-    assert_equal(
-      expected,
-      result,
-    )
-
+    assert_equal( expected, result )
+    #
     # Don't link the current document's name.
     string = <<-heredoc.unindent
       foo
@@ -1442,11 +1328,8 @@ skip "ungh, my philosophy is wrong for not_in_html(), I need another wrapper to 
     heredoc
     source_file_full_path = '/tmp/foo.asc'
     result = @o.links_automatic( string, source_file_full_path )
-    assert_equal(
-      expected,
-      result,
-    )
-
+    assert_equal( expected, result )
+    #
     # Prioritizing two words before single words.
     string = <<-heredoc.unindent
       foo bar foo bar
@@ -1456,11 +1339,8 @@ skip "ungh, my philosophy is wrong for not_in_html(), I need another wrapper to 
     heredoc
     source_file_full_path = '/tmp/something.asc'
     result = @o.links_automatic( string, source_file_full_path )
-    assert_equal(
-      expected,
-      result,
-    )
-
+    assert_equal( expected, result )
+    #
     # Multiple separate matches.
     string = <<-heredoc.unindent
       bar foo
@@ -1470,11 +1350,8 @@ skip "ungh, my philosophy is wrong for not_in_html(), I need another wrapper to 
     heredoc
     source_file_full_path = '/tmp/something.asc'
     result = @o.links_automatic( string, source_file_full_path )
-    assert_equal(
-      expected,
-      result,
-    )
-
+    assert_equal( expected, result )
+    #
     # Maybe I can still have improved matching without being too slow.  I don't want to match the 'pre' in 'preview' and so I could still require at least a small subset of punctuation can't i?  Investigate.
     string = <<-heredoc.unindent
       abcfoodef
@@ -1484,215 +1361,163 @@ skip "ungh, my philosophy is wrong for not_in_html(), I need another wrapper to 
     heredoc
     source_file_full_path = '/tmp/something.asc'
     result = @o.links_automatic( string, source_file_full_path )
-    assert_equal(
-      expected,
-      result,
-    )
-
+    assert_equal( expected, result )
+    #
+    #
     string = '<a></a>DISPLAY<b></b> foo'
     expected = '<a></a>DISPLAY<b></b> <a href="foo.html">foo</a>'
     source_file_full_path = '/tmp/something.asc'
     result = @o.links_automatic( string, source_file_full_path )
-    assert_equal(
-      expected,
-      result,
-    )
-
+    assert_equal( expected, result )
+    #
+    #
+    #
     File.delete( '/tmp/foo.asc' )
     File.delete( '/tmp/bar.asc' )
     File.delete( '/tmp/foo-bar.asc' )
     File.delete( '/tmp/bar-foo-bar.asc' )
     File.delete( '/tmp/compiled-website-test-file.asc' )
-
     $VERBOSE = verbose_old
   end
 
   # Naughty tests touch the disk.
   def test_links_local_new()
-    verbose_old = $VERBOSE
-    $VERBOSE = false
-    if File.exists?( '/tmp/foo.asc' ) then
-      File.delete( '/tmp/foo.asc' )
-    end
-    if File.exists?( '/tmp/bar.asc' ) then
-      File.delete( '/tmp/bar.asc' )
-    end
-    if File.exists?( '/tmp/baz.asc' ) then
-      File.delete( '/tmp/baz.asc' )
-    end
-
-    create_file( '/tmp/foo.asc', '[[bar]]' )
+    # FIXME:  None of this is appropriate for other computers.  Refer to the $TEMP variable or some such.
+    # TODO:  Investigate a temporary file space of some sort.  I think there's some kind of built-in function in Ruby 1.9 which gives temp files.
+    verbose_old = $VERBOSE ; $VERBOSE = false
+    filename = '/tmp/foo.asc'
+    File.delete( filename       ) if File.exists?( filename )
+    File.delete( '/tmp/bar.asc' ) if File.exists?( '/tmp/bar.asc' )
+    File.delete( '/tmp/baz.asc' ) if File.exists?( '/tmp/baz.asc' )
+    #
     # Standard usage.  Create a new empty file and link to it.
-    assert_equal(
-      '<a class="new" href="file:///tmp/bar.asc">bar</a>',
-      @o.links_local_new( 
-        file_read( '/tmp/foo.asc' ),
-        '/tmp/foo.asc',
-      ),
-    )
-    File.delete( '/tmp/foo.asc' )
+    create_file( filename, '[[bar]]' )
+    string = file_read( filename )
+    expected = '<a class="new" href="file:///tmp/bar.asc">bar</a>'
+    result = @o.links_local_new( string, filename )
+    assert_equal( expected, result )
+    File.delete( filename )
     File.delete( '/tmp/bar.asc' )
-
-    create_file( '/tmp/foo.asc', 'before [[bar]] after' )
+    #
     # Standard usage.  Create a new empty file and link to it.
-    assert_equal(
-      'before <a class="new" href="file:///tmp/bar.asc">bar</a> after',
-      @o.links_local_new( 
-        file_read( '/tmp/foo.asc' ),
-        '/tmp/foo.asc',
-      ),
-    )
-    File.delete( '/tmp/foo.asc' )
+    create_file( filename, 'before [[bar]] after' )
+    string = file_read( filename )
+    expected = 'before <a class="new" href="file:///tmp/bar.asc">bar</a> after'
+    result = @o.links_local_new( string, filename )
+    assert_equal( expected, result )
+    File.delete( filename )
     File.delete( '/tmp/bar.asc' )
-
+    #
     # Standard usage.  [[ bar]] should not become a link!
-    create_file( '/tmp/foo.asc', '[[ bar]]' )
     # Standard usage.  Create a new empty file and link to it.
-    assert_equal(
-      '[[ bar]]',
-      @o.links_local_new( 
-        file_read( '/tmp/foo.asc' ),
-        '/tmp/foo.asc',
-      ),
-    )
-    File.delete( '/tmp/foo.asc' )
-
+    create_file( filename, '[[ bar]]' )
+    string = file_read( filename )
+    expected = '[[ bar]]'
+    result = @o.links_local_new( string, filename )
+    assert_equal( expected, result )
+    File.delete( filename )
+    #
     # Standard usage.  [[bar ]] should not become a link!
-    create_file( '/tmp/foo.asc', '[[bar ]]' )
     # Standard usage.  Create a new empty file and link to it.
-    assert_equal(
-      '[[bar ]]',
-      @o.links_local_new( 
-        file_read( '/tmp/foo.asc' ),
-        '/tmp/foo.asc',
-      ),
-    )
-    File.delete( '/tmp/foo.asc' )
-
+    create_file( filename, '[[bar ]]' )
+    string = file_read( filename )
+    expected = '[[bar ]]'
+    result = @o.links_local_new( string, filename )
+    assert_equal( expected, result )
+    File.delete( filename )
+    #
     # Standard usage.  [[ bar ]] should not become a link!
-    create_file( '/tmp/foo.asc', '[[ bar ]]' )
     # Standard usage.  Create a new empty file and link to it.
-    assert_equal(
-      '[[ bar ]]',
-      @o.links_local_new( 
-        file_read( '/tmp/foo.asc' ),
-        '/tmp/foo.asc',
-      ),
-    )
-    File.delete( '/tmp/foo.asc' )
-
+    create_file( filename, '[[ bar ]]' )
+    string = file_read( filename )
+    expected = '[[ bar ]]'
+    result = @o.links_local_new( string, filename )
+    assert_equal( expected, result )
+    File.delete( filename )
+    #
     # Second usage.  Remove [[ ]] for non-empty and already-existing files, to allow links_automatic() to operate.
-    create_file( '/tmp/foo.asc', '[[bar]]' )
     # An empty file is referenced.  Therefore keep [[ ]]
+    create_file( filename, '[[bar]]' )
     create_file( '/tmp/bar.asc' )
-    assert_equal(
-      '<a class="new" href="file:///tmp/bar.asc">bar</a>',
-      @o.links_local_new( 
-        file_read( '/tmp/foo.asc' ),
-        '/tmp/foo.asc',
-      ),
-    )
-    File.delete( '/tmp/foo.asc' )
+    string = file_read( filename )
+    expected = '<a class="new" href="file:///tmp/bar.asc">bar</a>'
+    result = @o.links_local_new( string, filename )
+    assert_equal( expected, result )
+    File.delete( filename )
     File.delete( '/tmp/bar.asc' )
-
+    #
     # Second usage.  Remove [[ ]] for non-empty and already-existing files, to allow links_automatic() to operate.
-    create_file( '/tmp/foo.asc', '[[bar]]' )
     # A non-empty file is referenced.  Therefore remove [[ ]]
+    create_file( filename, '[[bar]]' )
     create_file( '/tmp/bar.asc', 'non-empty' )
-    assert_equal(
-      'bar',
-      @o.links_local_new( 
-        file_read( '/tmp/foo.asc' ),
-        '/tmp/foo.asc',
-      ),
-    )
-    File.delete( '/tmp/foo.asc' )
+    string = file_read( filename )
+    expected = 'bar'
+    result = @o.links_local_new( string, filename )
+    assert_equal( expected, result )
+    File.delete( filename )
     File.delete( '/tmp/bar.asc' )
-
+    #
     # Testing two-word references.
-    create_file( '/tmp/foo.asc', '[[bar baz]]' )
-    assert_equal(
-      '<a class="new" href="file:///tmp/bar-baz.asc">bar baz</a>',
-      @o.links_local_new( 
-        file_read( '/tmp/foo.asc' ),
-        '/tmp/foo.asc',
-      ),
-    )
-    File.delete( '/tmp/foo.asc' )
+    create_file( filename, '[[bar baz]]' )
+    string = file_read( filename )
+    expected = '<a class="new" href="file:///tmp/bar-baz.asc">bar baz</a>'
+    result = @o.links_local_new( string, filename )
+    assert_equal( expected, result )
+    File.delete( filename )
     File.delete( '/tmp/bar-baz.asc' )
-
+    #
     # Testing creating two new files.
-    create_file( '/tmp/foo.asc', '[[bar]] [[baz]]' )
-    assert_equal(
-      '<a class="new" href="file:///tmp/bar.asc">bar</a> <a class="new" href="file:///tmp/baz.asc">baz</a>',
-      @o.links_local_new( 
-        file_read( '/tmp/foo.asc' ),
-        '/tmp/foo.asc',
-      ),
-    )
-    File.delete( '/tmp/foo.asc' )
+    create_file( filename, '[[bar]] [[baz]]' )
+    string = file_read( filename )
+    expected = '<a class="new" href="file:///tmp/bar.asc">bar</a> <a class="new" href="file:///tmp/baz.asc">baz</a>'
+    result = @o.links_local_new( string, filename )
+    assert_equal( expected, result )
+    File.delete( filename )
     File.delete( '/tmp/bar.asc' )
     File.delete( '/tmp/baz.asc' )
-
+    #
+    #
+    #
     $VERBOSE = verbose_old
   end
 
   # Naughty tests touch the disk.
   def test_links_mixed()
-    verbose_old = $VERBOSE
-    $VERBOSE = false
-  
+    verbose_old = $VERBOSE ; $VERBOSE = false
+    filename = '/tmp/foo.asc'
     # automatic and new.
-    if File.exists?( '/tmp/foo.asc' ) then
-      File.delete( '/tmp/foo.asc' )
-    end
-    if File.exists?( '/tmp/bar.asc' ) then
-      File.delete( '/tmp/bar.asc' )
-    end
-    if File.exists?( '/tmp/baz.asc' ) then
-      File.delete( '/tmp/baz.asc' )
-    end
-    if File.exists?( '/tmp/quux.asc' ) then
-      File.delete( '/tmp/quux.asc' )
-    end
-
+    File.delete( filename        ) if File.exists?( filename )
+    File.delete( '/tmp/bar.asc'  ) if File.exists?( '/tmp/bar.asc' )
+    File.delete( '/tmp/baz.asc'  ) if File.exists?( '/tmp/baz.asc' )
+    File.delete( '/tmp/quux.asc' ) if File.exists?( '/tmp/quux.asc' )
+    #
     # Testing creating two new files.
+    # [[baz]] already exists and is non-empty.  It should be auto-linked.
     create_file( '/tmp/foo.asc', '[[bar]] [[baz]] [[quux]]' )
     create_file( '/tmp/baz.asc', 'non-empty' )
-    filename = '/tmp/foo.asc'
-
-    # [[baz]] already exists and is non-empty.  It should be auto-linked.
-    assert_equal(
-      '<a class="new" href="file:///tmp/bar.asc">bar</a> <a href="baz.html">baz</a> <a class="new" href="file:///tmp/quux.asc">quux</a>',
-      @o.links_automatic(
-        @o.links_local_new( 
-          file_read( filename ),
-          filename,
-        ),
-        filename,
-      ),
-    )
+    string = file_read( filename )
+    expected = '<a class="new" href="file:///tmp/bar.asc">bar</a> <a href="baz.html">baz</a> <a class="new" href="file:///tmp/quux.asc">quux</a>'
+    result = @o.links_local_new( string, filename )
+    result = @o.links_automatic( result, filename )
+    assert_equal( expected, result )
     File.delete( '/tmp/bar.asc' )
     File.delete( '/tmp/quux.asc' )
-
     File.delete( '/tmp/foo.asc' )
     File.delete( '/tmp/baz.asc' )
-
+    #
+    #
+    #
     $VERBOSE = verbose_old
   end
 
 =begin
   def test_lists_arrays()
 
-skip
-
     #
     string = <<-heredoc.unindent
       foo
     heredoc
-    expected = [
-      string,
-    ]
+    expected = [ string ]
     result = @o.lists_arrays( string )
     assert_equal_array( expected, result )
 
@@ -2716,6 +2541,28 @@ skip
                               match_array,
                               'out',
                               'out',
+                            )
+    assert_equal_array( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
+      This is a string
+      <foo bar="baz">
+      Line two
+      </foo>
+      Three
+    heredoc
+    match_array = [ %r{^<}, %r{^<.*>$} ]
+    expected = [
+      "This is a string\n",
+      "Line two\n",
+      "Three\n",
+    ]
+    result = line_partition(
+                              string,
+                              match_array,
+                              'omit',
+                              'omit',
                             )
     assert_equal_array( expected, result )
   end

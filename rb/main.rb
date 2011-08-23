@@ -73,6 +73,17 @@ class Markup
     #return string.gpartition2( rx_html() )
     return string.gpartition( rx_html() )
   end
+  # Attempting a replacement
+  #def split_string_html( string )
+    #match_array = [ %r{^<}, %r{^<.*>$} ]
+    #return line_partition(
+                            #string,
+                            #match_array,
+                            #'omit',
+                            #'omit'
+                          #)
+  #end
+
 
   #def not_in_html( string, *splat )
     #array = split_string_html( string )
