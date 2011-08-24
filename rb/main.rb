@@ -124,8 +124,9 @@ class Markup
       end
     }
     #p string if string == nil
+    # I'm not sure if I should omit this and have the user .join, to give more flexibility.
     return string.join
-  end
+  end # def not_in_html(
 
   def punctuation_rx(
                       rx_left,
@@ -761,12 +762,9 @@ result_element_killer.each{ |i|
       end
     }
     # Return an array.
-    # The array will have odd-numbered elements.
+    # The array is supposed to have odd-numbered elements.
     if result.size.even? then
-      p "I'm getting an even-sized array!"
-      puts "\n\n---"
-      p result
-      puts "---\n\n"
+      puts "\n\nI'm getting an even-sized array!\n--v\n#{result}\n--^\n"
       result << ""
     end
     result[-1].chomp!
@@ -833,7 +831,9 @@ two         <- this is included in the full "html" block.
 =end
 
   def lists_arrays( string )
-    return split_string_by_line( string, %r{^\ *[-|\#]+\ +.+?$}, true )
+    result = split_string_by_line( string, %r{^\ *[-|\#]+\ +.+?$}, true )
+    result.delete_at( -1 ) if result.length > 1 and result[-1] == ''
+    return result
   end
 
   def xx_paragraphs( string )
@@ -853,7 +853,9 @@ two         <- this is included in the full "html" block.
 
   def split_string_sections( string )
     rx = %r{^=+\ .*?\ =+$}
-    return split_string_by_line( string, rx, false )
+    result = split_string_by_line( string, rx, false )
+    result.delete_at( -1 ) if result.length > 1 and result[-1] == ''
+    return result
   end
 
   def lists_initial_increase(
@@ -946,7 +948,9 @@ two         <- this is included in the full "html" block.
   end
 
   def blocks_array( string )
-    return split_string_by_line( string, %r{^\ .*$}, true, lstrip=false )
+    result = split_string_by_line( string, %r{^\ .*$}, true, lstrip=false )
+    result.delete_at( -1 ) if result.length > 1 and result[-1] == ''
+    return result
   end
 
   def delete_first_line( string )

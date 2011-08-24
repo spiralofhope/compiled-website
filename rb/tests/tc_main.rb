@@ -84,7 +84,7 @@ class Test_Markup < MiniTest::Unit::TestCase
     ]
     result = @o.split_string_html( string )
     assert_equal_array( expected, result )
-
+    #
     # Multiple instances of the same HTML tags.
     string = '<strong>one</strong> during <strong>two</strong>'
     expected = [
@@ -135,7 +135,7 @@ class Test_Markup < MiniTest::Unit::TestCase
     result = @o.split_string_html( string )
     assert_equal_array( expected, result )
 =end
-
+    #
     # Garbage.
     string = '<foo bar="baz > quux">no</bar> yes </baz>no</>'
     expected = [
@@ -193,7 +193,9 @@ class Test_Markup < MiniTest::Unit::TestCase
     ]
     result = @o.split_string_html( string )
     assert_equal_array( expected, result )
-  end
+    #
+    #
+  end # test_split_string_html()
 
   def test_not_in_html()
     # Note that more complex testing has already been done within test_split_string()
@@ -240,7 +242,7 @@ class Test_Markup < MiniTest::Unit::TestCase
     expected = '{one }<em>two</em>{ three }<em>four</em>{ five}'
     result = @o.not_in_html( string ) { |i| not_in_html_test_method( i ) }
     assert_equal( expected, result )
-
+    #
     #
     string = 'one <em>two</em> three <em>four</em> five'
     expected = '{one } hey more<em>two</em>{ three } hey more<em>four</em>{ five} hey more'
@@ -265,7 +267,9 @@ class Test_Markup < MiniTest::Unit::TestCase
     expected.chomp!
     result = @o.not_in_html( string ) { |i| not_in_html_test_method( i ) }
     assert_equal( expected, result )
-  end
+    #
+    #
+  end # test_not_in_html()
 
   def test_markup_underline()
     #
@@ -346,24 +350,34 @@ class Test_Markup < MiniTest::Unit::TestCase
     result = @o.markup_underline( string )
     assert_equal( expected, result )
 =end
-  end
+    #
+    #
+  end # test_markup_underline()
 
   def test_multiple_markup()
+    #
+    #
     string = '_underlined_ and *strong*'
     expected = '<u>underlined</u> and <strong>strong</strong>'
     result = @o.markup_everything( string )
     assert_equal( expected, result )
-  end
+    #
+    #
+  end # test_multiple_markup()
 
   def test_nested_markup()
+    #
     # This demonstrates how the first markup's html-result will stop any future markup from acting within that html.
     string = '_*underlined*_ *strong*'
     expected = '<u>*underlined*</u> <strong>strong</strong>'
     result = @o.markup_everything( @o.markup_underline( string ) )
     assert_equal( expected, result )
-  end
+    #
+    #
+  end # test_nested_markup()
 
   def test_big()
+    #
     #
     string = '**big**'
     expected = '<big>big</big>'
@@ -375,15 +389,20 @@ class Test_Markup < MiniTest::Unit::TestCase
     expected = '<big>big</big>'
     result = @o.markup_everything( @o.markup_underline( string ) )
     assert_equal( expected, result )
-  end
+    #
+    #
+  end # test_big()
 
   def test_emphasis()
+    #
     # Also testing within parens.
-    string = '(/nobekan/)'
-    expected = '(<em>nobekan</em>)'
+    string = '(/emphasis/)'
+    expected = '(<em>emphasis</em>)'
     result = @o.markup_emphasis( string )
     assert_equal( expected, result )
-  end
+    #
+    #
+  end # test_emphasis()
 
   def test_split_string_by_line()
     #
@@ -413,9 +432,10 @@ class Test_Markup < MiniTest::Unit::TestCase
     ]
     result = @o.split_string_by_line( string, rx )
     assert_equal_array( expected, result )
-
-    ## Using HTML.
-    ## Lines which match, but are inside HTML, are not considered matches.
+    #
+    # Using HTML.
+    # Lines which match, but are inside HTML, are not considered matches.
+    # TODO / FIXME - what the heck was I testing for?
     #string = <<-heredoc.unindent
       #one
       #<html>
@@ -428,60 +448,13 @@ class Test_Markup < MiniTest::Unit::TestCase
       #four
     #heredoc
     #rx = %r{two}
-    #expected = [
-      #string
-    #]
+    #expected = [ string ]
     #result = @o.split_string_by_line_and_html( string, rx )
-#p result
+    #p result
     #assert_equal_array( expected, result )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    #
     ## String doesn't match.  Strip leading spaces. (omitted .unindent)
+    # TODO:  Functionality not yet re-implemented.
     #string = <<-heredoc
       #one
       #two
@@ -492,14 +465,12 @@ class Test_Markup < MiniTest::Unit::TestCase
     #]
     #result = @o.split_string_by_line( string, rx, lstrip=true )
     #assert_equal_array( expected, result )
+    #
+    #
+  end # test_split_string_by_line()
 
-  end
-
-=begin
   def test_sections()
-
-skip
-
+    #
     #
     string = <<-heredoc.unindent
       This is an example document.
@@ -509,7 +480,7 @@ skip
     ]
     result = @o.split_string_sections( string )
     assert_equal_array( expected, result )
-
+    #
     #
     string = <<-heredoc.unindent
       = Title One =
@@ -520,7 +491,7 @@ skip
     ]
     result = @o.split_string_sections( string )
     assert_equal_array( expected, result )
-
+    #
     #
     string = <<-heredoc.unindent
       This is an example document.
@@ -542,7 +513,8 @@ skip
     ]
     result = @o.split_string_sections( string )
     assert_equal_array( expected, result )
-
+    #
+    #
     string = <<-heredoc.unindent
       = 1 =
       THIS SHOULD APPEAR
@@ -560,7 +532,7 @@ skip
     ]
     result = @o.split_string_sections( string )
     assert_equal_array( expected, result )
-
+    #
     #
     string = <<-heredoc.unindent
       = 1 =
@@ -569,11 +541,8 @@ skip
       <div class="s1"><h1>1</h1></div>
     heredoc
     result = @o.sections( string ).join + "\n"
-    assert_equal(
-      ( expected ),
-      ( result ),
-    )
-
+    assert_equal( expected, result )
+    #
     #
     string = <<-heredoc.unindent
       === 3 ===
@@ -582,11 +551,8 @@ skip
       <div class="s1"><div class="s2"><div class="s3"><h3>3</h3></div></div></div>
     heredoc
     result = @o.sections( string ).join + "\n"
-    assert_equal(
-      ( expected ),
-      ( result ),
-    )
-
+    assert_equal( expected, result )
+    #
     #
     string = <<-heredoc.unindent
       = 1 =
@@ -598,11 +564,8 @@ skip
       </div><div class="s1"><h1>2</h1></div>
     heredoc
     result = @o.sections( string ).join + "\n"
-    assert_equal(
-      ( expected ),
-      ( result ),
-    )
-
+    assert_equal( expected, result )
+    #
     #
     string = <<-heredoc.unindent
       = 1 =
@@ -614,11 +577,8 @@ skip
       <div class="s2"><h2>2</h2></div></div>
     heredoc
     result = @o.sections( string ).join + "\n"
-    assert_equal(
-      ( expected ),
-      ( result ),
-    )
-
+    assert_equal( expected, result )
+    #
     #
     string = <<-heredoc.unindent
       = 1 =
@@ -630,11 +590,8 @@ skip
       <div class="s2"><div class="s3"><h3>3</h3></div></div></div>
     heredoc
     result = @o.sections( string ).join + "\n"
-    assert_equal(
-      ( expected ),
-      ( result ),
-    )
-
+    assert_equal( expected, result )
+    #
     #
     string = <<-heredoc.unindent
       == 2 ==
@@ -646,11 +603,8 @@ skip
       <div class="s3"><div class="s4"><h4>4</h4></div></div></div></div>
     heredoc
     result = @o.sections( string ).join + "\n"
-    assert_equal(
-      ( expected ),
-      ( result ),
-    )
-
+    assert_equal( expected, result )
+    #
     #
     string = <<-heredoc.unindent
       == 2 ==
@@ -662,11 +616,8 @@ skip
       </div></div><div class="s1"><h1>1</h1></div>
     heredoc
     result = @o.sections( string ).join + "\n"
-    assert_equal(
-      ( expected ),
-      ( result ),
-    )
-
+    assert_equal( expected, result )
+    #
     #
     string = <<-heredoc.unindent
       === 3 ===
@@ -678,12 +629,10 @@ skip
       </div></div></div><div class="s1"><h1>1</h1></div>
     heredoc
     result = @o.sections( string ).join + "\n"
-    assert_equal(
-      ( expected ),
-      ( result ),
-    )
-  end
-=end
+    assert_equal( expected, result )
+    #
+    #
+  end # test_sections()
 
   def test_paragraphs()
     #
@@ -765,9 +714,13 @@ skip
     expected.chomp!
     result = @o.paragraphs( string )
     assert_equal( expected, result )
-  end
+    #
+    #
+  end # test_paragraphs()
 
   def test_horizontal_rules()
+    #
+    #
     string = <<-heredoc.unindent
         line one
       heredoc
@@ -824,9 +777,11 @@ skip
     assert_equal( expected, result )
     #
     #
-  end
+  end # test_horizontal_rules()
 
   def test_links_plain()
+    #
+    #
     string = <<-heredoc.unindent
         foo
       heredoc
@@ -981,7 +936,7 @@ skip
     assert_equal( expected, result )
     #
     #
-  end
+  end # test_links_plain()
 
   def test_links_named()
     #
@@ -1040,7 +995,7 @@ skip
     assert_equal( expected, result )
     #
     #
-  end
+  end # test_links_named()
 
   def test_links_numbered()
     #
@@ -1183,7 +1138,7 @@ skip
     assert_equal( expected, result )
     #
     #
-  end
+  end # test_links_numbered()
 
   # Naughty tests touch the disk.
   def test_links_automatic()
@@ -1371,14 +1326,13 @@ skip "ungh, my philosophy is wrong for not_in_html(), I need another wrapper to 
     assert_equal( expected, result )
     #
     #
-    #
     File.delete( '/tmp/foo.asc' )
     File.delete( '/tmp/bar.asc' )
     File.delete( '/tmp/foo-bar.asc' )
     File.delete( '/tmp/bar-foo-bar.asc' )
     File.delete( '/tmp/compiled-website-test-file.asc' )
     $VERBOSE = verbose_old
-  end
+  end # test_links_automatic()
 
   # Naughty tests touch the disk.
   def test_links_local_new()
@@ -1477,9 +1431,8 @@ skip "ungh, my philosophy is wrong for not_in_html(), I need another wrapper to 
     File.delete( '/tmp/baz.asc' )
     #
     #
-    #
     $VERBOSE = verbose_old
-  end
+  end # test_links_local_new()
 
   # Naughty tests touch the disk.
   def test_links_mixed()
@@ -1506,13 +1459,11 @@ skip "ungh, my philosophy is wrong for not_in_html(), I need another wrapper to 
     File.delete( '/tmp/baz.asc' )
     #
     #
-    #
     $VERBOSE = verbose_old
-  end
+  end # test_links_mixed()
 
-=begin
   def test_lists_arrays()
-
+    #
     #
     string = <<-heredoc.unindent
       foo
@@ -1520,7 +1471,7 @@ skip "ungh, my philosophy is wrong for not_in_html(), I need another wrapper to 
     expected = [ string ]
     result = @o.lists_arrays( string )
     assert_equal_array( expected, result )
-
+    #
     #
     string = <<-heredoc.unindent
       - one
@@ -1531,7 +1482,7 @@ skip "ungh, my philosophy is wrong for not_in_html(), I need another wrapper to 
     ]
     result = @o.lists_arrays( string )
     assert_equal_array( expected, result )
-
+    #
     #
     string = <<-heredoc.unindent
       # one
@@ -1542,7 +1493,7 @@ skip "ungh, my philosophy is wrong for not_in_html(), I need another wrapper to 
     ]
     result = @o.lists_arrays( string )
     assert_equal_array( expected, result )
-
+    #
     #
     string = <<-heredoc.unindent
       before
@@ -1554,7 +1505,7 @@ skip "ungh, my philosophy is wrong for not_in_html(), I need another wrapper to 
     ]
     result = @o.lists_arrays( string )
     assert_equal_array( expected, result )
-
+    #
     #
     string = <<-heredoc.unindent
       before
@@ -1568,7 +1519,7 @@ skip "ungh, my philosophy is wrong for not_in_html(), I need another wrapper to 
     ]
     result = @o.lists_arrays( string )
     assert_equal_array( expected, result )
-
+    #
     # Multiple list items in a row.
     string = <<-heredoc.unindent
       - one
@@ -1580,7 +1531,7 @@ skip "ungh, my philosophy is wrong for not_in_html(), I need another wrapper to 
     ]
     result = @o.lists_arrays( string )
     assert_equal_array( expected, result )
-
+    #
     # Multiple list items in a row.  Mixed types.
     string = <<-heredoc.unindent
       - one
@@ -1592,22 +1543,22 @@ skip "ungh, my philosophy is wrong for not_in_html(), I need another wrapper to 
     ]
     result = @o.lists_arrays( string )
     assert_equal_array( expected, result )
-
+    #
     # Single blank lines are allowed, but removed, merging the lists.
-    string = <<-heredoc.unindent
-      - one
+    # TODO:  Not re-implemented in this version!
+    #string = <<-heredoc.unindent
+      #- one
       
-      - two
-      - three
-    heredoc
-    expected = [
-      '',
-      "- one\n- two\n- three\n",
-    ]
-    result = @o.lists_arrays( string )
-p result
-    assert_equal_array( expected, result )
-
+      #- two
+      #- three
+    #heredoc
+    #expected = [
+      #'',
+      #"- one\n- two\n- three\n",
+    #]
+    #result = @o.lists_arrays( string )
+    #assert_equal_array( expected, result )
+    #
     # Multiple blank lines form separate lists.
     string = <<-heredoc.unindent
       - one
@@ -1624,26 +1575,27 @@ p result
     ]
     result = @o.lists_arrays( string )
     assert_equal_array( expected, result )
-
+    #
     # Indentation is allowed, but removed.
-    string = <<-heredoc
-      - one
+    # TODO:  Not re-implemented in this version!
+    #string = <<-heredoc
+      #- one
       
       
-      - two
-      - three
-    heredoc
-    expected = [
-      '',
-      "- one\n",
-      # yes, the whitespace is kept for the non-list lines.
-      "      \n      \n",
-      "- two\n- three\n",
-    ]
-    result = @o.lists_arrays( string )
-    assert_equal_array( expected, result )
-
-    # I once had an issue where any paragraphs that followed were getting double spaced.
+      #- two
+      #- three
+    #heredoc
+    #expected = [
+      #'',
+      #"- one\n",
+      ## yes, the whitespace is kept for the non-list lines.
+      #"      \n      \n",
+      #"- two\n- three\n",
+    #]
+    #result = @o.lists_arrays( string )
+    #assert_equal_array( expected, result )
+    #
+    #
     string = <<-heredoc.unindent
       - list
       
@@ -1658,9 +1610,8 @@ p result
       "\none\n\ntwo\n",
     ]
     assert_equal_array( expected, result )
-
-# To solve this, maybe I need another kind of not_in_html(), where it goes line-by-line.
-
+    #
+    #
     string = <<-heredoc.unindent
       <a>
       # one
@@ -1669,17 +1620,15 @@ p result
     expected = [ string ]
     #result = @o.lists_arrays( string )
     result = @o.split_string_by_line( string, %r{^\ *[-|\#]+\ +.+?$}, true )
-p result
     #assert_equal_array( expected, result )
-
-  end
-=end
+    #
+    #
+  end # test_lists_arrays()
 
   def test_lists()
-
-=begin
-skip
-
+    # TODO:  Mixed lists, incrementing a lot.
+    # TODO:  Mixed lists, incrementing then decrementing a lot.
+    #
     #
     string = <<-heredoc.unindent
       foo
@@ -1688,11 +1637,8 @@ skip
       foo
     heredoc
     result = @o.lists( string )
-    assert_equal(
-      expected,
-      result,
-    )
-
+    assert_equal( expected, result )
+    #
     #
     string = <<-heredoc.unindent
       - one
@@ -1704,11 +1650,8 @@ skip
     heredoc
     expected.chomp!
     result = @o.lists( string )
-    assert_equal(
-      expected,
-      result,
-    )
-
+    assert_equal( expected, result )
+    #
     #
     string = <<-heredoc.unindent
       # one
@@ -1720,11 +1663,8 @@ skip
     heredoc
     expected.chomp!
     result = @o.lists( string )
-    assert_equal(
-      expected,
-      result,
-    )
-
+    assert_equal( expected, result )
+    #
     #
     string = <<-heredoc.unindent
       before
@@ -1738,11 +1678,8 @@ skip
       </ul>after
     heredoc
     result = @o.lists( string )
-    assert_equal(
-      expected,
-      result,
-    )
-
+    assert_equal( expected, result )
+    #
     #
     string = <<-heredoc.unindent
       - one
@@ -1756,11 +1693,8 @@ skip
     heredoc
     expected.chomp!
     result = @o.lists( string )
-    assert_equal(
-      expected,
-      result,
-    )
-
+    assert_equal( expected, result )
+    #
     # Single blank lines are combined.
     string = <<-heredoc.unindent
       - one
@@ -1774,11 +1708,9 @@ skip
       </ul>
     heredoc
     result = @o.lists( string )
-    #assert_equal(
-      #expected,
-      #result,
-    #)
-
+    # FIXME
+    #assert_equal( expected, result )
+    #
     # Allow indentation
     string = <<-heredoc
       - one
@@ -1791,11 +1723,9 @@ skip
       </ul>
     heredoc
     result = @o.lists( string )
-    #assert_equal(
-      #expected,
-      #result,
-    #)
-
+    # FIXME
+    #assert_equal( expected, result )
+    #
     # Allow indentation /and/ spaces.  Lists separated by single blank lines are combined.
     string = <<-heredoc
       - one
@@ -1809,11 +1739,9 @@ skip
       </ul>
     heredoc
     result = @o.lists( string )
-    #assert_equal(
-      #expected,
-      #result,
-    #)
-
+    # FIXME
+    #assert_equal( expected, result )
+    #
     # Allow indentation.  Lists separated by two blank lines are separate lists.
     string = <<-heredoc
       - one
@@ -1832,11 +1760,9 @@ skip
       </ul>
     heredoc
     result = @o.lists( string )
-    #assert_equal(
-      #expected,
-      #result,
-    #)
-
+    # FIXME
+    #assert_equal( expected, result )
+    #
     # Nested lists.
     string = <<-heredoc.unindent
       - one
@@ -1852,11 +1778,9 @@ skip
       </ul>
     heredoc
     result = @o.lists( string )
-    #assert_equal(
-      #expected,
-      #result,
-    #)
-
+    # FIXME
+    #assert_equal( expected, result )
+    #
     # Nested lists, changing type
     string = <<-heredoc.unindent
       - one
@@ -1872,11 +1796,9 @@ skip
       </ul>
     heredoc
     result = @o.lists( string )
-    #assert_equal(
-      #expected,
-      #result,
-    #)
-
+    # FIXME
+    #assert_equal( expected, result )
+    #
     # Initial list is nested
     string = <<-heredoc.unindent
       -- one
@@ -1891,11 +1813,9 @@ skip
       </ul>
     heredoc
     result = @o.lists( string )
-    #assert_equal(
-      #expected,
-      #result,
-    #)
-
+    # FIXME
+    #assert_equal( expected, result )
+    #
     # Initial list is nested a lot
     string = <<-heredoc.unindent
       --- one
@@ -1914,11 +1834,9 @@ skip
       </ul>
     heredoc
     result = @o.lists( string )
-    #assert_equal(
-      #expected,
-      #result,
-    #)
-
+    # FIXME
+    #assert_equal( expected, result )
+    #
     # Nested lists, incrementing then decrementing
     string = <<-heredoc.unindent
       - one
@@ -1936,11 +1854,9 @@ skip
       </ul>
     heredoc
     result = @o.lists( string )
-    #assert_equal(
-      #expected,
-      #result,
-    #)
-
+    # FIXME
+    #assert_equal( expected, result )
+    #
     # Nesting lists, incrementing a lot.
     string = <<-heredoc.unindent
       - one
@@ -1960,11 +1876,9 @@ skip
       </ul>
     heredoc
     result = @o.lists( string )
-    #assert_equal(
-      #expected,
-      #result,
-    #)
-
+    # FIXME
+    #assert_equal( expected, result )
+    #
     # Nesting lists, incrementing even more.
     string = <<-heredoc.unindent
       - one
@@ -1988,11 +1902,9 @@ skip
       </ul>
     heredoc
     result = @o.lists( string )
-    #assert_equal(
-      #expected,
-      #result,
-    #)
-
+    # FIXME
+    #assert_equal( expected, result )
+    #
     # Nesting lists, incrementing a lot, then decrementing a lot.
     string = <<-heredoc.unindent
       - one
@@ -2014,18 +1926,14 @@ skip
       </ul>
     heredoc
     result = @o.lists( string )
-    #assert_equal(
-      #expected,
-      #result,
-    #)
-=end
-
-# -----------------------------------
-
-=begin
-    # TODO:  Mixed lists
-    assert_equal(
-      ( <<-heredoc.unindent
+    # FIXME
+    #assert_equal( expected, result )
+    #
+    string = <<-heredoc.unindent
+        - foo
+        # bar
+      heredoc
+    expected = <<-heredoc.unindent
         <ul>
         <li>one</li>
         </ul>
@@ -2033,20 +1941,24 @@ skip
         <li>two</li>
         </ol>
       heredoc
-      ).chomp,
-      @o.lists( <<-heredoc.unindent
-        - foo
-        # bar
-      heredoc
-      ),
-    )
-
-# TODO:  Mixed lists, incrementing a lot.
-# TODO:  Mixed lists, incrementing then decrementing a lot.
-
+    expected.chomp!
+    result = @o.lists( string )
+    # TODO:  Mixed lists
+    # FIXME
+    #assert_equal( expected, result )
+    #
     # And now let's try to break the damned thing!
-    assert_equal(
-      ( <<-heredoc.unindent
+    string = <<-heredoc.unindent
+      -- one
+      ## two
+      - three
+      -- four
+      --- five
+      -----
+      # oh
+      ### here
+      heredoc
+    expected = <<-heredoc.unindent
         <ul>
         <li>
         <ul>
@@ -2084,42 +1996,26 @@ skip
         </li>
         </ol>
       heredoc
-      ).chomp,
-      @o.lists( <<-heredoc.unindent
-      -- one
-      ## two
-      - three
-      -- four
-      --- five
-      -----
-      # oh
-      ### here
-      heredoc
-      ),
-    )
-=end
-  end
+    expected.chomp!
+    result = @o.lists( string )
+    # FIXME
+    # TODO:  Mixed lists
+    #assert_equal( expected, result )
+    #
+    #
+  end # def test_lists()
 
-
-=begin
-# TODO:  Go over this and redo as necessary..
   def test_blocks_array()
-
-skip
-
+    #
     # No match, no whitespace leading any lines ( I'm using heredoc.unindent )
     string = <<-heredoc.unindent
       one
       two
     heredoc
-    expected = [
-      "one\ntwo\n",
-    ]
+    expected = [ "one\ntwo\n" ]
     result = @o.blocks_array( string )
     assert_equal_array( expected, result )
-
-# FIXME:  This isn't right.  There should be an odd number of elements, starting with non-matches.
-# But if this is wrong, then it means anything else relying on split_string_by_line() needs to be investigated.
+    #
     # A basic match.
     # Preserve all whitespace. ( I'm not using heredoc.unindent )
     string = <<-heredoc
@@ -2132,7 +2028,7 @@ skip
     ]
     result = @o.blocks_array( string )
     assert_equal_array( expected, result )
-
+    #
     # Text before and after.  ( .unindent will preserve the tabbing of the lines with 'one' and 'two' )
     string = <<-heredoc.unindent
       before
@@ -2147,7 +2043,7 @@ skip
     ]
     result = @o.blocks_array( string )
     assert_equal_array( expected, result )
-
+    #
     # Multiple separate blocks, also with regular text.  ( .unindent will preserve the tabbing of the lines with 'one', 'two', 'three' and 'four' )
     string = <<-heredoc.unindent
       before
@@ -2166,15 +2062,12 @@ skip
     ]
     result = @o.blocks_array( string )
     assert_equal_array( expected, result )
+    #
+    #
+  end # test_blocks_array()
 
-  end
-=end
-
-=begin
   def test_blocks()
-
-skip
-
+    #
     #
     string = <<-heredoc.unindent
       foo
@@ -2183,11 +2076,8 @@ skip
       foo
     heredoc
     result = @o.blocks( string )
-    assert_equal(
-      expected,
-      result,
-    )
-
+    assert_equal( expected, result )
+    #
     #
     string = <<-heredoc.unindent
       before
@@ -2200,11 +2090,8 @@ skip
     heredoc
     expected.chomp!
     result = @o.blocks( string )
-    assert_equal(
-      expected,
-      result,
-    )
-
+    assert_equal( expected, result )
+    #
     #
     string = <<-heredoc.unindent
       before
@@ -2219,11 +2106,8 @@ skip
     heredoc
     #expected.chomp!
     result = @o.blocks( string )
-    assert_equal(
-      expected,
-      result,
-    )
-
+    assert_equal( expected, result )
+    #
     #
     string = <<-heredoc.unindent
       before
@@ -2240,38 +2124,30 @@ skip
     heredoc
     #expected.chomp!
     result = @o.blocks( string )
-    assert_equal(
-      expected,
-      result,
-    )
-
+    assert_equal( expected, result )
+    #
     # Not processing html via not_in_html() is done at this level, and not within blocks() or blocks_array()
     string = <<-heredoc.unindent
       <table>
        <tr><td></td></tr>
       </table>
     heredoc
-    expected = [
-      '',
-      string.chomp,
-      "\n",
-    ]
+    expected = string
     result = @o.not_in_html( string ) { |i| @o.blocks(i) }
-    assert_equal_array( expected, result )
-
-  # Make sure that any html code isn't being forced out of the pre block.  The pre block should include everything as long as it shares that same left column of spaces.
-  string = '  before <html>should be on the same line</html> after'
-  expected = '<pre>before <html>should be on the same line</html> after</pre>'
-  result = @o.blocks( string )
-  assert_equal(
-    expected,
-    result,
-  )
-
-  end
-=end
+    assert_equal( expected, result )
+    #
+    # Make sure that any html code isn't being forced out of the pre block.  The pre block should include everything as long as it shares that same left column of spaces.
+    # FIXME:  I'm getting my 'even number of elements' warning.
+    string = '  before <html>should be on the same line</html> after'
+    expected = "<pre>before <html>should be on the same line</html> after\n</pre>"
+    result = @o.blocks( string )
+    assert_equal( expected, result )
+    #
+    #
+  end # def test_blocks()
 
   def test_line_partition_1()
+    #
     # Given a string, a beginning and an ending.
     # Separate the string into an alternating array of matches and non-matches.
     # Output type one.  The matched blocks are placed inside.
@@ -2350,9 +2226,12 @@ skip
                               'omit'
                             )
     assert_equal_array( expected, result )
-  end
+    #
+    #
+  end # test_line_partition_1()
 
   def test_line_partition_2()
+    #
     # Output type two.  The matched blocks are placed outside.
     # [ ...begin, ***, end...begin, ***, end... ]
     string = <<-heredoc.unindent
@@ -2390,9 +2269,13 @@ skip
                               'out',
                             )
     assert_equal_array( expected, result )
-  end
+    #
+    #
+  end # test_line_partition_2()
 
   def test_line_partition_3()
+    #
+    #
     # Allow multiple separator triggers.
     string = <<-heredoc.unindent
       This is a string
@@ -2491,9 +2374,12 @@ skip
                               'out',
                             )
     assert_equal_array( expected, result )
-  end
+    #
+    #
+  end # test_line_partition_3()
 
   def test_line_partition_4()
+    #
     # Allow each separator trigger to have multiple beginnings and endings.
     string = <<-heredoc.unindent
       This is a string
@@ -2565,6 +2451,8 @@ skip
                               'omit',
                             )
     assert_equal_array( expected, result )
-  end
+    #
+    #
+  end # test_line_partition_4()
 
 end # class Test_Markup < MiniTest::Unit::TestCase

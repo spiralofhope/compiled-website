@@ -36,10 +36,10 @@ live=$working/live
   "$working/compiled-website.txt" \
   "$live/css/common.css" \
   "$repo/rb/header_and_footer.rb" \
-  "$repo/rb/lib/lib_main.rb" \
   "$src/w/compiled-website-to-do.asc" \
   "$src/w/compiled-website-bugs.asc" \
   "$src/w/sandbox.asc" \
+  "$repo/rb/lib/lib_main.rb" \
   "$repo/rb/tests/tc_main.rb" \
   "$repo/CHANGELOG" \
   &
