@@ -5,6 +5,12 @@
 
 = News =
 
+2011-11-03
+
+Work has halted on the Ruby version of this project.  I'm now
+working on a rewrite in Mythryl.
+
+
 2011-08-20
 
 Everything has been imported from my local archives into git.  I 

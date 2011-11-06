@@ -1,5 +1,9 @@
 #!/bin/env sh
 
+# IMPORTANT TODO:
+# chmod -R o+r spiralofhope.com ; chmod -R g+r spiralofhope.com
+
+
 __FILE__=$( \readlink -f $0 )
 working=$( \dirname $__FILE__ )
 
@@ -18,12 +22,33 @@ working=$working/../..
 #  mirror --reverse --delete --parallel=2 --verbose --ignore-time ;\
 #  "
 
+# I don't think I need to do this, since I have the right parameters for mirror now.
+# set mirror:set-permissions false ;\
+# If the  mirror:set-permissions  isn't working, then do this:
+#` # Fix permissions (group, then other) ` \
+#chmod -R g+r . ;\
+#chmod -R o+r . ;\
+
 \lftp -c "
   ` # TLS/SSL is automatically negotiated if supported by the server. ` \
-  open -u $user,$pass $sftp$server$directory ;\
-  mirror --reverse --delete --parallel=2 --verbose --ignore-time ;\
+  open \
+    -u $user,$pass \
+    $sftp$server$directory \
+    ;\
+  ` # Push content TO the server. ` \
+  mirror \
+    --continue \
+    --delete \
+    ` # Symbolic links are sent as their source file. ` \
+    --dereference \
+    --ignore-time \
+    --no-perms \
+    --no-umask \
+    --parallel=2 \
+    --reverse \
+    --verbose \
+    ;\
   "
-
 
 : <<'heredoc'
 \echo " * Generating a new sitemap.xml.."

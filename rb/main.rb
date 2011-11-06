@@ -459,6 +459,7 @@ class Markup
   end
 
   def links_plain( string )
+return string
     rx = punctuation_rx( links_rx, %r{} )
     until string.match( rx ) == nil do
       string.sub!( rx, '\1<a href="\3\4\5\6">\3\4\5\6</a>\7\8' )
