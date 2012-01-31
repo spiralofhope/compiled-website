@@ -1,4 +1,4 @@
-#!/bin/env bash
+#!/bin/bash
 
 :<<'heredoc'
 TODO:  Ask before performing actions.  For example, I may want to commit but not push.

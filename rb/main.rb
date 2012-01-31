@@ -1140,7 +1140,7 @@ class Main
     # The main loop - once a second.
     fork_helper( pid_file ) do
       check_for_source_changes( local_wiki, remote_wiki, 'wiki' )
-      check_for_source_changes( local_blog, remote_blog, 'blog' )
+      #check_for_source_changes( local_blog, remote_blog, 'blog' )
   #    vputs Time.now
     end
   end # main

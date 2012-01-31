@@ -1,15 +1,16 @@
-#!/bin/env sh
+#!/bin/sh
 
 # IMPORTANT TODO:
 # chmod -R o+r spiralofhope.com ; chmod -R g+r spiralofhope.com
 
-
+# --
+# Read in the .ini
 __FILE__=$( \readlink -f $0 )
 working=$( \dirname $__FILE__ )
-
 \. $working/../../compiled-website.ini
-working=$working/../..
+# --
 
+working=$working/../..
 \cd $working/live
 
 # --
@@ -71,6 +72,7 @@ heredoc
 = Website Troubleshooting =
 
 - Manually SFTP in:
+
   __FILE__=$( \readlink -f $0 )
   \. ./compiled-website.ini
   \lftp -e "open -u $user,$pass $sftp$server$directory"
