@@ -73,7 +73,6 @@ heredoc
 
 - Manually SFTP in:
 
-  __FILE__=$( \readlink -f $0 )
   \. ./compiled-website.ini
   \lftp -e "open -u $user,$pass $sftp$server$directory"
 
