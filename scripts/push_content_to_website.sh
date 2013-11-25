@@ -10,6 +10,8 @@ working=$( \dirname $__FILE__ )
 \. $working/../../compiled-website.ini
 # --
 
+echo $pass
+
 working=$working/../..
 \cd $working/live
 
@@ -33,7 +35,7 @@ working=$working/../..
 \lftp -c "
   ` # TLS/SSL is automatically negotiated if supported by the server. ` \
   open \
-    -u $user,$pass \
+    -u $user,\"$pass\" \
     $sftp$server$directory \
     ;\
   ` # Push content TO the server. ` \
@@ -74,7 +76,7 @@ heredoc
 - Manually SFTP in:
 
   \. ./compiled-website.ini
-  \lftp -e "open -u $user,$pass $sftp$server$directory"
+  \lftp -e "open -u $user,\"$pass\" $sftp$server$directory"
 
 - Files are not found when surfing to them with a browser.
 -- FTP in manually and `chmod a+x` the directories.
