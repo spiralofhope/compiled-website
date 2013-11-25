@@ -1,4 +1,4 @@
-#!/bin/env sh
+#!/usr/bin/env sh
 
 :<<'heredoc'
 This script deletes all the compiled .html files.

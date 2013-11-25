@@ -22,7 +22,7 @@ live=$working/live
 
 \cd $working
 
-/l/Firefox/bin/firefox \
+\firefox \
         -new-tab "file://$working/live/compiled-website-to-do.html" \
         -new-tab "file://$working/live/compiled-website-bugs.html" \
         -new-tab "file://$working/live/sandbox.html" \
