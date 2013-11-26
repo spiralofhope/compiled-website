@@ -10,8 +10,6 @@ working=$( \dirname $__FILE__ )
 \. $working/../../compiled-website.ini
 # --
 
-echo $pass
-
 working=$working/../..
 \cd $working/live
 
