@@ -977,16 +977,13 @@ two         <- this is included in the full "html" block.
       # FIXME:  This is ugly and not reusable.
       # I should be using some regex magic.
       # FIXME:  Combine rb\n and rb;
-      elsif string[i][0..2] == "rb\n" then
+      elsif string[i][0..1].chomp == "rb" then
         before = "<pre class='brush: #{ get_line( string[i], 1 ) }'>"
         string[i] = delete_first_line( string[i] )
-      elsif string[i][0..2] == "rb;" then
+      elsif string[i][0..1].chomp == "sh" then
         before = "<pre class='brush: #{ get_line( string[i], 1 ) }'>"
         string[i] = delete_first_line( string[i] )
-      elsif string[i][0..2] == "sh\n" then
-        before = "<pre class='brush: #{ get_line( string[i], 1 ) }'>"
-        string[i] = delete_first_line( string[i] )
-      elsif string[i][0..3] == "lua\n" then
+      elsif string[i][0..2].chomp == "lua" then
         before = "<pre class='brush: #{ get_line( string[i], 1 ) }'>"
         string[i] = delete_first_line( string[i] )
       else
