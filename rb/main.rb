@@ -1,4 +1,4 @@
-#!/bin/env ruby
+#!/bin/env  ruby
 
 =begin
 Implement an exception list for not_in_html() / split_string_html(), so that things like automatic linking will work within <em>
@@ -419,7 +419,7 @@ class Markup
       if $~ != nil then
         length = $~[1].length
         br = "<br />\n" * ( length - 2 )
-        string.gsub!( $~[0], "</p>\n#{ br }<p>" )
+        string.gsub!( $~[0], "</p>\n#{ br }\n#{ br }<p>" )
       end
       string
     }
