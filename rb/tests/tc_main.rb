@@ -719,6 +719,70 @@ class Test_Markup < MiniTest::Unit::TestCase
   end # test_paragraphs()
 
   def test_horizontal_rules()
+    # --
+    # -- 1x hyphen
+    # --
+    #
+    #
+    string = <<-heredoc.unindent
+        line one
+      heredoc
+    expected = string
+    result = @o.horizontal_rules( string )
+    assert_equal( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
+        line one
+        
+        -
+        
+        line two
+      heredoc
+    expected = <<-heredoc.unindent
+        line one
+        
+        <hr>
+        
+        line two
+      heredoc
+    result = @o.horizontal_rules( string )
+    assert_equal( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
+        line one
+        -
+        line two
+      heredoc
+    expected = <<-heredoc.unindent
+        line one
+        <hr class="small">
+        line two
+      heredoc
+    result = @o.horizontal_rules( string )
+    assert_equal( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
+        Test >
+        -
+        
+        content
+      heredoc
+    expected = <<-heredoc.unindent
+        Test >
+        <hr class="small">
+        
+        content
+      heredoc
+    result = @o.horizontal_rules( string )
+    assert_equal( expected, result )
+    #
+    #
+    # --
+    # -- 2x hyphen
+    # --
     #
     #
     string = <<-heredoc.unindent
@@ -764,6 +828,128 @@ class Test_Markup < MiniTest::Unit::TestCase
     string = <<-heredoc.unindent
         Test >
         --
+        
+        content
+      heredoc
+    expected = <<-heredoc.unindent
+        Test >
+        <hr class="small">
+        
+        content
+      heredoc
+    result = @o.horizontal_rules( string )
+    assert_equal( expected, result )
+    #
+    #
+    # --
+    # -- 3x hyphen
+    # --
+    #
+    #
+    string = <<-heredoc.unindent
+        line one
+      heredoc
+    expected = string
+    result = @o.horizontal_rules( string )
+    assert_equal( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
+        line one
+        
+        ---
+        
+        line two
+      heredoc
+    expected = <<-heredoc.unindent
+        line one
+        
+        <hr>
+        
+        line two
+      heredoc
+    result = @o.horizontal_rules( string )
+    assert_equal( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
+        line one
+        ---
+        line two
+      heredoc
+    expected = <<-heredoc.unindent
+        line one
+        <hr class="small">
+        line two
+      heredoc
+    result = @o.horizontal_rules( string )
+    assert_equal( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
+        Test >
+        ---
+        
+        content
+      heredoc
+    expected = <<-heredoc.unindent
+        Test >
+        <hr class="small">
+        
+        content
+      heredoc
+    result = @o.horizontal_rules( string )
+    assert_equal( expected, result )
+    #
+    #
+    # --
+    # -- 4x hyphen
+    # --
+    #
+    #
+    string = <<-heredoc.unindent
+        line one
+      heredoc
+    expected = string
+    result = @o.horizontal_rules( string )
+    assert_equal( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
+        line one
+        
+        ----
+        
+        line two
+      heredoc
+    expected = <<-heredoc.unindent
+        line one
+        
+        <hr>
+        
+        line two
+      heredoc
+    result = @o.horizontal_rules( string )
+    assert_equal( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
+        line one
+        ----
+        line two
+      heredoc
+    expected = <<-heredoc.unindent
+        line one
+        <hr class="small">
+        line two
+      heredoc
+    result = @o.horizontal_rules( string )
+    assert_equal( expected, result )
+    #
+    #
+    string = <<-heredoc.unindent
+        Test >
+        ----
         
         content
       heredoc

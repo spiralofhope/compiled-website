@@ -427,10 +427,29 @@ class Markup
   end
 
   def horizontal_rules( string )
+    # 1x hyphen
+    #   With an empty space above and below.
+    string.gsub!( /\n\n\-+\n\n/m, "\n\n<hr>\n\n" )
+    #   With content either above or below.
+    string.gsub!( /^\-+$/, '<hr class="small">' )
+
+    # 2x hyphen
     #   With an empty space above and below.
     string.gsub!( /\n\n\-\-+\n\n/m, "\n\n<hr>\n\n" )
     #   With content either above or below.
     string.gsub!( /^\-\-+$/, '<hr class="small">' )
+
+    # 3x hyphen
+    #   With an empty space above and below.
+    string.gsub!( /\n\n\-\-\-+\n\n/m, "\n\n<hr>\n\n" )
+    #   With content either above or below.
+    string.gsub!( /^\-\-\-+$/, '<hr class="small">' )
+
+    # 4x hyphen
+    #   With an empty space above and below.
+    string.gsub!( /\n\n\-\-\-\-+\n\n/m, "\n\n<hr>\n\n" )
+    #   With content either above or below.
+    string.gsub!( /^\-\-\-\-+$/, '<hr class="small">' )
     return string
   end
 
