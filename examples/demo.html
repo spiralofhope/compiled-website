@@ -89,7 +89,9 @@ rss-feed-icon-16px-svg.png
 <p class="p0">
 <p><a href="compiled-website.html">Compiled Website</a> > Demo
 <hr class="small"></p>
+
 <p>(<a href="https://github.com/spiralofhope/compiled-website/blob/master/examples/demo.asc">View the source of this page</a>, <a href="https://github.com/spiralofhope/compiled-website/raw/master/examples/demo.asc">raw</a>)</p>
+
 <p><div style="color: black; background-color:
 #FFFAF5
 ; border: 1px solid 
@@ -106,34 +108,44 @@ News
 <li>Also note that there was a massive everything-breaking rewrite, and I still have not picked up the pieces yet.</li>
 </ul>
 </div></p>
+
 <p></p><div class="s1"><h1>Text</h1><p>
 Type as usual!</p>
+
 <p></p><div class="s2"><h2>Merged Paragraphs</h2><p>
 Sentences which are next to oneanother are merged into one single paragraph.  This is how HTML works normally.</p>
+
 <p><pre>An example sentence.
 An example sentence.
 =>
 </pre>
 An example sentence.
 An example sentence.</p>
+
 <p></p><div class="s3"><h3>Manually-separated Paragraphs</h3><p>
 If you wanted to manually separate lines of text, you can always type a <tt>&lt;br></tt> tag.</p>
+
 <p><pre>An example sentence.&lt;br>
 An example sentence.
 =>
 </pre>
 An example sentence.<br>
 An example sentence.</p>
+
 <p></p></div></div><div class="s2"><h2>Separate Paragraphs</h2><p>
 To make paragraphs, have a blank line between your sentences:</p>
+
 <p><pre>An example sentence.
 </pre>
 An example sentence.
 =>
 An example sentence.</p>
+
 <p>An example sentence.</p>
+
 <p><hr class="small">
 Paragraphs will be forced further apart if more space is put between them:</p>
+
 <p><pre>An example sentence.
 
 
@@ -141,6 +153,8 @@ An example sentence.
 =>
 </pre>
 An example sentence.</p>
+<br />
+
 <br />
 <p>An example sentence.
 
@@ -157,30 +171,44 @@ An example sentence.</p>
 <br />
 <br />
 <br />
+
+<br />
+<br />
+<br />
 <p>An example sentence.
 
 </p></div><div class="s2"><h2>Sections</h2><p>
 Define sections like so:</p>
+
 <p><pre>= Title =
 </pre>
 The more = you use, the smaller the title will be.</p>
+
 <p><!-- TODO
 The text within the section will be automatically indented a little bit, to help readability.</p>
+
 <p>When the user hovers over any of the section headers, a link to that section will appear. --></p>
+
 <p><!-- TODO
 </p><div class="s3"><h3>Table of Contents</h3><p>
 When you create sections, a table of contents will be automatically generated at the top-right.  It is hidden by default.</p>
+
 <p><em>Note that if you add or remove sections, the anchors within the page will probably become broken.</em>
 --></p>
+
 <p></p></div></div><div class="s2"><h2>Horizontal Rules</h2><p>
 Horizontal rules are created with three or more hyphens (dashes), starting at the beginning of the line and with no text following the hyphens.</p>
+
 <p>If for some reason you don't want this functionality, then you could instead encapsulate some of it in some nonexistent HTML code like this:</p>
+
 <p><pre>--&lt;nowiki>-&lt;/nowiki>
 =>
 </pre>
 --<nowiki>-</nowiki></p>
+
 <p></p><div class="s3"><h3>Simple Horizontal Rules</h3><p>
 With no content directly above or below:</p>
+
 <p><pre>text
 
 --&#x2010;
@@ -189,10 +217,14 @@ text
 =>
 </pre>
 text</p>
+
 <p><hr></p>
+
 <p>text</p>
+
 <p></p></div><div class="s3"><h3>Small Horizontal Rules</h3><p>
 With content above and/or below it, it'll become smaller:</p>
+
 <p><pre>text
 --&#x2010;
 text
@@ -201,9 +233,12 @@ text
 text
 <hr class="small">
 text</p>
+
 <p></p></div></div></div><div class="s1"><h1>HTML</h1><p>
 HTML of any form can be inserted by hand.  However, you should limit yourself to tags that are appropriate in the &lt;body> area.  Also, if used, <a href="html-tidy.html">HTML Tidy</a> may be quite aggressive in cleaning things up.</p>
+
 <p>To learn more about HTML, visit <a href="http://www.w3.org">the World Wide Web Consortium (W3C)</a></p>
+
 <p><pre>&lt;table>
 &lt;tr>&lt;th colspan="2">An example table&lt;/th>&lt;/tr>
 &lt;tr>&lt;td>one&lt;/td>&lt;td>two&lt;/td>&lt;/tr>
@@ -216,7 +251,9 @@ HTML of any form can be inserted by hand.  However, you should limit yourself to
 <tr><td>one</td><td>two</td></tr>
 <tr><td>three</td><td>four</td></tr>
 </table></p>
+
 <p><hr></p>
+
 <p><pre>&lt;style type="text/css">
 p.test {color:red;}
 &lt;/style>
@@ -231,73 +268,97 @@ p.test {color:red;}
 <p class="test">
 Inline styles are possible.
 </p></p>
+
 <p></p></div><div class="s1"><h1>Simple text markup language</h1><p>
 </p><div class="s2"><h2>Basic markup</h2><p>
 <pre><nowiki>*bold* **big** /emphasis/ _underline_ `truetype`</nowiki>
 =>
 </pre>
 <strong>bold</strong> <big>big</big> <em>emphasis</em> <u>underline</u> <tt>truetype</tt></p>
+
 <p></p></div><div class="s2"><h2>Nested markup</h2><p>
 <!-- TODO:  It'll be easy to implement tags like <strong>_text_</strong>  where <tt>*_</tt> and <tt>_*</tt> are the opening/closing tags.. --></p>
+
 <p>Nested markup is not <a href="sup.html">sup</a>ported.</p>
+
 <p><pre><nowiki>* _underline bold_ bold *</nowiki>
 =>
 </pre>
 <strong> _underline bold_ bold </strong></p>
+
 <p></p></div><div class="s2"><h2>Markup within HTML</h2><p>
 You can use an invalid HTML tag (&lt;nowiki> for example) to prevent one single line from being marked up.</p>
+
 <p><pre>&lt;nowiki>_not marked up_&lt;/nowiki>
 =>
 </pre>
 <nowiki>_not marked up_</nowiki></p>
+
 <p>The invalid HTML tag is recognized across multiple lines:</p>
+
 <p><pre>&lt;nowiki>_not marked up_&lt;br>
 _not marked up either_&lt;/nowiki>
 =>
 </pre>
 <nowiki>_not marked up_<br>
 _not marked up either_</nowiki></p>
+
 <p>But you can also use perfectly valid HTML if you wish:</p>
+
 <p><pre><nowiki>&lt;u> *just underlined* &lt;/u></nowiki>
 =>
 </pre>
 <u> *just underlined* </u></p>
+
 <p></p></div><div class="s2"><h2>Gotchas</h2><p>
 </p><div class="s3"><h3>Strikethrough</h3><p>
 Strikethrough was intentionally not implemented, use one of:</p>
+
 <p><pre>&lt;s>strikethrough&lt;/s>&lt;br>
 &lt;del>delete&lt;/del>
 =>
 </pre>
 <s>strikethrough</s><br>
 <del>delete</del></p>
+
 <p></p></div><div class="s3"><h3>Italics</h3><p>
 Using regular punctuation can sometimes lead to unexpected results.</p>
+
 <p><pre>Look at <nowiki>/tmp then /wow some italicised text!/</nowiki> is not quite working.
 =>
 </pre>
 Look at <em>tmp then /wow some italicised text!</em> is not quite working.</p>
+
 <p>In that example, you can see that the user may expect to see the slash in <tt>/tmp</tt>, but it is instead appearing in <tt>/wow</tt>.  In the example above, the plain <tt>/tmp</tt> could be replaced with one of these:</p>
+
 <p><pre>Look at <nowiki>&lt;nowiki>/tmp&lt;/nowiki> then /wow some italicised text!/</nowiki> is not quite working.
 =>
 </pre>
 Look at <nowiki>/tmp</nowiki> then <em>wow some italicised text!</em> is not quite working.</p>
+
 <p><pre>Look at <nowiki>`/tmp` then /wow some italicised text!/</nowiki> is not quite working.
 =>
 </pre>
 Look at <tt>/tmp</tt> then <em>wow some italicised text!</em> is not quite working.</p>
+
 <p>The first solution is fine, but this last solution is recommended for displaying directory names in a nice way.</p>
+
 <p></p></div></div></div><div class="s1"><h1>Links</h1><p>
 </p><div class="s2"><h2>New Local Links</h2><p>
 FIXME - bugged/not finished.</p>
+
 <p><pre><nowiki>[[new file]]</nowiki>
 =>
 </pre>
-<a class="new" href="file:///mnt/320-data/ruby/compiled-website/src/w/new-file.asc">new file</a></p>
+<a class="new" href="file:///mnt/320/linux-data/ruby/compiled-website/src/w/new-file.asc">new file</a></p>
+
 <p>When creating such a link, that <a href="new-file.html">new file</a> will be created and intelligently-coloured for you to click on and edit like any existing document.</p>
+
 <p></p></div><div class="s2"><h2>Automatic Local Links</h2><p>
 Just type with regular text, and each word and phrase will be scanned.  If an existing document is found, then a link is generated automatically. </p>
+
 <p>The main page on this site is called <a href="index.html">index</a>, so that word will become linked.  </p>
+
 <p><ul>
 <li>For each section, only the first match will be turned into a link.</li>
 <li>A page will not generate links to itself.</li>
@@ -306,6 +367,7 @@ Just type with regular text, and each word and phrase will be scanned.  If an ex
 <li>FIXME:  Markup around automatic local links is not yet supported.  Words become links, but then the markup is ignored.  <em>index</em></li>
 </ul>
 You can use a dud HTML tag like &lt;nowiki> to prevent text from being marked up.</p>
+
 <p>Some forgiveness is allowed.  So for a filename called '<a href="oldschool-linux.html">oldschool-linux</a>.asc' you can type several things:
 <ul>
 <li>oldschool-linux (the actual filename)</li>
@@ -314,27 +376,34 @@ You can use a dud HTML tag like &lt;nowiki> to prevent text from being marked up
 <li>OlDSchooL LINUX (crazy-person)</li>
 </ul>
 Just remember only the first occurrence will be linked.</p>
+
 <p>Limitations:</p>
+
 <p><ul>
 <li>Much more work needs to be done to support local links which themselves have punctuation.  With this functionality, it becomes extremely slow to process each file.</li>
 </ul>
 Reporting bugs:</p>
+
 <p><ul>
 <li>If you have a case where you are expecting a link and don't see one, then give the file name and <em>the whole paragraph</em> of text.</li>
 </ul>
 </p></div><div class="s2"><h2>Plain Links</h2><p>
 Links in plain text will become HTML links. Does http:// ftp:// gopher:// irc:// file://</p>
+
 <p><pre><nowiki>http://example.com</nowiki>
 <nowiki>http://example.com/something</nowiki>
 =>
 </pre>
 http://example.com
 http://example.com/something</p>
+
 <p>Can also handle ports (but does no error checking on them)</p>
+
 <p><pre><nowiki>http://example.com:1234/foo/bar.html</nowiki>
 =>
 </pre>
 http://example.com:1234/foo/bar.html</p>
+
 <p></p></div><div class="s2"><h2>Named Links</h2><p>
 <pre><nowiki>[http</nowiki>://example.com display]
 <nowiki>[http</nowiki>://example.com/something display2]
@@ -342,21 +411,30 @@ http://example.com:1234/foo/bar.html</p>
 </pre>
 <a href="http://example.com">display</a>
 <a href="http://example.com/something">display2</a></p>
+
 <p>Can also handle ports (but does no error checking on them)</p>
+
 <p>These links can be customized to display differently from internal links.</p>
+
 <p></p></div><div class="s2"><h2>Numbered Links</h2><p>
 Bracketed links in the document will be numbered.</p>
+
 <p><pre><nowiki>[http://example.com]</nowiki>
 <nowiki>[http://example.com/something]</nowiki>
 =>
 </pre>
 <a href="http://example.com">[1]</a> <a href="http://example.com/something">[2]</a></p>
+
 <p>Can also handle ports (but does no error checking on them)</p>
+
 <p>These links can be customized to display differently from internal links.</p>
+
 <p></p></div></div><div class="s1"><h1>Lists</h1><p>
 Note that markup and other functionality is allowed in any of these blocks:</p>
+
 <p></p><div class="s2"><h2>Unordered Lists</h2><p>
 FIXME - Lists should NOT process within blocks (one space) but should within multiple spaces (tabbed/formatted)</p>
+
 <p><pre>- Item
 <ul>
 <li>
@@ -377,6 +455,7 @@ FIXME - Lists should NOT process within blocks (one space) but should within mul
 </ul>
 </p></div><div class="s2"><h2>Ordered Lists</h2><p>
 FIXME</p>
+
 <p><pre># Item
 <ol>
 <li>
@@ -397,6 +476,7 @@ FIXME</p>
 </ol>
 </p></div><div class="s2"><h2>Indented Blocks</h2><p>
 TODO - not implemented yet</p>
+
 <p><pre>: item
 :: nested
 : item
@@ -405,8 +485,10 @@ TODO - not implemented yet</p>
 : item
 :: nested
 : item</p>
+
 <p></p></div><div class="s2"><h2>Preformatted Blocks</h2><p>
 One or more spaces with zero or more characters.</p>
+
 <p><pre>Item
  Nested
 Item
@@ -417,7 +499,9 @@ Item
 Item
 </pre>
 FIXME - busted / not thought out.</p>
+
 <p>Regular markup is respected within these blocks.</p>
+
 <p><pre><nowiki>/italics/ *bold* http://example.com <a href="http://example.com">[3]</a>
 =>
 /italics/ *bold* http://example.com <a href="http://example.com">[4]</a>
@@ -473,7 +557,7 @@ $40 discount with the promo code SPIRALOFHOPE
     <em><small>(<a href="TODO/sitemap.html">sitemap</a>)</small></em>
     <br>
 -->
-    <a style="display: none;" accesskey="e" href="file:///mnt/320-data/ruby/compiled-website/src/w/compiled-website-demo.asc">&nbsp;</a>
+    <a style="display: none;" accesskey="e" href="file:///mnt/320/linux-data/ruby/compiled-website/src/w/compiled-website-demo.asc">&nbsp;</a>
     </div> <!-- footer -->
 <!-- Start of StatCounter Code for Default Guide -->
 <script type="text/javascript">

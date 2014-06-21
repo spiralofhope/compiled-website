@@ -732,7 +732,7 @@ class Test_Markup < MiniTest::Unit::TestCase
     string = <<-heredoc.unindent
         line one
         
-        ---
+        --
         
         line two
       heredoc
@@ -749,7 +749,7 @@ class Test_Markup < MiniTest::Unit::TestCase
     #
     string = <<-heredoc.unindent
         line one
-        ---
+        --
         line two
       heredoc
     expected = <<-heredoc.unindent
@@ -763,7 +763,7 @@ class Test_Markup < MiniTest::Unit::TestCase
     #
     string = <<-heredoc.unindent
         Test >
-        ---
+        --
         
         content
       heredoc

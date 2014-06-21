@@ -428,9 +428,9 @@ class Markup
 
   def horizontal_rules( string )
     #   With an empty space above and below.
-    string.gsub!( /\n\n\-\-\-+\n\n/m, "\n\n<hr>\n\n" )
+    string.gsub!( /\n\n\-\-+\n\n/m, "\n\n<hr>\n\n" )
     #   With content either above or below.
-    string.gsub!( /^\-\-\-+$/, '<hr class="small">' )
+    string.gsub!( /^\-\-+$/, '<hr class="small">' )
     return string
   end
 
