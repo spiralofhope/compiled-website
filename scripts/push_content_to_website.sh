@@ -69,13 +69,10 @@ heredoc
 #curlftpfs-root -f -d -o allow_other -o user="USERNAME:PASSWORD" HOST /mnt/ftp&
 
 : <<'heredoc'
-= Website Troubleshooting =
+= Website Troubleshooting
 
-- Manually SFTP in:
+== Files are not found when surfing to them with a browser
 
-  \. ./compiled-website.ini
-  \lftp -e "open -u $user,\"$pass\" $sftp$server$directory"
+FTP in manually and `chmod a+x` the directories.
 
-- Files are not found when surfing to them with a browser.
--- FTP in manually and `chmod a+x` the directories.
 heredoc
