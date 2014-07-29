@@ -73,11 +73,8 @@ class Markup
         </div>
         <div class="float-right">
       
-      <FORM METHOD=POST ACTION="http://www.scroogle.org/cgi-bin/nbbw.cgi">
-      <INPUT type=text name="Gw" SIZE="25" MAXLENGTH="225" accesskey="f" value="Search">
-      <INPUT type=hidden name="n" value="2">
-      <INPUT type=hidden name="d" value="spiralofhope.com" CHECKED>
-      </FORM></center>
+      <!-- TODO - Search Box -->
+
       <!--
       TODO: RSS
       rss-feed-icon-16px-svg.png
