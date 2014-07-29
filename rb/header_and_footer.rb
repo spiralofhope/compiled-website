@@ -73,7 +73,25 @@ class Markup
         </div>
         <div class="float-right">
       
-      <!-- TODO - Search Box -->
+      <!--  Search Box  -->
+      <!--  Thanks to https://www.google.com/cse/tools/create_onthefly  -->
+      <FORM 
+        method="get" 
+        action="https://www.google.com/search" 
+      >
+      <INPUT
+        type="text" 
+        name="q" 
+        size="25" 
+        maxlength="255" 
+        accesskey="f" 
+      />
+      <input 
+        type="hidden" 
+        name="sitesearch" 
+        value="spiralofhope.com" 
+      />
+      </FORM>
 
       <!--
       TODO: RSS
