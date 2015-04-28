@@ -74,7 +74,6 @@ class Markup
         <div class="float-right">
       
       <!--  Search Box  -->
-      <!--  Thanks to https://www.google.com/cse/tools/create_onthefly  -->
       <FORM 
         method="get" 
         action="https://www.google.com/search" 
