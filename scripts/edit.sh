@@ -22,7 +22,8 @@ live=$working/live
 
 \cd $working
 
-\firefox \
+#\firefox \
+\palemoon \
         -new-tab "file://$working/live/compiled-website-to-do.html" \
         -new-tab "file://$working/live/compiled-website-bugs.html" \
         -new-tab "file://$working/live/sandbox.html" \
